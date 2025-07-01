@@ -1,0 +1,8 @@
+CleanCutPDF License Agreement
+
+Copyright (c) 2024 Ethan
+
+Permission is granted to use this software for personal or commercial use.
+You may not redistribute the installer without permission.
+
+Use this at your own risk. No warranties implied.
