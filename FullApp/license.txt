@@ -1,8 +1,35 @@
-CleanCutPDF License Agreement
+CleanCutPDF Splitter License Agreement
+Version 1.2
+© 2025 Ethan Brothers
 
-Copyright (c) 2024 Ethan
+IMPORTANT: PLEASE READ THIS LICENSE CAREFULLY BEFORE USING THE SOFTWARE.
 
-Permission is granted to use this software for personal or commercial use.
-You may not redistribute the installer without permission.
+This End User License Agreement (“Agreement”) is a legal agreement between you (“User”) and the creator (“Author”) of CleanCutPDF Splitter. By installing, copying, or using this software, you agree to be bound by the terms of this Agreement.
 
-Use this at your own risk. No warranties implied.
+1. GRANT OF LICENSE
+You are granted a non-exclusive, non-transferable license to use this software for personal or commercial use, subject to the terms outlined below.
+
+2. OWNERSHIP
+This software and all accompanying files, code, and materials are the intellectual property of Ethan Brothers. You may not reverse engineer, decompile, or disassemble any part of the software.
+
+3. RESTRICTIONS
+You may not:
+• Modify or create derivative works of this software without written permission.
+• Redistribute or resell the software without explicit written authorization.
+• Remove or alter copyright notices.
+
+4. DISCLAIMER OF WARRANTY
+This software is provided "as is" without warranty of any kind. The Author makes no guarantees as to performance, reliability, or suitability for any particular purpose.
+
+5. LIMITATION OF LIABILITY
+In no event shall the Author be liable for any damages arising from the use or inability to use this software, including but not limited to loss of data or business interruption.
+
+6. TERMINATION
+This license will terminate automatically if you breach any of the terms. Upon termination, you must destroy all copies of the software.
+
+7. GOVERNING LAW
+This agreement shall be governed by the laws of your jurisdiction.
+
+By clicking "I Agree" or installing this application, you acknowledge that you have read, understood, and agreed to the terms of this license.
+
+— CleanCutPDF Development

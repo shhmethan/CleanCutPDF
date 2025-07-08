@@ -1,38 +1,52 @@
-CleanCutPDF Splitter — Pre-Installation Information
+# CleanCutPDF Splitter — Installer Guide (v1.3)
 
-Version: 1.2
-Developer: Ethan Brothers
-Installation Size: ~75 MB
+**Version:** 1.3
+**Developer:** Ethan Brothers
+**File Size:** ~15 MB (.exe)
 
-Thank you for choosing CleanCutPDF Splitter!
+---
 
-Before proceeding with installation, please review the following:
+## 🖐 Welcome to CleanCutPDF
 
-RECOMMENDED SYSTEM REQUIREMENTS:
-• Windows 10 or higher (64-bit)
-• 4 GB RAM minimum
-• 150 MB available disk space
-• .NET Desktop Runtime or included Python 3.10+ standalone runtime
-• Admin privileges (optional, only if installing system-wide)
+CleanCutPDF Splitter is a polished, responsive desktop utility for splitting multipage PDFs into cleanly named, metadata-aware files. Built for speed and simplicity, v1.3 brings a more customizable, themeable, and accessible experience.
 
-APPLICATION OVERVIEW:
-CleanCutPDF Splitter is a user-friendly tool for splitting PDFs using marker detection, metadata tagging, and customizable export logic. It includes:
-• Drag-and-drop PDF support
-• Custom file naming using client/agency info
-• Auto removal of blank pages
-• Undo last export (Ctrl+Z)
-• Theme and font scaling
-• Customizable keybindings (stored in `keybinds.json`)
-• Export logs with search and filtering
+---
 
-DATA AND PRIVACY:
-• CleanCutPDF does not transmit data online or collect usage information.
-• All settings are saved locally to the user’s config directory:
-  %USERPROFILE%\.cleancutpdf
+## ✅ What’s New in Version 1.3
 
-INSTALLATION NOTES:
-• The app does not require internet access during install.
-• If you're upgrading from a previous version, old keybindings and settings will be preserved.
-• You may need to allow the application through Windows SmartScreen.
+- 🎨 Theme-aware fullscreen **loading animation**
+- 💖 Two custom pink themes: **Light Sydney** and **Dark Sydney**
+- 🔡 Selectable **font families** and live **font size** scaling
+- ⌨️ In-app **keybinding editor** with instant effect
+- 🧠 Improved **date validation** with specific error feedback
+- 📑 **Post-export summary** dialog with skipped page count
+- ✅ **Color-coded export logs** (no more confusing symbols)
+- 🧼 Refined UI layout: smarter spacing, cleaner tooltips
 
-To continue, click “Next” and accept the License Agreement.
+---
+
+## 🔧 Core Features
+
+- 📂 Drag-and-drop PDF support
+- ✂️ Smart split detection (e.g. `SPLIT HERE` markers)
+- 🧠 Auto file naming using client + agency metadata
+- 🧹 Optional blank page removal
+- 💾 Export log with live search + sort
+- ⌨️ Full keyboard shortcut support (editable via `keybinds.json`)
+- 🔁 Undo last export (with cleanup + logging)
+- 🔍 Scrollable parts view with client autofill
+- 🧠 Optional dark/light + pink theme switching
+
+---
+
+## 💻 System Notes
+
+- 🖥️ **Recommended OS:** Windows 10 or higher (64-bit)
+- 🧠 **Architecture:** 64-bit (x86_64)
+- 💾 **RAM:** 2 GB minimum (4 GB recommended)
+
+---
+
+## 🔒 Privacy & Data Location
+
+CleanCutPDF stores all data locally. No telemetry, tracking, or uploads.
