@@ -1,4 +1,7 @@
 # ───── IMPORTS ─────
+import hashlib
+import ssl
+import urllib
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -13,34 +16,47 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 import keyboard
 import tkinter.scrolledtext as st
 
-
 # ───── CONSTANTS & CONFIG ─────
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
 USER_DATA_DIR = Path.home() / ".cleancutpdf"
 
 USER_DATA_DIR.mkdir(exist_ok=True)
 SETTINGS_FILE = USER_DATA_DIR / "settings.json"
-GLOBAL_LOG_FILE = USER_DATA_DIR / "full.log"
-GLOBAL_KEYBINDS_FILE = USER_DATA_DIR / "keybinds.json"
-GLOBAL_PINK_LIGHT = USER_DATA_DIR / "pink_light.json"
-GLOBAL_PINK_DARK = USER_DATA_DIR / "pink_dark.json"
+LOG_FILE = USER_DATA_DIR / "full.log"
+KEYBINDS_FILE = USER_DATA_DIR / "keybinds.json"
+PINK_LIGHT = USER_DATA_DIR / "pink_light.json"
+PINK_DARK = USER_DATA_DIR / "pink_dark.json"
+SESSION_FILE = USER_DATA_DIR / "sessions.json"
+LICENSE_FILE = USER_DATA_DIR / "license.json"
 
 ACRONYMS = {"POA", "LLC", "INC", "LP", "LLP", "PLC", "DBA", "CPA", "PC", "PLLC", "LLLP"}
 THEMES = {
     "Light Blue": {"mode": "light", "theme": "blue"},
     "Dark Blue": {"mode": "dark", "theme": "blue"},
     "Dark Green": {"mode": "dark", "theme": "green"},
-    "Light Sydney": {"mode": "light", "theme": GLOBAL_PINK_LIGHT},
-    "Dark Sydney": {"mode": "dark", "theme": GLOBAL_PINK_DARK}
+    "Light Pink": {"mode": "light", "theme": PINK_LIGHT},
+    "Dark Pink": {"mode": "dark", "theme": PINK_DARK}
 }
 FONTS = ["Segoe UI", "Consolas", "Courier New", "Arial", "Tahoma", "Verdana"]
 DEFAULT_KEYBINDS = {
     "Open PDF": "ctrl+p",
+    "Close Tab": "ctrl+w",
     "Export PDFs": "ctrl+e",
     "Reset": "ctrl+r",
     "Quit": "ctrl+q",
     "Search Logs": "ctrl+f",
     "Undo Last Export": "ctrl+shift+z"
+}
+DEFAULT_SETTINGS = {
+    "font_family": "Segoe UI",
+    "font_size": 12,
+    "theme": "Light Blue",
+    "export_folder": "",
+    "retain_client_name": False,
+    "remove_blank_pages": True,
+    "export_log_enabled": True,
+    "auto_restore_session": True,
+    "tutorial_shown": False
 }
 SORT_MODES = [
     "Date ↑", "Date ↓",
@@ -56,7 +72,7 @@ def debug(*args, **kwargs):
     debug_log.append(full_message)
     print(full_message)
 def create_light_pink_theme(self):
-        if not GLOBAL_PINK_LIGHT.exists():
+        if not PINK_LIGHT.exists():
             pink_theme = {
                 "CTk": {
                     "fg_color": ["#fdf0f5", "#1e1e1e"],
@@ -172,10 +188,10 @@ def create_light_pink_theme(self):
                 }
             }
 
-            with open(GLOBAL_PINK_LIGHT, "w", encoding="utf-8") as f:
+            with open(PINK_LIGHT, "w", encoding="utf-8") as f:
                 json.dump(pink_theme, f, indent=2)
 def create_dark_pink_theme(self):
-    if not GLOBAL_PINK_DARK.exists():
+    if not PINK_DARK.exists():
         dark_theme = {
         "CTk": {
             "fg_color": ["#1e1e1e", "#1e1e1e"],
@@ -291,7 +307,7 @@ def create_dark_pink_theme(self):
         }
     }
 
-        with open(GLOBAL_PINK_DARK, "w", encoding="utf-8") as f:
+        with open(PINK_DARK, "w", encoding="utf-8") as f:
             json.dump(dark_theme, f, indent=2)
 
 # ───── MAIN APPLICATION ─────
@@ -299,16 +315,31 @@ class PDFSplitterApp(TkinterDnD.Tk):
     # ─── INITIALIZATION ───
     def __init__(self):
         super().__init__()
-        self.title("CleanCutPDF Splitter")
+        self.pdf_sessions = {}
+
+        # Load license info
+        if LICENSE_FILE.exists():
+            with open(LICENSE_FILE, "r") as f:
+                license_data = json.load(f)
+            self.licensed_company = license_data.get("company", "Unknown")
+            self.title(f"CleanCutPDF – Licensed to {self.licensed_company}")
+        else:
+            self.licensed_company = "Unlicensed"
+            self.title("CleanCutPDF")
         self.geometry("900x600")
         self.update_idletasks()
         self.state("zoomed")
+        self.suppress_autofill = False
 
         self.show_loading_overlay()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        if not self.check_license():
+            self.destroy()
+            return
 
         self.after(500, self.finish_initialization)
     def finish_initialization(self):
-
         self.settings = {}
         self.load_settings()
         create_light_pink_theme(self)
@@ -351,6 +382,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.apply_keybinds()
 
         self.hide_loading_overlay()
+
+        if self.settings.get("auto_restore_session", True):
+            self.restore_previous_session()
+        self.start_auto_save_sessions()
 
     # ─── Loading UI ───
     def show_loading_overlay(self, message="Loading..."):
@@ -474,14 +509,30 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
     # ─── Settings ───
     def load_settings(self):
+        self.settings = DEFAULT_SETTINGS.copy()
         try:
             with open(SETTINGS_FILE, "r") as f:
-                self.settings = json.load(f)
-                self.settings.setdefault("font_family", "Segoe UI")
-        except (FileNotFoundError, json.JSONDecodeError):
-            self.settings = {}
+                user_settings = json.load(f)
+
+            if not isinstance(user_settings, dict):
+                raise ValueError("Invalid settings format")
+
+            # Merge user settings into default
+            self.settings.update(user_settings)
+
+
+        except (FileNotFoundError, json.JSONDecodeError, ValueError):
+            debug("[DEBUG] Creating fresh settings.json with default values")
+
+        # Always save back a complete version (including any new keys)
+        self.save_settings()
+
+        if not self.settings.get("tutorial_shown", False):
+            self.start_tutorial()
+
+        # Load keybinds (same logic as before)
         try:
-            with open(GLOBAL_KEYBINDS_FILE, "r") as f:
+            with open(KEYBINDS_FILE, "r") as f:
                 file_keybinds = json.load(f)
                 if not isinstance(file_keybinds, dict):
                     raise ValueError("Keybinds file must be a dictionary")
@@ -492,81 +543,127 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.keybindings = {**DEFAULT_KEYBINDS, **file_keybinds}
 
         if self.keybindings != file_keybinds:
-            with open(GLOBAL_KEYBINDS_FILE, "w") as f:
+            with open(KEYBINDS_FILE, "w") as f:
                 json.dump(self.keybindings, f, indent=2)
     def save_settings(self):
         SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(SETTINGS_FILE, "w") as f:
             json.dump(self.settings, f, indent=2)
+    def save_sessions(self):
+        data = []
+        for name, session in self.pdf_sessions.items():
+            parts_data = []
+            for entry in session["entries"]:
+                parts_data.append({
+                    "range": entry["range"],  # {start: X, end: Y}
+                    "revoked": entry["revoked"].get(),
+                    "agency": entry["agency"].get(),
+                    "description": entry["description"].get(),
+                    "date": entry["date"].get()
+                })
 
-    # ─── UI Tab Builder ───
+            data.append({
+                "file_path": str(session["path"]),
+                "client_name": session["client_name_var"].get(),
+                "parts": parts_data
+            })
+
+        with open(SESSION_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        debug(f"[DEBUG] Saved {len(data)} session(s) to {SESSION_FILE}")
+    def _on_close(self):
+        self.save_sessions()
+        debug("[DEBUG] Saving sessions")
+        self.destroy()
+    def restore_previous_session(self):
+        if not self.settings.get("auto_restore_session", True):
+            return
+
+        if not SESSION_FILE.exists():
+            return
+
+        try:
+            with open(SESSION_FILE, "r", encoding="utf-8") as f:
+                sessions = json.load(f)
+            if not sessions:
+                return
+
+            for item in sessions:
+                path = item.get("file_path")
+                client_name = item.get("client_name", "")
+                parts = item.get("parts", [])
+
+                if not path or not Path(path).exists():
+                    continue
+
+                pdf_name = Path(path).stem
+                if pdf_name in self.pdf_sessions:
+                    continue  # Already restored
+
+                reader = PdfReader(path)
+                ranges = [p["range"] for p in parts] if parts else self.detect_split_ranges_from_reader(reader)
+
+                tab = self.pdf_tabview.add(pdf_name)
+                session = {
+                    "tab": tab,
+                    "reader": reader,
+                    "path": Path(path),
+                    "ranges": ranges,
+                    "entries": [],
+                    "client_name_var": ctk.StringVar(value=client_name),
+                    "last_exported_files": [],
+                    "widgets_to_scale": []
+                }
+                self.pdf_sessions[pdf_name] = session
+
+                # Populate the tab’s UI
+                self.render_splitter_tab(tab, session)
+
+                # Fill restored data (must be after render_splitter_tab)
+                self.suppress_autofill = True
+                for i, entry_data in enumerate(parts):
+                    if i >= len(session["entries"]):
+                        break
+                    session["entries"][i]["revoked"].set(entry_data.get("revoked", False))
+                    session["entries"][i]["agency"].set(entry_data.get("agency", ""))
+                    session["entries"][i]["description"].set(entry_data.get("description", "POA"))
+                    session["entries"][i]["date"].set(entry_data.get("date", ""))
+                self.suppress_autofill = False
+
+        except Exception as e:
+            messagebox.showwarning("Session Restore Failed", str(e))
+            debug(f"[DEBUG] Session restore error: {e}")
+
+    # ─── Tab Builders ───
     def build_splitter_tab(self):
         wrapper = ctk.CTkFrame(self.splitter_tab)
-        wrapper.pack(pady=10, padx=10, fill="x")
+        wrapper.pack(fill="both", expand=True)
 
-        bg_color = ctk.ThemeManager.theme["CTkFrame"]["fg_color"]
-        if isinstance(bg_color, list):
-            bg_color = bg_color[0] if ctk.get_appearance_mode() == "Light" else bg_color[1]
+        self.splitter_wrapper = wrapper  # Store for access later
 
-        self.dnd_frame = tk.Frame(wrapper, bg=bg_color, height=60)
-
-        self.dnd_frame.pack(fill="x", pady=(5, 10))
-
+        # Enable drag-and-drop on wrapper
         self.drop_target_register(DND_FILES)
         self.dnd_bind('<<Drop>>', self.handle_drop)
 
-        self.drop_label = ctk.CTkLabel(wrapper, text="📂 Drag and Drop a PDF Here")
-        self.drop_label.pack()
+        self.pdf_tabview = ctk.CTkTabview(wrapper)
+        self.pdf_tabview.pack(fill="both", expand=True)
 
-        btn_container = ctk.CTkFrame(wrapper, fg_color="transparent")
-        btn_container.pack(pady=5)
-
-        self.btn_select_pdf = ctk.CTkButton(btn_container, text="Select PDF", command=self.load_pdf)
-        self.btn_select_pdf.pack(side="left", padx=10)
-
-        self.btn_refresh = ctk.CTkButton(btn_container, text="Refresh", command=self.reset_ui, state="disabled")
-        self.btn_refresh.pack(side="left", padx=10)
-
-        self.label_status = ctk.CTkLabel(self.splitter_tab, text="No PDF loaded")
-        self.label_status.pack(pady=(5, 0))
-
-        scroll_frame = ctk.CTkFrame(self.splitter_tab)
-        scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
-
-        canvas_bg = ctk.ThemeManager.theme["CTkFrame"]["fg_color"]
-        if isinstance(canvas_bg, list):
-            canvas_bg = canvas_bg[0] if ctk.get_appearance_mode() == "Light" else canvas_bg[1]
-
-        self.canvas = tk.Canvas(scroll_frame, borderwidth=0, highlightthickness=0, bg=canvas_bg)
-
-        self.canvas.pack(side="left", fill="both", expand=True)
-
-        self.vsb = tk.Scrollbar(scroll_frame, orient="vertical", command=self.canvas.yview)
-        self.canvas.configure(yscrollcommand=self.vsb.set)
-
-        self.vsb.pack(side="right", fill="y")
-
-        self.parts_frame = ctk.CTkFrame(self.canvas)
-        self.canvas_window = self.canvas.create_window((0, 0), window=self.parts_frame, anchor="n")
-
-        self.parts_frame.bind("<Configure>", self._check_scrollbar_visibility)
-        self.canvas.bind("<Configure>", self._update_canvas_window_width)
-
-        def _on_mousewheel(event):
-            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        self.canvas.bind_all("<Button-4>", lambda e: self.canvas.yview_scroll(-1, "units"))
-        self.canvas.bind_all("<Button-5>", lambda e: self.canvas.yview_scroll(1, "units"))
-
-        self.client_name_var = ctk.StringVar()
-        self.client_name_entry = None
-        self.client_name_visible = False
-
-        self.btn_process = ctk.CTkButton(self.splitter_tab, text="Export PDFs", command=self.export_pdfs, state="disabled")
-        self.btn_process.pack(pady=10)
+        self.add_plus_tab()
+        self.enable_tab_closing()
     def build_settings_tab(self):
-        ctk.CTkLabel(self.settings_tab, text="Theme").pack(pady=(20, 0))
+        ctk.CTkButton(
+            self.settings_tab,
+            text="🧹 Clear License Key",
+            fg_color="#cc4b4b",
+            hover_color="#aa2b2b",
+            text_color="#ffffff",
+            command=self.clear_license_and_exit
+        ).pack(pady=(20, 0))
+
+        # ─── Appearance Settings ───
+        ctk.CTkLabel(self.settings_tab, text="Appearance", font=(self.font_family, self.font_size + 5)).pack(pady=(20, 0))
+
+        # Theme selection
         self.theme_var = ctk.StringVar(value=self.theme)
         theme_menu = ctk.CTkOptionMenu(
             self.settings_tab,
@@ -575,20 +672,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
             command=self.change_theme
         )
         theme_menu.pack(pady=5)
-        self.theme_var.set(self.theme)
 
-        ctk.CTkLabel(self.settings_tab, text="Default Export Folder").pack(pady=(20, 0))
-        self.export_folder_var = ctk.StringVar(value=self.settings.get("export_folder", "Not Set"))
-        export_frame = ctk.CTkFrame(self.settings_tab)
-        export_frame.pack(pady=5, padx=20, fill="x")
-
-        self.export_display = ctk.CTkEntry(export_frame, textvariable=self.export_folder_var, state="disabled")
-        self.export_display.pack(side="left", fill="x", expand=True, padx=(0, 10))
-
-        browse_button = ctk.CTkButton(export_frame, text="📁 Browse...", command=self.set_export_folder)
-        browse_button.pack(side="left")
-
-        ctk.CTkLabel(self.settings_tab, text="Font Size").pack(pady=(20, 0))
+        # Font size
+        ctk.CTkLabel(self.settings_tab, text="Font Size").pack(pady=(10, 0))
         self.font_size_var = ctk.IntVar(value=self.font_size)
         self.font_slider = ctk.CTkSlider(
             self.settings_tab, from_=12, to=22,
@@ -597,27 +683,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
         )
         self.font_slider.pack(pady=5)
 
-        self.export_log_var = ctk.BooleanVar(value=self.settings.get("export_log_enabled", True))
-        ctk.CTkCheckBox(
-            self.settings_tab,
-            text="Generate Export Log",
-            variable=self.export_log_var,
-            command=self.update_export_log_setting
-        ).pack(pady=5)
-
-        # Other toggles
-        ctk.CTkLabel(self.settings_tab, text="Options").pack(pady=(20, 0))
-
-        self.remove_blank_var = ctk.BooleanVar(value=self.settings.get("remove_blank_pages", True))
-        remove_blank_checkbox = ctk.CTkCheckBox(
-            self.settings_tab,
-            text="Remove Blank Pages Automatically",
-            variable=self.remove_blank_var,
-            command=self.update_remove_blank_setting
-        )
-        remove_blank_checkbox.pack(pady=5)
-
-        ctk.CTkLabel(self.settings_tab, text="Font Family").pack(pady=(20, 0))
+        # Font family
+        ctk.CTkLabel(self.settings_tab, text="Font Family").pack(pady=(10, 0))
         self.font_family_var = ctk.StringVar(value=self.font_family)
         font_menu = ctk.CTkOptionMenu(
             self.settings_tab,
@@ -626,42 +693,111 @@ class PDFSplitterApp(TkinterDnD.Tk):
             command=self.update_font_family
         )
         font_menu.pack(pady=5)
+
+        # ─── Export Settings ───
+        ctk.CTkLabel(self.settings_tab, text="Export Settings", font=(self.font_family, self.font_size + 5)).pack(pady=(20, 0))
+
+        # Export folder
+        ctk.CTkLabel(self.settings_tab, text="Default Export Folder").pack(pady=(5, 0))
+        self.export_folder_var = ctk.StringVar(value=self.settings.get("export_folder", "Not Set"))
+        export_frame = ctk.CTkFrame(self.settings_tab)
+        export_frame.pack(pady=5, padx=20, fill="x")
+
+        self.export_display = ctk.CTkEntry(export_frame, textvariable=self.export_folder_var, state="disabled")
+        self.export_display.pack(side="left", fill="x", expand=True, padx=(0, 10))
+
+
+        browse_button = ctk.CTkButton(export_frame, text="📁 Browse...", command=self.set_export_folder)
+        browse_button.pack(side="left")
+
+        # Retain client name toggle
+        self.settings.setdefault("retain_client_name", False)
+        self.retain_client_var = ctk.BooleanVar(value=self.settings.get("retain_client_name", False))
+        ctk.CTkCheckBox(
+            self.settings_tab,
+            text="Retain Client Name Between Files",
+            variable=self.retain_client_var,
+            command=self.update_retain_client_setting
+        ).pack(pady=5)
+
+        # Export log toggle
+        self.export_log_var = ctk.BooleanVar(value=self.settings.get("export_log_enabled", True))
+        ctk.CTkCheckBox(
+            self.settings_tab,
+            text="Generate Export Log",
+            variable=self.export_log_var,
+            command=self.update_export_log_setting
+        ).pack(pady=5)
+
+        # ─── Behavior Options ───
+        ctk.CTkLabel(self.settings_tab, text="Behavior Options", font=(self.font_family, self.font_size + 5)).pack(pady=(20, 0))
+
+        self.remove_blank_var = ctk.BooleanVar(value=self.settings.get("remove_blank_pages", True))
+        ctk.CTkCheckBox(
+            self.settings_tab,
+            text="Remove Blank Pages Automatically",
+            variable=self.remove_blank_var,
+            command=self.update_remove_blank_setting
+        ).pack(pady=5)
+        # Auto-restore session toggle
+        self.auto_restore_var = ctk.BooleanVar(value=self.settings.get("auto_restore_session", True))
+        ctk.CTkCheckBox(
+            self.settings_tab,
+            text="Auto-Restore Previous Session on Launch",
+            variable=self.auto_restore_var,
+            command=self.update_auto_restore_setting
+        ).pack(pady=5)
+
+        ctk.CTkButton(self.settings_tab, text="📘 Run Tutorial Again", command=self.start_tutorial).pack(pady=(10, 0))
     def build_about_tab(self):
+        scroll_frame = ctk.CTkScrollableFrame(self.about_tab)
+        scroll_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Inner wrapper frame to center content
+        inner_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        inner_frame.pack(anchor="center", pady=10)
+
         text = (
-            "CleanCutPDF Splitter v1.3\n\n"
+            f"CleanCutPDF v1.4 – “The Refined Edge”\n"
+            f"Licensed to: {self.licensed_company}\n\n"
             "CleanCutPDF is a responsive, customizable tool for cleanly and efficiently splitting PDF documents.\n\n"
-            "New in Version 1.3:\n"
-            "• Added Light Pink and Dark Pink themes\n"
-            "• Fully customizable font size and font family\n"
-            "• All keybindings are now editable in-app (double-click to change)\n"
-            "• More helpful error messages for invalid date formats\n"
-            "• Checkboxes, switches, and sliders now reflect theme colors\n"
-            "• Improved tooltip spacing and UI layout polish\n\n"
+            "New in Version 1.4:\n"
+            "• Automatic session saving and restoration\n"
+            "• Multi-tab PDF editing (open multiple PDFs at once)\n"
+            "• Tab closing support (right-click or Ctrl+W)\n"
+            "• First-time user tutorial walkthrough\n"
+            "• Drag-and-drop batch file support\n"
+            "• Improved autofill with overwrite protection\n"
+            "• Logs now grouped by date for easier reading\n"
+            "• Splitter layout polish and alignment fixes\n"
+            "• New settings: client name retention, folder creation toggle\n"
+            "• Minor bug fixes and UI consistency improvements\n\n"
             "Key Features:\n"
             "• Drag-and-drop PDF support\n"
             "• Auto-detects split markers (e.g., 'SPLIT HERE')\n"
             "• Metadata-driven filename generation (Agency, Description, Date)\n"
-            "• Client name entry with responsive layout\n"
+            "• Smart title casing with acronym protection (LLC, INC, etc.)\n"
             "• Blank page removal (optional)\n"
-            "• Custom export folder support\n"
-            "• Export log with search, sort, and highlight\n"
-            "• Undo Last Export (Ctrl+Shift+Z) with cleanup logging\n"
-            "• Customizable keybindings (saved to keybinds.json)\n"
-            "• Responsive font scaling and live theme switching\n"
+            "• Export folder customization with per-client subfolders\n"
+            "• Export log with undo, search, sort, and highlights\n"
+            "• Tab-based multi-PDF workflow and closing support\n"
+            "• Fully customizable font, theme, and keybindings\n"
+            "• First-launch guided tutorial system\n"
+            "• Built-in debug console for real-time logging\n\n"
             "Your preferences are saved to your user directory (.cleancutpdf).\n\n"
             "Designed by Ethan Brothers\n"
-            "© 2025 — Version 1.3"
+            "© 2025 — Version 1.4"
         )
 
         self.about_label = ctk.CTkLabel(
-            self.about_tab,
+            inner_frame,
             text=text,
             justify="center",
             anchor="center",
             wraplength=700,
-            font=("Segoe UI", self.font_size)
+            font=(self.font_family, self.font_size)
         )
-        self.about_label.pack(padx=20, pady=40, anchor="center")
+        self.about_label.pack(pady=10)
     def build_log_tab(self):
         search_frame = ctk.CTkFrame(self.log_tab)
         search_frame.pack(fill="x", padx=10, pady=10)
@@ -718,6 +854,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.log_textbox.tag_configure("value", foreground="#000000" if is_light else "#FFFFFF")
         self.log_textbox.tag_configure("revoked", foreground="#d86da0")
         self.log_textbox.tag_configure("skipped", foreground="#cc4b4b")
+        self.log_textbox.tag_configure("date_marker", foreground="#888888", font=(self.font_family, self.font_size, "bold"))
 
         ctk.CTkButton(search_frame, text="🧹 Clear Log", command=self.clear_log).pack(side="right", padx=(10, 0))
 
@@ -788,7 +925,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
             self.notebook.set(current_tab)
         except:
             pass
-        self._check_scrollbar_visibility()
+
+        # ✅ Safe check
+        if hasattr(self, "canvas"):
+            self._check_scrollbar_visibility()
 
     # ─── UI Update Helpers ───
     def _apply_font_to_widget(self, widget, font):
@@ -801,36 +941,30 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def _apply_font_size(self):
         font = (self.font_family, self.font_size)
         self.option_add("*Font", font)
-        self.label_status.configure(font=font)
-        self.export_display.configure(font=font)
-        self.btn_process.configure(font=font)
-        self.btn_refresh.configure(font=font)
 
-        if self.client_name_entry:
-            try:
-                self.client_name_entry.configure(font=font)
-            except tk.TclError:
-                self.client_name_entry = None
-        if hasattr(self, "btn_select_pdf"):
-            self.btn_select_pdf.configure(font=font)
-        if hasattr(self, "drop_label"):
-            self.drop_label.configure(font=font)
-        if hasattr(self, "client_name_label") and self.client_name_label is not None:
-            try:
-                if self.client_name_label.winfo_exists():
-                    self.client_name_label.configure(font=font)
-            except tk.TclError:
-                self.client_name_label = None
-        if hasattr(self, "debug_console_text"):
-            self.debug_console_text.configure(font=(self.font_family, self.font_size))
+        # Update all widgets inside all PDF sessions
+        if hasattr(self, "pdf_sessions"):
+            for session in self.pdf_sessions.values():
+                for widget in session.get("widgets_to_scale", []):
+                    try:
+                        widget.configure(font=font)
+                    except Exception:
+                        pass
 
-        for child in self.settings_tab.winfo_children():
-            self._apply_font_to_widget(child, font)
-        for part in self.parts_frame.winfo_children():
-            self._apply_font_to_widget(part, font)
-        for child in self.keybinds_tab.winfo_children():
-            self._apply_font_to_widget(child, font)
+                if "parts_frame" in session:
+                    self._apply_font_to_widget(session["parts_frame"], font)
+
+        # Update other tabs (Settings, Logs, etc.)
+        for tab in [self.settings_tab, self.keybinds_tab, self.about_tab]:
+            for child in tab.winfo_children():
+                self._apply_font_to_widget(child, font)
+
+        # Update tab labels (Splitter/About/Settings/etc.)
         self._apply_tab_font_size()
+
+        # Log debug console if open
+        if hasattr(self, "debug_console_text"):
+            self.debug_console_text.configure(font=font)
     def update_font_size(self, event=None):
         self.font_size = int(self.font_size_var.get())
         self.settings["font_size"] = self.font_size
@@ -948,6 +1082,26 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "dot_active": dot,
             "dot_inactive": disabled
         }
+    def focus_first_restored_tab(self):
+        try:
+            if SESSION_FILE.exists():
+                with open(SESSION_FILE, "r", encoding="utf-8") as f:
+                    sessions = json.load(f)
+                if sessions:
+                    # Cycle through all restored tabs to force layout
+                    for item in sessions:
+                        path = item.get("file_path")
+                        if path:
+                            tab_name = Path(path).stem
+                            self.pdf_tabview.set(tab_name)
+                            self.update_idletasks()
+                    # Return to the first tab
+                    first_path = sessions[0].get("file_path")
+                    if first_path:
+                        tab_name = Path(first_path).stem
+                        self.pdf_tabview.set(tab_name)
+        except Exception as e:
+            debug(f"[DEBUG] Failed to auto-focus restored tabs: {e}")
 
     # ─── Settings Toggles ───
     def update_remove_blank_setting(self):
@@ -965,15 +1119,25 @@ class PDFSplitterApp(TkinterDnD.Tk):
             self.save_settings()
 
             if prev != folder:
-                with open(GLOBAL_LOG_FILE, "a", encoding="utf-8") as f:
+                with open(LOG_FILE, "a", encoding="utf-8") as f:
                     f.write(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Export folder changed from '{prev}' to '{folder}'\n")
 
             self.load_full_log()
+    def update_retain_client_setting(self):
+        self.settings["retain_client_name"] = self.retain_client_var.get()
+        self.save_settings()
+    def start_auto_save_sessions(self):
+        self.auto_save_interval = 10000
+        self.save_sessions()
+        self.after(self.auto_save_interval, self.start_auto_save_sessions)
+    def update_auto_restore_setting(self):
+        self.settings["auto_restore_session"] = self.auto_restore_var.get()
+        self.save_settings()
 
     # ─── Log Management ───
     def load_full_log(self):
-        if GLOBAL_LOG_FILE.exists():
-            with open(GLOBAL_LOG_FILE, "r") as f:
+        if LOG_FILE.exists():
+            with open(LOG_FILE, "r") as f:
                 self.full_log_lines = f.readlines()
         else:
             self.full_log_lines = []
@@ -991,7 +1155,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             if client_match:
                 info["client"] = client_match.group(1).strip().lower()
             if date_match:
-                info["date"] = date_match.group(1)  # format: YYYY-MM-DD HH:MM:SS
+                info["date"] = date_match.group(1)
             return info
 
         parsed = [extract_log_info(line) for line in self.full_log_lines]
@@ -1010,20 +1174,37 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.log_textbox.delete("1.0", "end")
 
         for entry in parsed:
+            self.log_textbox.config(state="normal")
+        self.log_textbox.delete("1.0", "end")
+
+        last_date = None  # For grouping
+
+        for entry in parsed:
             line = entry["raw"]
 
-            date_match = re.match(r"\[(.*?)\]", line)
+            # Extract timestamp
+            date_match = re.match(r"\[(\d{4}-\d{2}-\d{2})", line)
             if date_match:
-                timestamp = date_match.group(0) + " "
+                date_str = date_match.group(1)
+                if date_str != last_date:
+                    # Insert date marker (e.g., "──── July 8, 2025 ────")
+                    formatted = datetime.datetime.strptime(date_str, "%Y-%m-%d").strftime("──── %B %d, %Y ────")
+                    self.log_textbox.insert("end", f"\n{formatted}\n", "date_marker")
+                    last_date = date_str
+
+            # Timestamp line
+            full_timestamp = re.match(r"\[(.*?)\]", line)
+            if full_timestamp:
+                timestamp = full_timestamp.group(0) + " "
                 self.log_textbox.insert("end", timestamp, "date")
                 line_body = line[len(timestamp):]
             else:
                 line_body = line
 
+            # Highlight each label:value pair
             fields = re.findall(r"(\b\w+):\s*(.*?)(?=\s*\||$)", line_body)
             for label, value in fields:
                 tag = "value"
-
                 if label == "Revoked" and value.strip().lower() == "true":
                     tag = "revoked"
                 elif label == "Skipped" and value.strip() != "None":
@@ -1033,14 +1214,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 self.log_textbox.insert("end", f" {value}  ", tag)
 
             self.log_textbox.insert("end", "\n")
-
         self.log_textbox.see("end")
         self.log_textbox.config(state="disabled")
     def clear_log(self):
         confirm = messagebox.askyesno("Clear Log", "Are you sure you want to permanently clear the entire export log?")
         if confirm:
             try:
-                with open(GLOBAL_LOG_FILE, "w", encoding="utf-8") as f:
+                with open(LOG_FILE, "w", encoding="utf-8") as f:
                     f.write("")
                 self.full_log_lines = []
                 self.update_log_view()
@@ -1050,57 +1230,54 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
     # ─── PDF Load & Split ───
     def load_pdf(self):
-        path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
-        if path:
-            self.load_pdf_from_path(path)
-    def load_pdf_from_path(self, path):
-        debug(f"[DEBUG] Called load_pdf_from_path with path: {path}")
-        self.show_loading_overlay()
+        paths = filedialog.askopenfilenames(filetypes=[("PDF files", "*.pdf")])
+        for path in paths:
+            if path.lower().endswith(".pdf"):
+                self.load_pdf_from_path(path)
+    def load_pdf_from_path(self, path, render=True):
+        pdf_name = Path(path).stem
+        if pdf_name in self.pdf_sessions:
+            messagebox.showinfo("Already Loaded", f"{pdf_name} is already open.")
+            return
 
-        def finish_load():
-            try:
-                self.reader = PdfReader(path)
-                self.pdf_path = Path(path)
-                debug(f"[DEBUG] PDF loaded: {self.pdf_path.name}, Total pages: {len(self.reader.pages)}")
+        try:
+            reader = PdfReader(path)
+            ranges = self.detect_split_ranges_from_reader(reader)
 
-                self.ranges = self.detect_split_ranges()
-                debug(f"[DEBUG] Ranges returned from detect_split_ranges: {self.ranges}")
+            # Create a new tab inside the Splitter tabview
+            tab = self.pdf_tabview.add(pdf_name)
 
-                self.label_status.configure(text=f"Loaded: {self.pdf_path.name} ({len(self.ranges)} part(s))")
+            # Force refresh of tab layout (critical for initial render)
+            self.update_idletasks()
 
-                if not self.client_name_visible:
-                    client_outer = ctk.CTkFrame(self.parts_frame, width=700, height=40, fg_color="transparent")
-                    client_outer.pack(pady=(10, 0))
-                    client_outer.pack_propagate(False)
+            # Create a per-PDF session dictionary
+            session = {
+                "tab": tab,
+                "reader": reader,
+                "path": Path(path),
+                "ranges": ranges,
+                "entries": [],
+                "client_name_var": ctk.StringVar(),
+                "last_exported_files": [],
+                "widgets_to_scale": []  # To be populated in render_splitter_tab()
+            }
 
-                    self.client_name_label = ctk.CTkLabel(client_outer, text="Client Name:")
-                    self.client_name_label.pack(side="left", padx=(10, 10))
+            # Store session by tab name
+            self.pdf_sessions[pdf_name] = session
 
-                    self.client_name_entry = ctk.CTkEntry(
-                        client_outer,
-                        textvariable=self.client_name_var,
-                        placeholder_text="Enter Client Name"
-                    )
-                    self.client_name_entry.pack(side="left", fill="x", expand=True)
-                    self.client_name_visible = True
+            # Build the full UI into the tab
+            self.render_splitter_tab(tab, session)
 
-                self.render_parts()
-                self.canvas.yview_moveto(0)
-                self.btn_process.configure(state="normal")
-                self.btn_refresh.configure(state="normal")
-                self._apply_font_size()
-
-            except Exception as e:
-                debug(f"[DEBUG] Exception occurred during load_pdf_from_path: {e}")
-                messagebox.showerror("Failed to Load PDF", f"An error occurred:\n{str(e)}")
-
-            self.hide_loading_overlay()  # 🔴 Hide overlay
-
-        self.after(100, lambda: finish_load())
-    def detect_split_ranges(self):
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+        self.pdf_tabview.set(pdf_name)
+        if render:
+            self.render_splitter_tab(tab, session)
+    def detect_split_ranges_from_reader(self, reader):
         debug("[DEBUG] Starting detect_split_ranges")
         split_pages = []
-        for idx, page in enumerate(self.reader.pages):
+
+        for idx, page in enumerate(reader.pages):
             text = page.extract_text() or ""
             words = [w for w in re.findall(r"\S+", text) if w.strip()]
             uppercase = [w.upper() for w in words]
@@ -1118,88 +1295,24 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 ranges.append({"start": start, "end": end})
             start = sp + 1
 
-        if start < len(self.reader.pages):
-            ranges.append({"start": start, "end": len(self.reader.pages) - 1})
+        if start < len(reader.pages):
+            ranges.append({"start": start, "end": len(reader.pages) - 1})
         if not ranges:
-            ranges = [{"start": 0, "end": len(self.reader.pages) - 1}]
+            ranges = [{"start": 0, "end": len(reader.pages) - 1}]
 
         debug(f"[DEBUG] Detected split ranges: {ranges}")
         return ranges
-    def render_parts(self):
-        debug("[DEBUG] Rendering parts...")
-        for widget in self.parts_frame.winfo_children():
-            if not (self.client_name_entry and widget == self.client_name_entry.master):
-                widget.destroy()
-
-        self.entries.clear()
-
-        for idx, r in enumerate(self.ranges, start=1):
-            debug(f"[DEBUG] Creating frame for Part {idx} — Pages {r['start']+1} to {r['end']+1}")
-            frame = ctk.CTkFrame(self.parts_frame, width=640, fg_color="transparent")
-            frame.pack(pady=10, anchor="center")
-
-            ctk.CTkLabel(
-                frame,
-                text=f"Part {idx} — Pages {r['start']+1} to {r['end']+1}"
-            ).grid(row=0, column=0, columnspan=2, pady=(0, 5), sticky="ew")
-
-            # Variables
-            revoked_var = ctk.BooleanVar()
-            agency_var = ctk.StringVar()
-            desc_var = ctk.StringVar(value="POA")
-            date_var = ctk.StringVar()
-
-            # Revoked switch
-            ctk.CTkSwitch(frame, text="Revoked", variable=revoked_var).grid(row=1, column=0, sticky="w")
-
-            # Agency row: Label + ℹ️ icon
-            info_row = ctk.CTkFrame(frame, fg_color="transparent")
-            info_row.grid(row=2, column=0, sticky="w", pady=(5, 0))
-
-            ctk.CTkLabel(info_row, text="Agency Code:").pack(side="left")
-
-            info_icon = ctk.CTkLabel(info_row, text="ℹ️", cursor="question_arrow")
-            info_icon.pack(side="left", padx=(6, 0))  # Better spacing from label
-            self.add_tooltip(info_icon, "Agency Codes:\n• i = IRS\n• f = FTB\n• e = EDD\n• c = CDTFA\n• b = BOE")
-
-            # Entry for agency
-            ctk.CTkEntry(frame, textvariable=agency_var).grid(row=2, column=1, padx=(0, 10), sticky="ew")
-
-            # Description
-            ctk.CTkLabel(frame, text="Description:").grid(row=3, column=0, sticky="w")
-            ctk.CTkEntry(frame, textvariable=desc_var).grid(row=3, column=1)
-
-            # Date
-            ctk.CTkLabel(frame, text="Date (MMDDYY):").grid(row=4, column=0, sticky="w")
-            ctk.CTkEntry(frame, textvariable=date_var).grid(row=4, column=1)
-
-            # Store part entry data
-            self.entries.append({
-                "range": r,
-                "revoked": revoked_var,
-                "agency": agency_var,
-                "description": desc_var,
-                "date": date_var
-            })
-
-            # Autofill handlers
-            agency_var.trace_add("write", self.make_autofill_handler("agency", agency_var, idx - 1))
-            desc_var.trace_add("write", self.make_autofill_handler("description", desc_var, idx - 1))
-            date_var.trace_add("write", self.make_autofill_handler("date", date_var, idx - 1))
-            revoked_var.trace_add("write", self.make_autofill_handler("revoked", revoked_var, idx - 1))
-
-            debug(f"[DEBUG] Finished Part {idx}")
-
-        self._check_scrollbar_visibility()
-        debug("[DEBUG] Finished rendering all parts")
-    def make_autofill_handler(self, field, var, i):
+    def detect_split_ranges(self):
+        return self.detect_split_ranges_from_reader(self.reader)
+    def make_autofill_handler(self, field, var, index, entries_ref):
         def handler(*_):
             value = var.get()
-            for j in range(i + 1, len(self.entries)):
-                self.entries[j][field].set(value)
+            for j in range(index + 1, len(self.entries)):
+                if not self.entries[j][field].get():
+                    entries_ref[j][field].set(value)
         return handler
     def export_pdfs(self):
-        client_name = self.client_name_var.get().strip()
+        client_name = self.title_case(self.client_name_var.get().strip())
         if not client_name:
             messagebox.showerror("Missing Client Name", "Please enter a client name.")
             return
@@ -1260,14 +1373,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 f"Agency: {agency} | Desc: {desc} | Date: {formatted_date} | Revoked: {entry['revoked'].get()}"
             )
 
-        with open(GLOBAL_LOG_FILE, "a", encoding="utf-8") as f:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
             for line in log_lines:
                 f.write(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {line}\n")
 
         self.last_exported_files.append(file_path)
         self.load_full_log()
 
-        # Show post-export session summary
         summary = (
             f"✅ Export Complete!\n\n"
             f"• {len(self.last_exported_files) - 1} file(s) created\n"
@@ -1287,11 +1399,173 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.label_status.configure(text=f"Exported to: {out_dir}")
         self.after(50, self.reset_ui)
     def handle_drop(self, event):
-        path = event.data.strip("{}")  # Remove braces around paths with spaces (Windows)
-        if path.lower().endswith(".pdf"):
+        # Handles: '{C:/file1.pdf} {C:/file2.pdf}' or plain 'C:/file.pdf'
+        paths = [p.strip("{}") for p in event.data.strip().split()]
+        valid_files = [p for p in paths if p.lower().endswith(".pdf")]
+
+        if not valid_files:
+            messagebox.showerror("Invalid File(s)", "Only PDF files are supported.")
+            return
+
+        for path in valid_files:
             self.load_pdf_from_path(path)
-        else:
-            messagebox.showerror("Invalid File", "Only PDF files are supported.")
+    def export_current_pdf(self):
+        tab_name = self.pdf_tabview.get()
+        session = self.pdf_sessions.get(tab_name)
+        if session:
+            self.export_pdf_session(session)
+    def render_splitter_tab(self, tab_frame, session):
+        for widget in tab_frame.winfo_children():
+            widget.destroy()
+
+        session["entries"] = []
+        ranges = session["ranges"]
+
+        client_frame = ctk.CTkFrame(tab_frame, fg_color="transparent")
+        client_frame.pack(pady=(10, 0), padx=10, fill="x")
+
+        ctk.CTkLabel(client_frame, text="Client Name:").pack(side="left")
+        ctk.CTkEntry(client_frame, textvariable=session["client_name_var"]).pack(side="left", fill="x", expand=True)
+
+        for idx, r in enumerate(ranges, start=1):
+            frame = ctk.CTkFrame(tab_frame, fg_color="transparent")
+            frame.pack(pady=10, padx=10, fill="x")
+
+            ctk.CTkLabel(frame, text=f"Part {idx} — Pages {r['start']+1} to {r['end']+1}").grid(
+                row=0, column=0, columnspan=2, sticky="w"
+            )
+
+            revoked_var = ctk.BooleanVar()
+            agency_var = ctk.StringVar()
+            desc_var = ctk.StringVar(value="POA")
+            date_var = ctk.StringVar()
+
+            ctk.CTkSwitch(frame, text="Revoked", variable=revoked_var).grid(row=1, column=0, sticky="w")
+
+            ctk.CTkLabel(frame, text="Agency Code:").grid(row=2, column=0, sticky="w")
+            ctk.CTkEntry(frame, textvariable=agency_var).grid(row=2, column=1)
+
+            ctk.CTkLabel(frame, text="Description:").grid(row=3, column=0, sticky="w")
+            ctk.CTkEntry(frame, textvariable=desc_var).grid(row=3, column=1)
+
+            ctk.CTkLabel(frame, text="Date (MMDDYY):").grid(row=4, column=0, sticky="w")
+            ctk.CTkEntry(frame, textvariable=date_var).grid(row=4, column=1)
+
+            session["entries"].append({
+                "range": r,
+                "revoked": revoked_var,
+                "agency": agency_var,
+                "description": desc_var,
+                "date": date_var
+            })
+
+            agency_var.trace_add("write", self.make_autofill_handler("agency", agency_var, idx - 1, session["entries"]))
+            desc_var.trace_add("write", self.make_autofill_handler("description", desc_var, idx - 1, session["entries"]))
+            date_var.trace_add("write", self.make_autofill_handler("date", date_var, idx - 1, session["entries"]))
+            revoked_var.trace_add("write", self.make_autofill_handler("revoked", revoked_var, idx - 1, session["entries"]))
+
+        ctk.CTkButton(tab_frame, text="Export PDFs", command=lambda: self.export_session(session)).pack(pady=10)
+    def export_session(self, session):
+        client_name = self.title_case(session["client_name_var"].get().strip())
+        if not client_name:
+            messagebox.showerror("Missing Client Name", "Please enter a client name.")
+            return
+
+        folder = self.settings.get("export_folder")
+        if not folder:
+            folder = filedialog.askdirectory(title="Select Export Folder")
+            if not folder:
+                return
+
+        out_dir = Path(folder) / client_name
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        log_lines = []
+        session["last_exported_files"] = []
+
+        for idx, entry in enumerate(session["entries"], start=1):
+            try:
+                formatted_date = self.format_date(entry["date"].get())
+            except ValueError as e:
+                messagebox.showerror("Invalid Date", f"Error in Part {idx}:\n{e}")
+                return
+
+            writer = PdfWriter()
+            r = entry["range"]
+            skipped = []
+
+            for p in range(r["start"], r["end"] + 1):
+                page = session["reader"].pages[p]
+                if self.settings.get("remove_blank_pages", True) and self.is_blank_page(page):
+                    skipped.append(p + 1)
+                    continue
+                writer.add_page(page)
+
+            agency = self.get_agency(entry["agency"].get())
+            desc = self.title_case(entry["description"].get())
+
+            parts = [client_name]
+            if entry["revoked"].get():
+                parts.append("Revoked")
+            parts.append(f"{agency} {desc}" if agency else desc)
+            parts.append(formatted_date)
+
+            fname = "_".join(parts) + ".pdf"
+            file_path = out_dir / fname
+
+            with open(file_path, "wb") as f:
+                writer.write(f)
+
+            session["last_exported_files"].append(file_path)
+
+            log_lines.append(
+                f"Client: {client_name} | File: {fname} | Pages: {r['start']+1}-{r['end']+1} | "
+                f"Skipped: {skipped if skipped else 'None'} | "
+                f"Agency: {agency} | Desc: {desc} | Date: {formatted_date} | Revoked: {entry['revoked'].get()}"
+            )
+
+        # 🔸 Append to export log if enabled
+        if self.settings.get("export_log_enabled", True):
+            with open(LOG_FILE, "a", encoding="utf-8") as f:
+                for line in log_lines:
+                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    f.write(f"[{timestamp}] {line}\n")
+
+            self.load_full_log()
+
+        messagebox.showinfo("Export Complete", f"Exported to: {out_dir}")
+
+        # 🔻 Close the tab after export
+        tab_name = None
+        for name, s in self.pdf_sessions.items():
+            if s is session:
+                tab_name = name
+                break
+        if tab_name:
+            self.pdf_tabview.delete(tab_name)
+            del self.pdf_sessions[tab_name]
+    def split_paths(self, data):
+        # Example: '{C:/file1.pdf} {C:/file2.pdf}'
+        return [p.strip("{}") for p in data.strip().split() if p.strip()]
+    def add_plus_tab(self):
+        if not hasattr(self, "pdf_tabview") or not isinstance(self.pdf_tabview, ctk.CTkTabview):
+            return  # Prevent crash if not yet initialized
+
+        # Use the safest check for customtkinter's internal tab map
+        existing_tabs = getattr(self.pdf_tabview, "_tabs", {})
+
+        if "+" in existing_tabs:
+            return  # "+" tab already exists
+
+        plus_tab = self.pdf_tabview.add("+")
+        self.pdf_tabview.set("+")  # Focus on the plus tab
+
+        plus_frame = ctk.CTkFrame(plus_tab)
+        plus_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(plus_frame, text="Click below to open a new PDF").pack(pady=20)
+        ctk.CTkButton(plus_frame, text="➕ Open PDF", command=self.load_pdf).pack()
+        ctk.CTkLabel(plus_frame, text="Or drag and drop files into this area").pack(pady=(10, 0))
 
     # ─── Text Utilities ───
     def is_blank_page(self, page):
@@ -1330,6 +1604,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "b": "BOE"
         }.get(code.strip().lower(), code.upper())
     def title_case(self, s):
+        debug("[DEBUG] Title case")
+        acronyms = ACRONYMS
         def replacer(match):
             txt = match.group(0)
             clean = re.sub(r'[^A-Za-z]', '', txt)
@@ -1337,10 +1613,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
             if clean == "Inc" and txt.endswith("."):
                 return "Inc."
-            if upper in ACRONYMS and not txt.endswith("."):
+            if upper in acronyms and not txt.endswith("."):
                 return upper
             if txt.isupper():
-                return txt
+                return txt  # preserve all-uppercase
             return txt[0].upper() + txt[1:].lower()
 
         return re.sub(r'\w\S*', replacer, s)
@@ -1353,7 +1629,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def save_keybinds(self):
         self.keybindings = {action: var.get() for action, var in self.keybind_vars.items()}
         debug("[DEBUG] Saving keybindings:", self.keybindings)
-        with open(GLOBAL_KEYBINDS_FILE, "w") as f:
+        with open(KEYBINDS_FILE, "w") as f:
             json.dump(self.keybindings, f, indent=2)
         debug("[DEBUG] Keybinds written to file")
         self.apply_keybinds()
@@ -1412,7 +1688,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        with open(GLOBAL_LOG_FILE, "a", encoding="utf-8") as f:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
             if deleted > 0:
                 for path in self.last_exported_files:
                     f.write(f"[{timestamp}] Undo: Deleted '{path.name}' from '{path.parent}'\n")
@@ -1462,6 +1738,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "Search Logs": self.focus_search,
             "Undo Last Export": self.undo_last_export,
             "Clear Log": self.clear_log,
+            "Close Tab": self.close_current_tab,
             "Focus Client Name": lambda: self.client_name_entry.focus_set() if self.client_name_entry else None,
             "Focus First Part": lambda: self.entries[0]["agency"].trace_info() if self.entries else None,
             "Select Export Folder": self.set_export_folder
@@ -1473,6 +1750,68 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 debug(f"[DEBUG] Temporarily unbound: <{combo}>")
             except Exception as e:
                 debug(f"[DEBUG] Failed to unbind <{combo}>: {e}")
+    def enable_tab_closing(self):
+        # Must delay until widgets exist
+        self.after(100, self._bind_tab_close_events)
+    def _bind_tab_close_events(self):
+        try:
+            for name, button in self.pdf_tabview._segmented_button._buttons_dict.items():
+                # Avoid rebinding multiple times
+                button.unbind("<Button-3>")
+                button.bind("<Button-3>", lambda e, tab=name: self._on_tab_right_click(tab))
+        except Exception as e:
+            debug(f"[DEBUG] Failed to bind right-click to tabs: {e}")
+    def _on_tab_right_click(self, tab_name):
+        if tab_name == "+":
+            return
+
+        confirm = messagebox.askyesno("Close Tab", f"Close '{tab_name}'?")
+        if confirm:
+            self.pdf_tabview.delete(tab_name)
+            if tab_name in self.pdf_sessions:
+                del self.pdf_sessions[tab_name]
+                self.save_sessions()
+
+            self.enable_tab_closing()
+    def close_current_tab(self):
+        tab = self.pdf_tabview.get()
+        if tab == "+":
+            return
+
+        confirm = messagebox.askyesno("Close Tab", f"Close '{tab}'?")
+        if confirm:
+            self.pdf_tabview.delete(tab)
+            if tab in self.pdf_sessions:
+                del self.pdf_sessions[tab]
+                self.save_sessions()
+            self.enable_tab_closing()
+    def enhance_entry_keybinds(self, entry_widget):
+        def delete_word_left(event):
+            pos = entry_widget.index("insert")
+            text = entry_widget.get()
+            before = text[:pos]
+            after = text[pos:]
+            # Remove word before cursor
+            new_before = re.sub(r'\s*\S+\s*$', '', before)
+            entry_widget.delete(0, "end")
+            entry_widget.insert(0, new_before + after)
+            entry_widget.icursor(len(new_before))
+            return "break"
+
+        def delete_word_right(event):
+            pos = entry_widget.index("insert")
+            text = entry_widget.get()
+            before = text[:pos]
+            after = text[pos:]
+            # Remove word after cursor
+            new_after = re.sub(r'^\s*\S+\s*', '', after)
+            entry_widget.delete(0, "end")
+            entry_widget.insert(0, before + new_after)
+            entry_widget.icursor(len(before))
+            return "break"
+
+        entry_widget.bind("<Control-BackSpace>", delete_word_left)
+        entry_widget.bind("<Control-Delete>", delete_word_right)
 
     # ─── Debug Window ───
     def open_debug_console(self):
@@ -1557,6 +1896,150 @@ class PDFSplitterApp(TkinterDnD.Tk):
             sys.stderr = self._original_stderr
             self.debug_output_stream = None
         self.debug_console_window.destroy()
+
+    # ─── Tutorial ───
+    def start_tutorial(self):
+        steps = [
+            ("Welcome to CleanCutPDF!",
+             "This tutorial will guide you through the key features of the app.\n\nClick OK to begin.",
+             "Splitter"),
+
+            ("Splitter Tab",
+             "This is where you drag and drop PDFs or click ➕ to load them. It automatically detects split markers.",
+             "Splitter"),
+
+            ("Editing Parts",
+             "Each split part can be customized with Revoked status, Agency, Description, and Date.\nThese are used to generate filenames.",
+             "Splitter"),
+
+            ("Client Name",
+             "Enter the client name once per file. The app will remember it between sessions if enabled.",
+             "Splitter"),
+
+            ("Export",
+             "Click Export PDFs to generate split files into your chosen export folder. You can undo the last export if needed.",
+             "Splitter"),
+
+            ("Settings Tab",
+             "In Settings, you can change the theme, font, export folder, and other preferences.",
+             "Settings"),
+
+            ("Logs",
+             "The Logs tab records all exports and allows you to search and sort by client or date.",
+             "Logs"),
+
+            ("Keybinds",
+             "In Keybinds, you can customize keyboard shortcuts for nearly every action.",
+             "Keybinds"),
+
+            ("You're Ready!",
+             "That’s it! You can revisit this tutorial anytime by clicking 'Run Tutorial Again' in Settings.\n\nHappy splitting!",
+             "Splitter")
+        ]
+
+        def show_step(index):
+            if index >= len(steps):
+                self.settings["tutorial_shown"] = True
+                self.save_settings()
+                return
+
+            title, msg, tab = steps[index]
+            self.notebook.set(tab)  # Switch tab before showing message
+
+            # Delay slightly to ensure tab content is fully rendered before popup
+            self.after(200, lambda: (
+                messagebox.showinfo(title, msg),
+                show_step(index + 1)
+            ))
+
+        show_step(0)
+    def reset_tutorial(self):
+        self.settings["tutorial_shown"] = False
+        self.save_settings()
+        messagebox.showinfo("Tutorial Reset", "The tutorial will run again next time you launch the app.")
+
+    # ─── Licenses ───
+    def check_license(self):
+        self.hide_loading_overlay()  # Ensure popups are visible
+
+        def debug_log(msg):
+            print(f"[DEBUG] {msg}")
+
+        def hash_key(key):
+            return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+        debug_log("Starting license check...")
+
+        # Step 1: Check for saved license file
+        if LICENSE_FILE.exists():
+            debug_log(f"Found local license file at: {LICENSE_FILE}")
+            try:
+                with open(LICENSE_FILE, "r") as f:
+                    saved = json.load(f)
+                license_key = saved.get("license_key", "").strip()
+                debug_log(f"Loaded cached license key: {license_key}")
+            except Exception as e:
+                messagebox.showerror("License Error", f"Failed to read license file:\n{e}")
+                debug_log(f"Failed to load license file: {e}")
+                return False
+        else:
+            debug_log("No license file found, prompting for key...")
+            license_key = tk.simpledialog.askstring(
+                "License Required", "Enter your CleanCutPDF license key:"
+            )
+            if not license_key:
+                messagebox.showerror("License Required", "A license key is required to use this app.")
+                debug_log("License entry cancelled or empty.")
+                return False
+            license_key = license_key.strip()
+
+        # Step 2: Hash the entered key
+        hashed_key = hash_key(license_key)
+        debug_log(f"SHA-256 hash of entered key: {hashed_key}")
+
+        # Step 3: Fetch the remote license list
+        try:
+            url = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/licenses.json"
+            debug_log(f"Fetching license data from: {url}")
+            context = ssl._create_unverified_context()
+            with urllib.request.urlopen(url, context=context) as response:
+                data = json.loads(response.read())
+            debug_log("Successfully fetched license list.")
+        except Exception as e:
+            messagebox.showerror("Network Error", f"Could not check license:\n{e}")
+            debug_log(f"Failed to fetch license list: {e}")
+            return False
+
+        # Step 4: Validate hash
+        valid_licenses = data.get("licenses", {})
+        info = valid_licenses.get(hashed_key)
+
+        if info:
+            company = info.get("company", "Unknown Organization")
+            debug_log(f"License key is valid! Company: {company}")
+
+            # Save the license locally
+            with open(LICENSE_FILE, "w") as f:
+                json.dump({"license_key": license_key, "company": company}, f, indent=2)
+            debug_log("License saved locally.")
+
+            self.licensed_company = company
+            self.title(f"CleanCutPDF – Licensed to {company}")
+            return True
+        else:
+            messagebox.showerror("Invalid License", "The entered license key is not valid.")
+            debug_log("No match found for hashed key. License is invalid.")
+            return False
+    def clear_license_and_exit(self):
+        try:
+            if LICENSE_FILE.exists():
+                LICENSE_FILE.unlink()
+                messagebox.showinfo("License Cleared", "Your license key has been removed.\nThe app will now close.")
+            else:
+                messagebox.showinfo("No License", "No license file was found to delete.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not delete license:\n{e}")
+        self.destroy()
 
 if __name__ == "__main__":
     app = PDFSplitterApp()

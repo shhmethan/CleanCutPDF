@@ -1,35 +1,40 @@
 CleanCutPDF Splitter License Agreement
-Version 1.2
+Version 1.4
 © 2025 Ethan Brothers
 
-IMPORTANT: PLEASE READ THIS LICENSE CAREFULLY BEFORE USING THE SOFTWARE.
-
-This End User License Agreement (“Agreement”) is a legal agreement between you (“User”) and the creator (“Author”) of CleanCutPDF Splitter. By installing, copying, or using this software, you agree to be bound by the terms of this Agreement.
+IMPORTANT: PLEASE READ THIS LICENSE CAREFULLY BEFORE USING THIS SOFTWARE.
+This End User License Agreement (“Agreement”) is a legal contract between you (“User”) and the developer (“Author”) of CleanCutPDF Splitter. By installing, activating, or using this software, you agree to be bound by the following terms:
 
 1. GRANT OF LICENSE
-You are granted a non-exclusive, non-transferable license to use this software for personal or commercial use, subject to the terms outlined below.
+You are granted a non-exclusive, non-transferable license to use this software for personal or internal business use, contingent upon a valid activation key.
+Each license key is linked to an organization or user, and may include limitations on seat count, expiration, or usage scope.
 
-2. OWNERSHIP
-This software and all accompanying files, code, and materials are the intellectual property of Ethan Brothers. You may not reverse engineer, decompile, or disassemble any part of the software.
+2. ACTIVATION & VERIFICATION
+This software uses a GitHub-hosted license verification system. You must activate it with a valid license key upon first launch. Verified licenses are cached locally for offline use.
 
-3. RESTRICTIONS
+3. OWNERSHIP
+All intellectual property rights to the software remain with the Author. This license does not convey ownership of the software, source code, or any associated assets.
+
+4. RESTRICTIONS
 You may not:
-• Modify or create derivative works of this software without written permission.
-• Redistribute or resell the software without explicit written authorization.
-• Remove or alter copyright notices.
 
-4. DISCLAIMER OF WARRANTY
-This software is provided "as is" without warranty of any kind. The Author makes no guarantees as to performance, reliability, or suitability for any particular purpose.
+Resell, sublicense, or redistribute the software
+Modify, reverse engineer, or decompile the application
+Circumvent license checks or alter activation behavior
+Remove or alter copyright notices
 
-5. LIMITATION OF LIABILITY
-In no event shall the Author be liable for any damages arising from the use or inability to use this software, including but not limited to loss of data or business interruption.
+5. WARRANTY DISCLAIMER
+This software is provided “as is”, without warranty of any kind. The Author makes no guarantees about performance, compatibility, or suitability for any specific task.
 
-6. TERMINATION
-This license will terminate automatically if you breach any of the terms. Upon termination, you must destroy all copies of the software.
+6. LIMITATION OF LIABILITY
+In no event shall the Author be liable for any incidental, consequential, or indirect damages resulting from the use or misuse of the software.
 
-7. GOVERNING LAW
-This agreement shall be governed by the laws of your jurisdiction.
+7. TERMINATION
+This license is valid until terminated. It will terminate automatically if you breach any of these terms. Upon termination, you must uninstall and destroy all copies of the software.
 
-By clicking "I Agree" or installing this application, you acknowledge that you have read, understood, and agreed to the terms of this license.
+8. GOVERNING LAW
+This agreement is governed by the laws of the jurisdiction where the software is used.
+By activating or using CleanCutPDF, you agree to the terms of this Agreement.
 
 — CleanCutPDF Development
+Ethan Brothers, 2025

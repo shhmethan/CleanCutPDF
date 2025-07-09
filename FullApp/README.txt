@@ -1,52 +1,53 @@
-# CleanCutPDF Splitter — Installer Guide (v1.3)
-
-**Version:** 1.3
-**Developer:** Ethan Brothers
-**File Size:** ~15 MB (.exe)
-
----
-
-## 🖐 Welcome to CleanCutPDF
-
-CleanCutPDF Splitter is a polished, responsive desktop utility for splitting multipage PDFs into cleanly named, metadata-aware files. Built for speed and simplicity, v1.3 brings a more customizable, themeable, and accessible experience.
+CleanCutPDF Splitter – Installer Guide (v1.4)
+Developer: Ethan Brothers
+Version: 1.4
+File Size: ~17 MB
 
 ---
 
-## ✅ What’s New in Version 1.3
+Welcome to CleanCutPDF Splitter
 
-- 🎨 Theme-aware fullscreen **loading animation**
-- 💖 Two custom pink themes: **Light Sydney** and **Dark Sydney**
-- 🔡 Selectable **font families** and live **font size** scaling
-- ⌨️ In-app **keybinding editor** with instant effect
-- 🧠 Improved **date validation** with specific error feedback
-- 📑 **Post-export summary** dialog with skipped page count
-- ✅ **Color-coded export logs** (no more confusing symbols)
-- 🧼 Refined UI layout: smarter spacing, cleaner tooltips
+CleanCutPDF is a customizable desktop tool designed for quickly splitting, renaming, and exporting PDFs using client-specific metadata. Version 1.4 includes licensing support, automatic session saving, and enhanced user customization.
 
 ---
 
-## 🔧 Core Features
+What's New in Version 1.4:
 
-- 📂 Drag-and-drop PDF support
-- ✂️ Smart split detection (e.g. `SPLIT HERE` markers)
-- 🧠 Auto file naming using client + agency metadata
-- 🧹 Optional blank page removal
-- 💾 Export log with live search + sort
-- ⌨️ Full keyboard shortcut support (editable via `keybinds.json`)
-- 🔁 Undo last export (with cleanup + logging)
-- 🔍 Scrollable parts view with client autofill
-- 🧠 Optional dark/light + pink theme switching
-
----
-
-## 💻 System Notes
-
-- 🖥️ **Recommended OS:** Windows 10 or higher (64-bit)
-- 🧠 **Architecture:** 64-bit (x86_64)
-- 💾 **RAM:** 2 GB minimum (4 GB recommended)
+- License key activation system (GitHub-based)
+- Company name shown in title bar and About page
+- Multi-tab PDF editor with auto-restore support
+- Color-coded, searchable export logs
+- Undo last export with Ctrl+Z support
+- Scrollable interface with font and theme controls
+- Guided first-launch tutorial
+- New themes: Light Pink, Dark Pink, Blue, Green
+- Optional blank page removal
+- Fully customizable keybinds
 
 ---
 
-## 🔒 Privacy & Data Location
+Core Features:
 
-CleanCutPDF stores all data locally. No telemetry, tracking, or uploads.
+- Drag-and-drop PDF loading
+- Smart page split detection (e.g. "SPLIT HERE")
+- Metadata-aware file naming using Agency, Description, and Date
+- Auto-saving sessions with per-client export folders
+- Keyboard shortcuts for quick workflow
+
+---
+
+System Requirements:
+
+- Operating System: Windows 10 or later (64-bit)
+- RAM: 2 GB minimum (4 GB recommended)
+- Disk Space: ~50 MB (plus PDF files)
+
+---
+
+License Information:
+CleanCutPDF requires a valid license key to activate. Licenses are verified online during initial setup and cached for offline use. Unauthorized distribution is prohibited.
+All user data is stored locally. No tracking or telemetry is used.
+
+---
+
+© 2025 Ethan Brothers. All rights reserved.
