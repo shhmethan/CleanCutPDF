@@ -1,12 +1,12 @@
 {
   "licenses": {
-    "TEST-AB-123": {
+    "b4fc8c76aeb46d514d39a4a2d81f150e71909e84e1e34b6d6f6941ea25ebf4a6": {
       "company": "Allen Barron Legal",
       "expires": "2026-12-31"
     },
-    "XYZ-999-BETA": {
-      "company": "DEV",
-      "expires": "2025-09-01"
+    "76d308b67b313437cf5c81b25c448930d3e1c3b69f233c09cfb3e5d92cc91a62": {
+      "company": "CleanCutPDF Developer",
+      "expires": "2099-01-01"
     }
   }
 }
