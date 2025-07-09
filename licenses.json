@@ -1,0 +1,12 @@
+{
+  "licenses": {
+    "TEST-AB-123": {
+      "company": "Allen Barron Legal",
+      "expires": "2026-12-31"
+    },
+    "XYZ-999-BETA": {
+      "company": "DEV",
+      "expires": "2025-09-01"
+    }
+  }
+}
