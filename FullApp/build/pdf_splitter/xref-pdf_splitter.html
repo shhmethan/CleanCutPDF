@@ -18,13 +18,17 @@
   <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/FullApp/pdf_splitter.py" type="text/plain"><tt>pdf_splitter.py</tt></a>
 <span class="moduletype">Script</span>  <div class="import">
 imports:
-    <a href="#PyPDF2">PyPDF2</a>
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PyPDF2">PyPDF2</a>
  &#8226;   <a href="#_collections_abc">_collections_abc</a>
  &#8226;   <a href="#_weakrefset">_weakrefset</a>
  &#8226;   <a href="#abc">abc</a>
  &#8226;   <a href="#codecs">codecs</a>
  &#8226;   <a href="#collections">collections</a>
  &#8226;   <a href="#copyreg">copyreg</a>
+ &#8226;   <a href="#csv">csv</a>
  &#8226;   <a href="#customtkinter">customtkinter</a>
  &#8226;   <a href="#datetime">datetime</a>
  &#8226;   <a href="#encodings">encodings</a>
@@ -150,6 +154,7 @@ imports:
  &#8226;   <a href="#encodings.uu_codec">encodings.uu_codec</a>
  &#8226;   <a href="#encodings.zlib_codec">encodings.zlib_codec</a>
  &#8226;   <a href="#enum">enum</a>
+ &#8226;   <a href="#fitz">fitz</a>
  &#8226;   <a href="#functools">functools</a>
  &#8226;   <a href="#genericpath">genericpath</a>
  &#8226;   <a href="#hashlib">hashlib</a>
@@ -182,6 +187,7 @@ imports:
  &#8226;   <a href="#ssl">ssl</a>
  &#8226;   <a href="#stat">stat</a>
  &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#tempfile">tempfile</a>
  &#8226;   <a href="#tkinter">tkinter</a>
  &#8226;   <a href="#tkinter.filedialog">tkinter.filedialog</a>
  &#8226;   <a href="#tkinter.messagebox">tkinter.messagebox</a>
@@ -193,6 +199,7 @@ imports:
  &#8226;   <a href="#urllib">urllib</a>
  &#8226;   <a href="#warnings">warnings</a>
  &#8226;   <a href="#weakref">weakref</a>
+ &#8226;   <a href="#webbrowser">webbrowser</a>
 
   </div>
 
@@ -304,7 +311,16 @@ imported by:
   <a target="code" href="" type="text/plain"><tt>'collections.abc'</tt></a>
 <span class="moduletype">MissingModule</span>  <div class="import">
 imported by:
-    <a href="#_pyrepl.readline">_pyrepl.readline</a>
+    <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#_pyrepl.readline">_pyrepl.readline</a>
  &#8226;   <a href="#_pyrepl.types">_pyrepl.types</a>
  &#8226;   <a href="#asyncio.base_events">asyncio.base_events</a>
  &#8226;   <a href="#asyncio.coroutines">asyncio.coroutines</a>
@@ -313,6 +329,7 @@ imported by:
  &#8226;   <a href="#importlib.resources.readers">importlib.resources.readers</a>
  &#8226;   <a href="#inspect">inspect</a>
  &#8226;   <a href="#logging">logging</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
  &#8226;   <a href="#selectors">selectors</a>
  &#8226;   <a href="#setuptools">setuptools</a>
  &#8226;   <a href="#setuptools._distutils._modified">setuptools._distutils._modified</a>
@@ -353,6 +370,7 @@ imported by:
  &#8226;   <a href="#traceback">traceback</a>
  &#8226;   <a href="#tracemalloc">tracemalloc</a>
  &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
 
   </div>
 
@@ -404,11 +422,2302 @@ imported by:
 
 <div class="node">
   <a name="PIL"></a>
-  <a target="code" href="" type="text/plain"><tt>PIL</tt></a>
-<span class="moduletype">MissingModule</span>  <div class="import">
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/__init__.py" type="text/plain"><tt>PIL</tt></a>
+<span class="moduletype">Package</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.ExifTags">PIL.ExifTags</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GimpGradientFile">PIL.GimpGradientFile</a>
+ &#8226;   <a href="#PIL.GimpPaletteFile">PIL.GimpPaletteFile</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageChops">PIL.ImageChops</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageColor">PIL.ImageColor</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+ &#8226;   <a href="#PIL.ImageMode">PIL.ImageMode</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.ImageSequence">PIL.ImageSequence</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PIL.ImageWin">PIL.ImageWin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.PaletteFile">PIL.PaletteFile</a>
+ &#8226;   <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PpmImagePlugin">PIL.PpmImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffTags">PIL.TiffTags</a>
+ &#8226;   <a href="#PIL._avif">PIL._avif</a>
+ &#8226;   <a href="#PIL._imaging">PIL._imaging</a>
+ &#8226;   <a href="#PIL._imagingcms">PIL._imagingcms</a>
+ &#8226;   <a href="#PIL._imagingmath">PIL._imagingmath</a>
+ &#8226;   <a href="#PIL._imagingtk">PIL._imagingtk</a>
+ &#8226;   <a href="#PIL._version">PIL._version</a>
+ &#8226;   <a href="#PIL._webp">PIL._webp</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
 imported by:
-    <a href="#PyPDF2.filters">PyPDF2.filters</a>
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+ &#8226;   <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.BufrStubImagePlugin">PIL.BufrStubImagePlugin</a>
+ &#8226;   <a href="#PIL.CurImagePlugin">PIL.CurImagePlugin</a>
+ &#8226;   <a href="#PIL.DcxImagePlugin">PIL.DcxImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.ExifTags">PIL.ExifTags</a>
+ &#8226;   <a href="#PIL.FitsImagePlugin">PIL.FitsImagePlugin</a>
+ &#8226;   <a href="#PIL.FliImagePlugin">PIL.FliImagePlugin</a>
+ &#8226;   <a href="#PIL.FpxImagePlugin">PIL.FpxImagePlugin</a>
+ &#8226;   <a href="#PIL.FtexImagePlugin">PIL.FtexImagePlugin</a>
+ &#8226;   <a href="#PIL.GbrImagePlugin">PIL.GbrImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GimpGradientFile">PIL.GimpGradientFile</a>
+ &#8226;   <a href="#PIL.GimpPaletteFile">PIL.GimpPaletteFile</a>
+ &#8226;   <a href="#PIL.GribStubImagePlugin">PIL.GribStubImagePlugin</a>
+ &#8226;   <a href="#PIL.Hdf5StubImagePlugin">PIL.Hdf5StubImagePlugin</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageChops">PIL.ImageChops</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageColor">PIL.ImageColor</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+ &#8226;   <a href="#PIL.ImageMode">PIL.ImageMode</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.ImageSequence">PIL.ImageSequence</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PIL.ImageWin">PIL.ImageWin</a>
+ &#8226;   <a href="#PIL.ImtImagePlugin">PIL.ImtImagePlugin</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegPresets">PIL.JpegPresets</a>
+ &#8226;   <a href="#PIL.McIdasImagePlugin">PIL.McIdasImagePlugin</a>
+ &#8226;   <a href="#PIL.MicImagePlugin">PIL.MicImagePlugin</a>
+ &#8226;   <a href="#PIL.MpegImagePlugin">PIL.MpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.MspImagePlugin">PIL.MspImagePlugin</a>
+ &#8226;   <a href="#PIL.PaletteFile">PIL.PaletteFile</a>
+ &#8226;   <a href="#PIL.PalmImagePlugin">PIL.PalmImagePlugin</a>
+ &#8226;   <a href="#PIL.PcdImagePlugin">PIL.PcdImagePlugin</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PIL.PixarImagePlugin">PIL.PixarImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PpmImagePlugin">PIL.PpmImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.QoiImagePlugin">PIL.QoiImagePlugin</a>
+ &#8226;   <a href="#PIL.SgiImagePlugin">PIL.SgiImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL.SunImagePlugin">PIL.SunImagePlugin</a>
+ &#8226;   <a href="#PIL.TgaImagePlugin">PIL.TgaImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffTags">PIL.TiffTags</a>
+ &#8226;   <a href="#PIL.WebPImagePlugin">PIL.WebPImagePlugin</a>
+ &#8226;   <a href="#PIL.WmfImagePlugin">PIL.WmfImagePlugin</a>
+ &#8226;   <a href="#PIL.XVThumbImagePlugin">PIL.XVThumbImagePlugin</a>
+ &#8226;   <a href="#PIL.XbmImagePlugin">PIL.XbmImagePlugin</a>
+ &#8226;   <a href="#PIL.XpmImagePlugin">PIL.XpmImagePlugin</a>
+ &#8226;   <a href="#PIL._avif">PIL._avif</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL._imaging">PIL._imaging</a>
+ &#8226;   <a href="#PIL._imagingcms">PIL._imagingcms</a>
+ &#8226;   <a href="#PIL._imagingmath">PIL._imagingmath</a>
+ &#8226;   <a href="#PIL._imagingtk">PIL._imagingtk</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#PIL._version">PIL._version</a>
+ &#8226;   <a href="#PIL._webp">PIL._webp</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#PyPDF2.filters">PyPDF2.filters</a>
  &#8226;   <a href="#customtkinter.windows.widgets.image.ctk_image">customtkinter.windows.widgets.image.ctk_image</a>
+ &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.AvifImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/AvifImagePlugin.py" type="text/plain"><tt>PIL.AvifImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ExifTags">PIL.ExifTags</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._avif">PIL._avif</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.BlpImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/BlpImagePlugin.py" type="text/plain"><tt>PIL.BlpImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#abc">abc</a>
+ &#8226;   <a href="#enum">enum</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.BmpImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/BmpImagePlugin.py" type="text/plain"><tt>PIL.BmpImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.CurImagePlugin">PIL.CurImagePlugin</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.BufrStubImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/BufrStubImagePlugin.py" type="text/plain"><tt>PIL.BufrStubImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.CurImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/CurImagePlugin.py" type="text/plain"><tt>PIL.CurImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.DcxImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/DcxImagePlugin.py" type="text/plain"><tt>PIL.DcxImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.DdsImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/DdsImagePlugin.py" type="text/plain"><tt>PIL.DdsImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#enum">enum</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.EpsImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/EpsImagePlugin.py" type="text/plain"><tt>PIL.EpsImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#shutil">shutil</a>
+ &#8226;   <a href="#subprocess">subprocess</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#tempfile">tempfile</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ExifTags"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ExifTags.py" type="text/plain"><tt>PIL.ExifTags</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#enum">enum</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.FitsImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/FitsImagePlugin.py" type="text/plain"><tt>PIL.FitsImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#gzip">gzip</a>
+ &#8226;   <a href="#math">math</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.FliImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/FliImagePlugin.py" type="text/plain"><tt>PIL.FliImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.FpxImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/FpxImagePlugin.py" type="text/plain"><tt>PIL.FpxImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#olefile">olefile</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.FtexImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/FtexImagePlugin.py" type="text/plain"><tt>PIL.FtexImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#enum">enum</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#struct">struct</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.GbrImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/GbrImagePlugin.py" type="text/plain"><tt>PIL.GbrImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.GifImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/GifImagePlugin.py" type="text/plain"><tt>PIL.GifImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageChops">PIL.ImageChops</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.ImageSequence">PIL.ImageSequence</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._imaging">PIL._imaging</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#copy">copy</a>
+ &#8226;   <a href="#enum">enum</a>
+ &#8226;   <a href="#functools">functools</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#itertools">itertools</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#subprocess">subprocess</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.GimpGradientFile"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/GimpGradientFile.py" type="text/plain"><tt>PIL.GimpGradientFile</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.GimpPaletteFile"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/GimpPaletteFile.py" type="text/plain"><tt>PIL.GimpPaletteFile</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.GribStubImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/GribStubImagePlugin.py" type="text/plain"><tt>PIL.GribStubImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.Hdf5StubImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/Hdf5StubImagePlugin.py" type="text/plain"><tt>PIL.Hdf5StubImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.IcnsImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/IcnsImagePlugin.py" type="text/plain"><tt>PIL.IcnsImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.IcoImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/IcoImagePlugin.py" type="text/plain"><tt>PIL.IcoImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#warnings">warnings</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImImagePlugin.py" type="text/plain"><tt>PIL.ImImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.Image"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/Image.py" type="text/plain"><tt>PIL.Image</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+ &#8226;   <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.BufrStubImagePlugin">PIL.BufrStubImagePlugin</a>
+ &#8226;   <a href="#PIL.CurImagePlugin">PIL.CurImagePlugin</a>
+ &#8226;   <a href="#PIL.DcxImagePlugin">PIL.DcxImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.ExifTags">PIL.ExifTags</a>
+ &#8226;   <a href="#PIL.FitsImagePlugin">PIL.FitsImagePlugin</a>
+ &#8226;   <a href="#PIL.FliImagePlugin">PIL.FliImagePlugin</a>
+ &#8226;   <a href="#PIL.FpxImagePlugin">PIL.FpxImagePlugin</a>
+ &#8226;   <a href="#PIL.FtexImagePlugin">PIL.FtexImagePlugin</a>
+ &#8226;   <a href="#PIL.GbrImagePlugin">PIL.GbrImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GribStubImagePlugin">PIL.GribStubImagePlugin</a>
+ &#8226;   <a href="#PIL.Hdf5StubImagePlugin">PIL.Hdf5StubImagePlugin</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageColor">PIL.ImageColor</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageMode">PIL.ImageMode</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#PIL.ImtImagePlugin">PIL.ImtImagePlugin</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.McIdasImagePlugin">PIL.McIdasImagePlugin</a>
+ &#8226;   <a href="#PIL.MicImagePlugin">PIL.MicImagePlugin</a>
+ &#8226;   <a href="#PIL.MpegImagePlugin">PIL.MpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.MspImagePlugin">PIL.MspImagePlugin</a>
+ &#8226;   <a href="#PIL.PalmImagePlugin">PIL.PalmImagePlugin</a>
+ &#8226;   <a href="#PIL.PcdImagePlugin">PIL.PcdImagePlugin</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PixarImagePlugin">PIL.PixarImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PpmImagePlugin">PIL.PpmImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.QoiImagePlugin">PIL.QoiImagePlugin</a>
+ &#8226;   <a href="#PIL.SgiImagePlugin">PIL.SgiImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL.SunImagePlugin">PIL.SunImagePlugin</a>
+ &#8226;   <a href="#PIL.TgaImagePlugin">PIL.TgaImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffTags">PIL.TiffTags</a>
+ &#8226;   <a href="#PIL.WebPImagePlugin">PIL.WebPImagePlugin</a>
+ &#8226;   <a href="#PIL.WmfImagePlugin">PIL.WmfImagePlugin</a>
+ &#8226;   <a href="#PIL.XVThumbImagePlugin">PIL.XVThumbImagePlugin</a>
+ &#8226;   <a href="#PIL.XbmImagePlugin">PIL.XbmImagePlugin</a>
+ &#8226;   <a href="#PIL.XpmImagePlugin">PIL.XpmImagePlugin</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL._imaging">PIL._imaging</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#abc">abc</a>
+ &#8226;   <a href="#atexit">atexit</a>
+ &#8226;   <a href="#builtins">builtins</a>
+ &#8226;   <a href="#defusedxml">defusedxml</a>
+ &#8226;   <a href="#enum">enum</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#logging">logging</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#mmap">mmap</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#tempfile">tempfile</a>
+ &#8226;   <a href="#types">types</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#warnings">warnings</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+ &#8226;   <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.BufrStubImagePlugin">PIL.BufrStubImagePlugin</a>
+ &#8226;   <a href="#PIL.CurImagePlugin">PIL.CurImagePlugin</a>
+ &#8226;   <a href="#PIL.DcxImagePlugin">PIL.DcxImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.FitsImagePlugin">PIL.FitsImagePlugin</a>
+ &#8226;   <a href="#PIL.FliImagePlugin">PIL.FliImagePlugin</a>
+ &#8226;   <a href="#PIL.FpxImagePlugin">PIL.FpxImagePlugin</a>
+ &#8226;   <a href="#PIL.FtexImagePlugin">PIL.FtexImagePlugin</a>
+ &#8226;   <a href="#PIL.GbrImagePlugin">PIL.GbrImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GribStubImagePlugin">PIL.GribStubImagePlugin</a>
+ &#8226;   <a href="#PIL.Hdf5StubImagePlugin">PIL.Hdf5StubImagePlugin</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.ImageChops">PIL.ImageChops</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageColor">PIL.ImageColor</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.ImageSequence">PIL.ImageSequence</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PIL.ImageWin">PIL.ImageWin</a>
+ &#8226;   <a href="#PIL.ImtImagePlugin">PIL.ImtImagePlugin</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.McIdasImagePlugin">PIL.McIdasImagePlugin</a>
+ &#8226;   <a href="#PIL.MicImagePlugin">PIL.MicImagePlugin</a>
+ &#8226;   <a href="#PIL.MpegImagePlugin">PIL.MpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.MspImagePlugin">PIL.MspImagePlugin</a>
+ &#8226;   <a href="#PIL.PalmImagePlugin">PIL.PalmImagePlugin</a>
+ &#8226;   <a href="#PIL.PcdImagePlugin">PIL.PcdImagePlugin</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PixarImagePlugin">PIL.PixarImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PpmImagePlugin">PIL.PpmImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.QoiImagePlugin">PIL.QoiImagePlugin</a>
+ &#8226;   <a href="#PIL.SgiImagePlugin">PIL.SgiImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL.SunImagePlugin">PIL.SunImagePlugin</a>
+ &#8226;   <a href="#PIL.TgaImagePlugin">PIL.TgaImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.WebPImagePlugin">PIL.WebPImagePlugin</a>
+ &#8226;   <a href="#PIL.WmfImagePlugin">PIL.WmfImagePlugin</a>
+ &#8226;   <a href="#PIL.XVThumbImagePlugin">PIL.XVThumbImagePlugin</a>
+ &#8226;   <a href="#PIL.XbmImagePlugin">PIL.XbmImagePlugin</a>
+ &#8226;   <a href="#PIL.XpmImagePlugin">PIL.XpmImagePlugin</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#PyPDF2.filters">PyPDF2.filters</a>
+ &#8226;   <a href="#customtkinter.windows.widgets.image.ctk_image">customtkinter.windows.widgets.image.ctk_image</a>
+ &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageChops"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageChops.py" type="text/plain"><tt>PIL.ImageChops</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageCms"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageCms.py" type="text/plain"><tt>PIL.ImageCms</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageWin">PIL.ImageWin</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL._imagingcms">PIL._imagingcms</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#enum">enum</a>
+ &#8226;   <a href="#functools">functools</a>
+ &#8226;   <a href="#operator">operator</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageColor"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageColor.py" type="text/plain"><tt>PIL.ImageColor</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#colorsys">colorsys</a>
+ &#8226;   <a href="#functools">functools</a>
+ &#8226;   <a href="#re">re</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageFile"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageFile.py" type="text/plain"><tt>PIL.ImageFile</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ExifTags">PIL.ExifTags</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#abc">abc</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#itertools">itertools</a>
+ &#8226;   <a href="#logging">logging</a>
+ &#8226;   <a href="#mmap">mmap</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+ &#8226;   <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.BufrStubImagePlugin">PIL.BufrStubImagePlugin</a>
+ &#8226;   <a href="#PIL.CurImagePlugin">PIL.CurImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.FitsImagePlugin">PIL.FitsImagePlugin</a>
+ &#8226;   <a href="#PIL.FliImagePlugin">PIL.FliImagePlugin</a>
+ &#8226;   <a href="#PIL.FpxImagePlugin">PIL.FpxImagePlugin</a>
+ &#8226;   <a href="#PIL.FtexImagePlugin">PIL.FtexImagePlugin</a>
+ &#8226;   <a href="#PIL.GbrImagePlugin">PIL.GbrImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GribStubImagePlugin">PIL.GribStubImagePlugin</a>
+ &#8226;   <a href="#PIL.Hdf5StubImagePlugin">PIL.Hdf5StubImagePlugin</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PIL.ImtImagePlugin">PIL.ImtImagePlugin</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.McIdasImagePlugin">PIL.McIdasImagePlugin</a>
+ &#8226;   <a href="#PIL.MpegImagePlugin">PIL.MpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.MspImagePlugin">PIL.MspImagePlugin</a>
+ &#8226;   <a href="#PIL.PalmImagePlugin">PIL.PalmImagePlugin</a>
+ &#8226;   <a href="#PIL.PcdImagePlugin">PIL.PcdImagePlugin</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PixarImagePlugin">PIL.PixarImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PpmImagePlugin">PIL.PpmImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.QoiImagePlugin">PIL.QoiImagePlugin</a>
+ &#8226;   <a href="#PIL.SgiImagePlugin">PIL.SgiImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL.SunImagePlugin">PIL.SunImagePlugin</a>
+ &#8226;   <a href="#PIL.TgaImagePlugin">PIL.TgaImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.WebPImagePlugin">PIL.WebPImagePlugin</a>
+ &#8226;   <a href="#PIL.WmfImagePlugin">PIL.WmfImagePlugin</a>
+ &#8226;   <a href="#PIL.XVThumbImagePlugin">PIL.XVThumbImagePlugin</a>
+ &#8226;   <a href="#PIL.XbmImagePlugin">PIL.XbmImagePlugin</a>
+ &#8226;   <a href="#PIL.XpmImagePlugin">PIL.XpmImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageFilter"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageFilter.py" type="text/plain"><tt>PIL.ImageFilter</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL._imaging">PIL._imaging</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#abc">abc</a>
+ &#8226;   <a href="#functools">functools</a>
+ &#8226;   <a href="#types">types</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageMath"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageMath.py" type="text/plain"><tt>PIL.ImageMath</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL._imagingmath">PIL._imagingmath</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#builtins">builtins</a>
+ &#8226;   <a href="#types">types</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageMode"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageMode.py" type="text/plain"><tt>PIL.ImageMode</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#functools">functools</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageOps"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageOps.py" type="text/plain"><tt>PIL.ImageOps</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ExifTags">PIL.ExifTags</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageColor">PIL.ImageColor</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#functools">functools</a>
+ &#8226;   <a href="#operator">operator</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImagePalette"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImagePalette.py" type="text/plain"><tt>PIL.ImagePalette</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.GimpGradientFile">PIL.GimpGradientFile</a>
+ &#8226;   <a href="#PIL.GimpPaletteFile">PIL.GimpPaletteFile</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageColor">PIL.ImageColor</a>
+ &#8226;   <a href="#PIL.PaletteFile">PIL.PaletteFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#array">array</a>
+ &#8226;   <a href="#random">random</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.FliImagePlugin">PIL.FliImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.SunImagePlugin">PIL.SunImagePlugin</a>
+ &#8226;   <a href="#PIL.TgaImagePlugin">PIL.TgaImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.XVThumbImagePlugin">PIL.XVThumbImagePlugin</a>
+ &#8226;   <a href="#PIL.XpmImagePlugin">PIL.XpmImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageQt"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageQt.py" type="text/plain"><tt>PIL.ImageQt</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageSequence"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageSequence.py" type="text/plain"><tt>PIL.ImageSequence</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageShow"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageShow.py" type="text/plain"><tt>PIL.ImageShow</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#abc">abc</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#shlex">shlex</a>
+ &#8226;   <a href="#shutil">shutil</a>
+ &#8226;   <a href="#subprocess">subprocess</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageTk"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageTk.py" type="text/plain"><tt>PIL.ImageTk</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._imagingtk">PIL._imagingtk</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#customtkinter.windows.widgets.image.ctk_image">customtkinter.windows.widgets.image.ctk_image</a>
+ &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImageWin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImageWin.py" type="text/plain"><tt>PIL.ImageWin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.ImtImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/ImtImagePlugin.py" type="text/plain"><tt>PIL.ImtImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#re">re</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.IptcImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/IptcImagePlugin.py" type="text/plain"><tt>PIL.IptcImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.Jpeg2KImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/Jpeg2KImagePlugin.py" type="text/plain"><tt>PIL.Jpeg2KImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.JpegImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/JpegImagePlugin.py" type="text/plain"><tt>PIL.JpegImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.JpegPresets">PIL.JpegPresets</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#array">array</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#subprocess">subprocess</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#tempfile">tempfile</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#warnings">warnings</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.JpegPresets"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/JpegPresets.py" type="text/plain"><tt>PIL.JpegPresets</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.McIdasImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/McIdasImagePlugin.py" type="text/plain"><tt>PIL.McIdasImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#struct">struct</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.MicImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/MicImagePlugin.py" type="text/plain"><tt>PIL.MicImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#olefile">olefile</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.MpegImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/MpegImagePlugin.py" type="text/plain"><tt>PIL.MpegImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.MpoImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/MpoImagePlugin.py" type="text/plain"><tt>PIL.MpoImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageSequence">PIL.ImageSequence</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.MspImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/MspImagePlugin.py" type="text/plain"><tt>PIL.MspImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PaletteFile"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PaletteFile.py" type="text/plain"><tt>PIL.PaletteFile</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PalmImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PalmImagePlugin.py" type="text/plain"><tt>PIL.PalmImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PcdImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PcdImagePlugin.py" type="text/plain"><tt>PIL.PcdImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PcxImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PcxImagePlugin.py" type="text/plain"><tt>PIL.PcxImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#logging">logging</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.DcxImagePlugin">PIL.DcxImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PdfImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PdfImagePlugin.py" type="text/plain"><tt>PIL.PdfImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageSequence">PIL.ImageSequence</a>
+ &#8226;   <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#time">time</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PdfParser"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PdfParser.py" type="text/plain"><tt>PIL.PdfParser</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#calendar">calendar</a>
+ &#8226;   <a href="#codecs">codecs</a>
+ &#8226;   <a href="#collections">collections</a>
+ &#8226;   <a href="#mmap">mmap</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#time">time</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#zlib">zlib</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PixarImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PixarImagePlugin.py" type="text/plain"><tt>PIL.PixarImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PngImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PngImagePlugin.py" type="text/plain"><tt>PIL.PngImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageChops">PIL.ImageChops</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.ImageSequence">PIL.ImageSequence</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL._imaging">PIL._imaging</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#enum">enum</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#itertools">itertools</a>
+ &#8226;   <a href="#logging">logging</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#warnings">warnings</a>
+ &#8226;   <a href="#zlib">zlib</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PpmImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PpmImagePlugin.py" type="text/plain"><tt>PIL.PpmImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.PsdImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/PsdImagePlugin.py" type="text/plain"><tt>PIL.PsdImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#functools">functools</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.QoiImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/QoiImagePlugin.py" type="text/plain"><tt>PIL.QoiImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.SgiImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/SgiImagePlugin.py" type="text/plain"><tt>PIL.SgiImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.SpiderImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/SpiderImagePlugin.py" type="text/plain"><tt>PIL.SpiderImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.SunImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/SunImagePlugin.py" type="text/plain"><tt>PIL.SunImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.TgaImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/TgaImagePlugin.py" type="text/plain"><tt>PIL.TgaImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#warnings">warnings</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.TiffImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/TiffImagePlugin.py" type="text/plain"><tt>PIL.TiffImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ExifTags">PIL.ExifTags</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.TiffTags">PIL.TiffTags</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#fractions">fractions</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#itertools">itertools</a>
+ &#8226;   <a href="#logging">logging</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#numbers">numbers</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#struct">struct</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#warnings">warnings</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MicImagePlugin">PIL.MicImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.TiffTags"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/TiffTags.py" type="text/plain"><tt>PIL.TiffTags</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.WebPImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/WebPImagePlugin.py" type="text/plain"><tt>PIL.WebPImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._webp">PIL._webp</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.WmfImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/WmfImagePlugin.py" type="text/plain"><tt>PIL.WmfImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.XVThumbImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/XVThumbImagePlugin.py" type="text/plain"><tt>PIL.XVThumbImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.XbmImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/XbmImagePlugin.py" type="text/plain"><tt>PIL.XbmImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.XpmImagePlugin"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/XpmImagePlugin.py" type="text/plain"><tt>PIL.XpmImagePlugin</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#re">re</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._avif"></a>
+  <tt>PIL._avif</tt> <span class="moduletype"><tt>C:\Users\Ethan\IdeaProjects\CleanCutPDF\.venv\Lib\site-packages\PIL\_avif.cp313-win_amd64.pyd</tt></span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._binary"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/_binary.py" type="text/plain"><tt>PIL._binary</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#struct">struct</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.CurImagePlugin">PIL.CurImagePlugin</a>
+ &#8226;   <a href="#PIL.DcxImagePlugin">PIL.DcxImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.FliImagePlugin">PIL.FliImagePlugin</a>
+ &#8226;   <a href="#PIL.FpxImagePlugin">PIL.FpxImagePlugin</a>
+ &#8226;   <a href="#PIL.GbrImagePlugin">PIL.GbrImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GimpGradientFile">PIL.GimpGradientFile</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MpegImagePlugin">PIL.MpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.MspImagePlugin">PIL.MspImagePlugin</a>
+ &#8226;   <a href="#PIL.PaletteFile">PIL.PaletteFile</a>
+ &#8226;   <a href="#PIL.PalmImagePlugin">PIL.PalmImagePlugin</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PixarImagePlugin">PIL.PixarImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PpmImagePlugin">PIL.PpmImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.QoiImagePlugin">PIL.QoiImagePlugin</a>
+ &#8226;   <a href="#PIL.SgiImagePlugin">PIL.SgiImagePlugin</a>
+ &#8226;   <a href="#PIL.SunImagePlugin">PIL.SunImagePlugin</a>
+ &#8226;   <a href="#PIL.TgaImagePlugin">PIL.TgaImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.WmfImagePlugin">PIL.WmfImagePlugin</a>
+ &#8226;   <a href="#PIL.XVThumbImagePlugin">PIL.XVThumbImagePlugin</a>
+ &#8226;   <a href="#PIL.XpmImagePlugin">PIL.XpmImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._deprecate"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/_deprecate.py" type="text/plain"><tt>PIL._deprecate</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#warnings">warnings</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+ &#8226;   <a href="#PIL.ImageMode">PIL.ImageMode</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._imaging"></a>
+  <tt>PIL._imaging</tt> <span class="moduletype"><tt>C:\Users\Ethan\IdeaProjects\CleanCutPDF\.venv\Lib\site-packages\PIL\_imaging.cp313-win_amd64.pyd</tt></span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._imagingcms"></a>
+  <tt>PIL._imagingcms</tt> <span class="moduletype"><tt>C:\Users\Ethan\IdeaProjects\CleanCutPDF\.venv\Lib\site-packages\PIL\_imagingcms.cp313-win_amd64.pyd</tt></span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#datetime">datetime</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._imagingmath"></a>
+  <tt>PIL._imagingmath</tt> <span class="moduletype"><tt>C:\Users\Ethan\IdeaProjects\CleanCutPDF\.venv\Lib\site-packages\PIL\_imagingmath.cp313-win_amd64.pyd</tt></span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._imagingtk"></a>
+  <tt>PIL._imagingtk</tt> <span class="moduletype"><tt>C:\Users\Ethan\IdeaProjects\CleanCutPDF\.venv\Lib\site-packages\PIL\_imagingtk.cp313-win_amd64.pyd</tt></span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._typing"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/_typing.py" type="text/plain"><tt>PIL._typing</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#PIL">PIL</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#numbers">numbers</a>
+ &#8226;   <a href="#numpy">numpy</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#types">types</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#typing_extensions">typing_extensions</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PIL.MpegImagePlugin">PIL.MpegImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._imagingcms">PIL._imagingcms</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._util"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/_util.py" type="text/plain"><tt>PIL._util</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.DcxImagePlugin">PIL.DcxImagePlugin</a>
+ &#8226;   <a href="#PIL.FliImagePlugin">PIL.FliImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._version"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/_version.py" type="text/plain"><tt>PIL._version</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#__future__">__future__</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL._webp"></a>
+  <tt>PIL._webp</tt> <span class="moduletype"><tt>C:\Users\Ethan\IdeaProjects\CleanCutPDF\.venv\Lib\site-packages\PIL\_webp.cp313-win_amd64.pyd</tt></span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.WebPImagePlugin">PIL.WebPImagePlugin</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="PIL.features"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/PIL/features.py" type="text/plain"><tt>PIL.features</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#__future__">__future__</a>
+ &#8226;   <a href="#collections">collections</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#warnings">warnings</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
 
   </div>
 
@@ -927,6 +3236,7 @@ imported by:
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
  &#8226;   <a href="#PyPDF2">PyPDF2</a>
  &#8226;   <a href="#PyPDF2._utils">PyPDF2._utils</a>
  &#8226;   <a href="#PyPDF2.constants">PyPDF2.constants</a>
@@ -1281,11 +3591,99 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="__builtin__"></a>
+  <a target="code" href="" type="text/plain"><tt>__builtin__</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#pymupdf.extra">pymupdf.extra</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="__future__"></a>
   <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/__future__.py" type="text/plain"><tt>__future__</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imported by:
-    <a href="#_colorize">_colorize</a>
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+ &#8226;   <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.BufrStubImagePlugin">PIL.BufrStubImagePlugin</a>
+ &#8226;   <a href="#PIL.CurImagePlugin">PIL.CurImagePlugin</a>
+ &#8226;   <a href="#PIL.DcxImagePlugin">PIL.DcxImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.ExifTags">PIL.ExifTags</a>
+ &#8226;   <a href="#PIL.FitsImagePlugin">PIL.FitsImagePlugin</a>
+ &#8226;   <a href="#PIL.FliImagePlugin">PIL.FliImagePlugin</a>
+ &#8226;   <a href="#PIL.FpxImagePlugin">PIL.FpxImagePlugin</a>
+ &#8226;   <a href="#PIL.FtexImagePlugin">PIL.FtexImagePlugin</a>
+ &#8226;   <a href="#PIL.GbrImagePlugin">PIL.GbrImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GimpGradientFile">PIL.GimpGradientFile</a>
+ &#8226;   <a href="#PIL.GimpPaletteFile">PIL.GimpPaletteFile</a>
+ &#8226;   <a href="#PIL.GribStubImagePlugin">PIL.GribStubImagePlugin</a>
+ &#8226;   <a href="#PIL.Hdf5StubImagePlugin">PIL.Hdf5StubImagePlugin</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageChops">PIL.ImageChops</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageColor">PIL.ImageColor</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+ &#8226;   <a href="#PIL.ImageMode">PIL.ImageMode</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.ImageSequence">PIL.ImageSequence</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PIL.ImageWin">PIL.ImageWin</a>
+ &#8226;   <a href="#PIL.ImtImagePlugin">PIL.ImtImagePlugin</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegPresets">PIL.JpegPresets</a>
+ &#8226;   <a href="#PIL.McIdasImagePlugin">PIL.McIdasImagePlugin</a>
+ &#8226;   <a href="#PIL.MicImagePlugin">PIL.MicImagePlugin</a>
+ &#8226;   <a href="#PIL.MpegImagePlugin">PIL.MpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.MspImagePlugin">PIL.MspImagePlugin</a>
+ &#8226;   <a href="#PIL.PaletteFile">PIL.PaletteFile</a>
+ &#8226;   <a href="#PIL.PalmImagePlugin">PIL.PalmImagePlugin</a>
+ &#8226;   <a href="#PIL.PcdImagePlugin">PIL.PcdImagePlugin</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PIL.PixarImagePlugin">PIL.PixarImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PpmImagePlugin">PIL.PpmImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.QoiImagePlugin">PIL.QoiImagePlugin</a>
+ &#8226;   <a href="#PIL.SgiImagePlugin">PIL.SgiImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL.SunImagePlugin">PIL.SunImagePlugin</a>
+ &#8226;   <a href="#PIL.TgaImagePlugin">PIL.TgaImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffTags">PIL.TiffTags</a>
+ &#8226;   <a href="#PIL.WebPImagePlugin">PIL.WebPImagePlugin</a>
+ &#8226;   <a href="#PIL.WmfImagePlugin">PIL.WmfImagePlugin</a>
+ &#8226;   <a href="#PIL.XVThumbImagePlugin">PIL.XVThumbImagePlugin</a>
+ &#8226;   <a href="#PIL.XbmImagePlugin">PIL.XbmImagePlugin</a>
+ &#8226;   <a href="#PIL.XpmImagePlugin">PIL.XpmImagePlugin</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#PIL._version">PIL._version</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#_colorize">_colorize</a>
  &#8226;   <a href="#_pyrepl._threading_handler">_pyrepl._threading_handler</a>
  &#8226;   <a href="#_pyrepl.commands">_pyrepl.commands</a>
  &#8226;   <a href="#_pyrepl.completing_reader">_pyrepl.completing_reader</a>
@@ -1767,6 +4165,25 @@ imports:
 imported by:
     <a href="#setuptools">setuptools</a>
  &#8226;   <a href="#setuptools.discovery">setuptools.discovery</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="_elementtree"></a>
+  <tt>_elementtree</tt> <span class="moduletype"><tt>C:\Users\Ethan\AppData\Local\Programs\Python\Python313\DLLs\_elementtree.pyd</tt></span>  <div class="import">
+imports:
+    <a href="#pyexpat">pyexpat</a>
+ &#8226;   <a href="#xml.etree.ElementInclude">xml.etree.ElementInclude</a>
+ &#8226;   <a href="#xml.etree.ElementPath">xml.etree.ElementPath</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+ &#8226;   <a href="#xml.etree.cElementTree">xml.etree.cElementTree</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
 
   </div>
 
@@ -3149,7 +5566,12 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#_collections_abc">_collections_abc</a>
+    <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#_collections_abc">_collections_abc</a>
  &#8226;   <a href="#_pyrepl.console">_pyrepl.console</a>
  &#8226;   <a href="#_pyrepl.input">_pyrepl.input</a>
  &#8226;   <a href="#contextlib">contextlib</a>
@@ -3224,7 +5646,9 @@ imported by:
   <a name="array"></a>
   <tt>array</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
-    <a href="#multiprocessing.dummy">multiprocessing.dummy</a>
+    <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#multiprocessing.dummy">multiprocessing.dummy</a>
  &#8226;   <a href="#multiprocessing.managers">multiprocessing.managers</a>
  &#8226;   <a href="#multiprocessing.reduction">multiprocessing.reduction</a>
  &#8226;   <a href="#socket">socket</a>
@@ -4212,12 +6636,14 @@ imported by:
   <a name="atexit"></a>
   <tt>atexit</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
-    <a href="#keyboard._nixcommon">keyboard._nixcommon</a>
+    <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#keyboard._nixcommon">keyboard._nixcommon</a>
  &#8226;   <a href="#keyboard._winkeyboard">keyboard._winkeyboard</a>
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#multiprocessing.forkserver">multiprocessing.forkserver</a>
  &#8226;   <a href="#multiprocessing.popen_fork">multiprocessing.popen_fork</a>
  &#8226;   <a href="#multiprocessing.util">multiprocessing.util</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#rlcompleter">rlcompleter</a>
  &#8226;   <a href="#site">site</a>
  &#8226;   <a href="#weakref">weakref</a>
@@ -4281,6 +6707,7 @@ imported by:
  &#8226;   <a href="#email.encoders">email.encoders</a>
  &#8226;   <a href="#encodings.base64_codec">encodings.base64_codec</a>
  &#8226;   <a href="#http.server">http.server</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#secrets">secrets</a>
  &#8226;   <a href="#setuptools._vendor.wheel.util">setuptools._vendor.wheel.util</a>
  &#8226;   <a href="#ssl">ssl</a>
@@ -4306,6 +6733,7 @@ imported by:
  &#8226;   <a href="#encodings.hex_codec">encodings.hex_codec</a>
  &#8226;   <a href="#encodings.uu_codec">encodings.uu_codec</a>
  &#8226;   <a href="#http.server">http.server</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#quopri">quopri</a>
  &#8226;   <a href="#zipfile">zipfile</a>
 
@@ -4336,7 +6764,9 @@ imported by:
   <a name="builtins"></a>
   <tt>builtins</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
-    <a href="#_pyrepl.readline">_pyrepl.readline</a>
+    <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+ &#8226;   <a href="#_pyrepl.readline">_pyrepl.readline</a>
  &#8226;   <a href="#bz2">bz2</a>
  &#8226;   <a href="#code">code</a>
  &#8226;   <a href="#codecs">codecs</a>
@@ -4348,6 +6778,8 @@ imported by:
  &#8226;   <a href="#lzma">lzma</a>
  &#8226;   <a href="#operator">operator</a>
  &#8226;   <a href="#pydoc">pydoc</a>
+ &#8226;   <a href="#pymupdf.extra">pymupdf.extra</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
  &#8226;   <a href="#reprlib">reprlib</a>
  &#8226;   <a href="#rlcompleter">rlcompleter</a>
  &#8226;   <a href="#setuptools._vendor.backports.tarfile">setuptools._vendor.backports.tarfile</a>
@@ -4403,7 +6835,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#_strptime">_strptime</a>
+    <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#_strptime">_strptime</a>
  &#8226;   <a href="#email._parseaddr">email._parseaddr</a>
  &#8226;   <a href="#http.cookiejar">http.cookiejar</a>
  &#8226;   <a href="#ssl">ssl</a>
@@ -4447,7 +6880,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._utils">PyPDF2._utils</a>
+    <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PyPDF2._utils">PyPDF2._utils</a>
  &#8226;   <a href="#PyPDF2._writer">PyPDF2._writer</a>
  &#8226;   <a href="#PyPDF2.generic._base">PyPDF2.generic._base</a>
  &#8226;   <a href="#PyPDF2.generic._utils">PyPDF2.generic._utils</a>
@@ -4619,7 +7053,9 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._writer">PyPDF2._writer</a>
+    <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#PyPDF2._writer">PyPDF2._writer</a>
  &#8226;   <a href="#PyPDF2.papersizes">PyPDF2.papersizes</a>
  &#8226;   <a href="#_pydecimal">_pydecimal</a>
  &#8226;   <a href="#_pyrepl.base_eventqueue">_pyrepl.base_eventqueue</a>
@@ -4658,6 +7094,7 @@ imported by:
  &#8226;   <a href="#platform">platform</a>
  &#8226;   <a href="#pprint">pprint</a>
  &#8226;   <a href="#pydoc">pydoc</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#queue">queue</a>
  &#8226;   <a href="#selectors">selectors</a>
  &#8226;   <a href="#setuptools._vendor.importlib_metadata">setuptools._vendor.importlib_metadata</a>
@@ -4683,6 +7120,18 @@ imported by:
  &#8226;   <a href="#unittest.case">unittest.case</a>
  &#8226;   <a href="#unittest.util">unittest.util</a>
  &#8226;   <a href="#urllib.parse">urllib.parse</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="colorsys"></a>
+  <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/colorsys.py" type="text/plain"><tt>colorsys</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imported by:
+    <a href="#PIL.ImageColor">PIL.ImageColor</a>
 
   </div>
 
@@ -4888,6 +7337,7 @@ imported by:
  &#8226;   <a href="#unittest.case">unittest.case</a>
  &#8226;   <a href="#unittest.mock">unittest.mock</a>
  &#8226;   <a href="#urllib.request">urllib.request</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
  &#8226;   <a href="#zipfile._path">zipfile._path</a>
 
   </div>
@@ -4928,7 +7378,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#_sre">_sre</a>
+    <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#_sre">_sre</a>
  &#8226;   <a href="#argparse">argparse</a>
  &#8226;   <a href="#collections">collections</a>
  &#8226;   <a href="#customtkinter.windows.widgets.ctk_combobox">customtkinter.windows.widgets.ctk_combobox</a>
@@ -4946,6 +7397,7 @@ imported by:
  &#8226;   <a href="#weakref">weakref</a>
  &#8226;   <a href="#webbrowser">webbrowser</a>
  &#8226;   <a href="#xml.dom.xmlbuilder">xml.dom.xmlbuilder</a>
+ &#8226;   <a href="#xml.etree.ElementInclude">xml.etree.ElementInclude</a>
 
   </div>
 
@@ -4975,6 +7427,17 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="cppyy"></a>
+  <a target="code" href="" type="text/plain"><tt>cppyy</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="csv"></a>
   <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/csv.py" type="text/plain"><tt>csv</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -4988,6 +7451,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#importlib.metadata">importlib.metadata</a>
+ &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
  &#8226;   <a href="#setuptools._vendor.importlib_metadata">setuptools._vendor.importlib_metadata</a>
  &#8226;   <a href="#setuptools._vendor.wheel.wheelfile">setuptools._vendor.wheel.wheelfile</a>
 
@@ -6152,6 +8616,8 @@ imported by:
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
  &#8226;   <a href="#customtkinter.windows.widgets.image">customtkinter.windows.widgets.image</a>
  &#8226;   <a href="#typing">typing</a>
 
@@ -6466,6 +8932,7 @@ imported by:
  &#8226;   <a href="#_pyrepl.readline">_pyrepl.readline</a>
  &#8226;   <a href="#packaging._tokenizer">packaging._tokenizer</a>
  &#8226;   <a href="#pprint">pprint</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
  &#8226;   <a href="#setuptools._vendor.packaging._tokenizer">setuptools._vendor.packaging._tokenizer</a>
  &#8226;   <a href="#setuptools._vendor.wheel.vendored.packaging._tokenizer">setuptools._vendor.wheel.vendored.packaging._tokenizer</a>
 
@@ -6485,7 +8952,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._reader">PyPDF2._reader</a>
+    <a href="#PIL._imagingcms">PIL._imagingcms</a>
+ &#8226;   <a href="#PyPDF2._reader">PyPDF2._reader</a>
  &#8226;   <a href="#PyPDF2.xmp">PyPDF2.xmp</a>
  &#8226;   <a href="#_strptime">_strptime</a>
  &#8226;   <a href="#calendar">calendar</a>
@@ -6523,6 +8991,17 @@ imported by:
  &#8226;   <a href="#setuptools.config._validate_pyproject.fastjsonschema_validations">setuptools.config._validate_pyproject.fastjsonschema_validations</a>
  &#8226;   <a href="#statistics">statistics</a>
  &#8226;   <a href="#xmlrpc.client">xmlrpc.client</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="defusedxml"></a>
+  <a target="code" href="" type="text/plain"><tt>defusedxml</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
 
   </div>
 
@@ -9630,7 +12109,15 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._encryption">PyPDF2._encryption</a>
+    <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.ExifTags">PIL.ExifTags</a>
+ &#8226;   <a href="#PIL.FtexImagePlugin">PIL.FtexImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PyPDF2._encryption">PyPDF2._encryption</a>
  &#8226;   <a href="#PyPDF2.constants">PyPDF2.constants</a>
  &#8226;   <a href="#ast">ast</a>
  &#8226;   <a href="#asyncio.constants">asyncio.constants</a>
@@ -9703,6 +12190,22 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="fitz"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/fitz/__init__.py" type="text/plain"><tt>fitz</tt></a>
+<span class="moduletype">Package</span>  <div class="import">
+imports:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pdf_splitter.py">pdf_splitter.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="fnmatch"></a>
   <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/fnmatch.py" type="text/plain"><tt>fnmatch</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -9730,6 +12233,17 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="fontTools"></a>
+  <a target="code" href="" type="text/plain"><tt>fontTools</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#pymupdf.utils">pymupdf.utils</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="fractions"></a>
   <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/fractions.py" type="text/plain"><tt>fractions</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -9745,7 +12259,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#statistics">statistics</a>
+    <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#statistics">statistics</a>
 
   </div>
 
@@ -9789,7 +12304,14 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._utils">PyPDF2._utils</a>
+    <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageColor">PIL.ImageColor</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageMode">PIL.ImageMode</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PyPDF2._utils">PyPDF2._utils</a>
  &#8226;   <a href="#_pyrepl.simple_interact">_pyrepl.simple_interact</a>
  &#8226;   <a href="#_pyrepl.utils">_pyrepl.utils</a>
  &#8226;   <a href="#asyncio.format_helpers">asyncio.format_helpers</a>
@@ -10010,6 +12532,7 @@ imported by:
     <a href="#keyboard._nixcommon">keyboard._nixcommon</a>
  &#8226;   <a href="#pathlib._abc">pathlib._abc</a>
  &#8226;   <a href="#pathlib._local">pathlib._local</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#setuptools._distutils.command.sdist">setuptools._distutils.command.sdist</a>
  &#8226;   <a href="#setuptools._vendor.wheel.cli.convert">setuptools._vendor.wheel.cli.convert</a>
  &#8226;   <a href="#setuptools.command.bdist_wheel">setuptools.command.bdist_wheel</a>
@@ -10059,7 +12582,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#setuptools._vendor.backports.tarfile">setuptools._vendor.backports.tarfile</a>
+    <a href="#PIL.FitsImagePlugin">PIL.FitsImagePlugin</a>
+ &#8226;   <a href="#setuptools._vendor.backports.tarfile">setuptools._vendor.backports.tarfile</a>
  &#8226;   <a href="#tarfile">tarfile</a>
  &#8226;   <a href="#xmlrpc.client">xmlrpc.client</a>
 
@@ -10153,6 +12677,7 @@ imports:
 imported by:
     <a href="#html.entities">html.entities</a>
  &#8226;   <a href="#http.server">http.server</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
 
   </div>
 
@@ -10321,6 +12846,7 @@ imported by:
  &#8226;   <a href="#importlib.util">importlib.util</a>
  &#8226;   <a href="#inspect">inspect</a>
  &#8226;   <a href="#pkgutil">pkgutil</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#setuptools._distutils">setuptools._distutils</a>
  &#8226;   <a href="#setuptools._vendor.importlib_metadata">setuptools._vendor.importlib_metadata</a>
  &#8226;   <a href="#setuptools.config.expand">setuptools.config.expand</a>
@@ -10905,6 +13431,9 @@ imported by:
  &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#pydoc">pydoc</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
  &#8226;   <a href="#rlcompleter">rlcompleter</a>
  &#8226;   <a href="#setuptools._vendor.importlib_metadata">setuptools._vendor.importlib_metadata</a>
  &#8226;   <a href="#setuptools._vendor.jaraco.functools">setuptools._vendor.jaraco.functools</a>
@@ -10935,7 +13464,30 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._merger">PyPDF2._merger</a>
+    <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+ &#8226;   <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.FtexImagePlugin">PIL.FtexImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GimpPaletteFile">PIL.GimpPaletteFile</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MspImagePlugin">PIL.MspImagePlugin</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.WebPImagePlugin">PIL.WebPImagePlugin</a>
+ &#8226;   <a href="#PyPDF2._merger">PyPDF2._merger</a>
  &#8226;   <a href="#PyPDF2._reader">PyPDF2._reader</a>
  &#8226;   <a href="#PyPDF2._utils">PyPDF2._utils</a>
  &#8226;   <a href="#PyPDF2._writer">PyPDF2._writer</a>
@@ -10977,6 +13529,9 @@ imported by:
  &#8226;   <a href="#pickle">pickle</a>
  &#8226;   <a href="#pprint">pprint</a>
  &#8226;   <a href="#pydoc">pydoc</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
  &#8226;   <a href="#quopri">quopri</a>
  &#8226;   <a href="#runpy">runpy</a>
  &#8226;   <a href="#setuptools._vendor.backports.tarfile">setuptools._vendor.backports.tarfile</a>
@@ -11002,6 +13557,7 @@ imported by:
  &#8226;   <a href="#uuid">uuid</a>
  &#8226;   <a href="#xml.dom.minidom">xml.dom.minidom</a>
  &#8226;   <a href="#xml.dom.pulldom">xml.dom.pulldom</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
  &#8226;   <a href="#xml.sax">xml.sax</a>
  &#8226;   <a href="#xml.sax.saxutils">xml.sax.saxutils</a>
  &#8226;   <a href="#xmlrpc.client">xmlrpc.client</a>
@@ -11034,7 +13590,11 @@ imported by:
   <a name="itertools"></a>
   <tt>itertools</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
-    <a href="#_pydecimal">_pydecimal</a>
+    <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#_pydecimal">_pydecimal</a>
  &#8226;   <a href="#asyncio.base_events">asyncio.base_events</a>
  &#8226;   <a href="#asyncio.selector_events">asyncio.selector_events</a>
  &#8226;   <a href="#asyncio.tasks">asyncio.tasks</a>
@@ -11065,6 +13625,7 @@ imported by:
  &#8226;   <a href="#pathlib._local">pathlib._local</a>
  &#8226;   <a href="#pickle">pickle</a>
  &#8226;   <a href="#platform">platform</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#reprlib">reprlib</a>
  &#8226;   <a href="#setuptools._distutils.command.sdist">setuptools._distutils.command.sdist</a>
@@ -11208,6 +13769,8 @@ imported by:
  &#8226;   <a href="#json.scanner">json.scanner</a>
  &#8226;   <a href="#keyboard._keyboard_event">keyboard._keyboard_event</a>
  &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
  &#8226;   <a href="#setuptools._vendor.importlib_metadata">setuptools._vendor.importlib_metadata</a>
  &#8226;   <a href="#setuptools.config._validate_pyproject.error_reporting">setuptools.config._validate_pyproject.error_reporting</a>
  &#8226;   <a href="#setuptools.msvc">setuptools.msvc</a>
@@ -11576,7 +14139,12 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._utils">PyPDF2._utils</a>
+    <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PyPDF2._utils">PyPDF2._utils</a>
  &#8226;   <a href="#PyPDF2._writer">PyPDF2._writer</a>
  &#8226;   <a href="#PyPDF2.generic._data_structures">PyPDF2.generic._data_structures</a>
  &#8226;   <a href="#asyncio.futures">asyncio.futures</a>
@@ -11586,6 +14154,7 @@ imported by:
  &#8226;   <a href="#http.cookiejar">http.cookiejar</a>
  &#8226;   <a href="#multiprocessing.util">multiprocessing.util</a>
  &#8226;   <a href="#packaging.tags">packaging.tags</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#setuptools._distutils._log">setuptools._distutils._log</a>
  &#8226;   <a href="#setuptools._distutils.cmd">setuptools._distutils.cmd</a>
  &#8226;   <a href="#setuptools._distutils.dist">setuptools._distutils.dist</a>
@@ -11645,7 +14214,16 @@ imported by:
   <a name="math"></a>
   <tt>math</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
-    <a href="#PyPDF2._cmap">PyPDF2._cmap</a>
+    <a href="#PIL.FitsImagePlugin">PIL.FitsImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GimpGradientFile">PIL.GimpGradientFile</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PpmImagePlugin">PIL.PpmImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PyPDF2._cmap">PyPDF2._cmap</a>
  &#8226;   <a href="#PyPDF2._page">PyPDF2._page</a>
  &#8226;   <a href="#PyPDF2.filters">PyPDF2.filters</a>
  &#8226;   <a href="#_pydatetime">_pydatetime</a>
@@ -11655,6 +14233,8 @@ imported by:
  &#8226;   <a href="#customtkinter.windows.widgets.core_rendering.draw_engine">customtkinter.windows.widgets.core_rendering.draw_engine</a>
  &#8226;   <a href="#customtkinter.windows.widgets.ctk_progressbar">customtkinter.windows.widgets.ctk_progressbar</a>
  &#8226;   <a href="#fractions">fractions</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#selectors">selectors</a>
  &#8226;   <a href="#setuptools._vendor.more_itertools.more">setuptools._vendor.more_itertools.more</a>
@@ -11693,7 +14273,10 @@ imported by:
   <a name="mmap"></a>
   <tt>mmap</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
-    <a href="#multiprocessing.heap">multiprocessing.heap</a>
+    <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#multiprocessing.heap">multiprocessing.heap</a>
  &#8226;   <a href="#multiprocessing.shared_memory">multiprocessing.shared_memory</a>
 
   </div>
@@ -11792,6 +14375,7 @@ imported by:
  &#8226;   <a href="#multiprocessing.synchronize">multiprocessing.synchronize</a>
  &#8226;   <a href="#multiprocessing.util">multiprocessing.util</a>
  &#8226;   <a href="#pyi_rth_multiprocessing.py">pyi_rth_multiprocessing.py</a>
+ &#8226;   <a href="#pymupdf._apply_pages">pymupdf._apply_pages</a>
 
   </div>
 
@@ -12540,6 +15124,29 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="mupdf"></a>
+  <a target="code" href="" type="text/plain"><tt>mupdf</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="mupdf_cppyy"></a>
+  <a target="code" href="" type="text/plain"><tt>mupdf_cppyy</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="netrc"></a>
   <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/netrc.py" type="text/plain"><tt>netrc</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -12624,10 +15231,35 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#_pydecimal">_pydecimal</a>
+    <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#_pydecimal">_pydecimal</a>
  &#8226;   <a href="#fractions">fractions</a>
  &#8226;   <a href="#setuptools.dist">setuptools.dist</a>
  &#8226;   <a href="#statistics">statistics</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="numpy"></a>
+  <a target="code" href="" type="text/plain"><tt>numpy</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#PIL._typing">PIL._typing</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="olefile"></a>
+  <a target="code" href="" type="text/plain"><tt>olefile</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#PIL.FpxImagePlugin">PIL.FpxImagePlugin</a>
+ &#8226;   <a href="#PIL.MicImagePlugin">PIL.MicImagePlugin</a>
 
   </div>
 
@@ -12662,7 +15294,9 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#_pydatetime">_pydatetime</a>
+    <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#_pydatetime">_pydatetime</a>
  &#8226;   <a href="#collections">collections</a>
  &#8226;   <a href="#copyreg">copyreg</a>
  &#8226;   <a href="#email._header_value_parser">email._header_value_parser</a>
@@ -12675,6 +15309,7 @@ imported by:
  &#8226;   <a href="#packaging.markers">packaging.markers</a>
  &#8226;   <a href="#pathlib._local">pathlib._local</a>
  &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#setuptools._discovery">setuptools._discovery</a>
  &#8226;   <a href="#setuptools._distutils.versionpredicate">setuptools._distutils.versionpredicate</a>
@@ -12715,7 +15350,33 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._reader">PyPDF2._reader</a>
+    <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+ &#8226;   <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.BufrStubImagePlugin">PIL.BufrStubImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.FliImagePlugin">PIL.FliImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GribStubImagePlugin">PIL.GribStubImagePlugin</a>
+ &#8226;   <a href="#PIL.Hdf5StubImagePlugin">PIL.Hdf5StubImagePlugin</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PIL.QoiImagePlugin">PIL.QoiImagePlugin</a>
+ &#8226;   <a href="#PIL.SgiImagePlugin">PIL.SgiImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#PyPDF2._reader">PyPDF2._reader</a>
  &#8226;   <a href="#PyPDF2._utils">PyPDF2._utils</a>
  &#8226;   <a href="#_aix_support">_aix_support</a>
  &#8226;   <a href="#_colorize">_colorize</a>
@@ -12813,6 +15474,10 @@ imported by:
  &#8226;   <a href="#pyi_rth__tkinter.py">pyi_rth__tkinter.py</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
  &#8226;   <a href="#pyi_rth_setuptools.py">pyi_rth_setuptools.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf._apply_pages">pymupdf._apply_pages</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#runpy">runpy</a>
  &#8226;   <a href="#setuptools">setuptools</a>
@@ -12939,7 +15604,6 @@ imports:
     <a href="#packaging">packaging</a>
  &#8226;   <a href="#packaging._manylinux">packaging._manylinux</a>
  &#8226;   <a href="#packaging._musllinux">packaging._musllinux</a>
- &#8226;   <a href="#packaging.version">packaging.version</a>
 
   </div>
   <div class="import">
@@ -13308,7 +15972,6 @@ imports:
 imported by:
     <a href="#customtkinter.windows.ctk_tk">customtkinter.windows.ctk_tk</a>
  &#8226;   <a href="#customtkinter.windows.ctk_toplevel">customtkinter.windows.ctk_toplevel</a>
- &#8226;   <a href="#packaging">packaging</a>
  &#8226;   <a href="#packaging.specifiers">packaging.specifiers</a>
  &#8226;   <a href="#packaging.utils">packaging.utils</a>
  &#8226;   <a href="#setuptools._core_metadata">setuptools._core_metadata</a>
@@ -13318,6 +15981,17 @@ imported by:
  &#8226;   <a href="#setuptools.depends">setuptools.depends</a>
  &#8226;   <a href="#setuptools.dist">setuptools.dist</a>
  &#8226;   <a href="#setuptools.wheel">setuptools.wheel</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pandas"></a>
+  <a target="code" href="" type="text/plain"><tt>pandas</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#pymupdf.table">pymupdf.table</a>
 
   </div>
 
@@ -13347,6 +16021,7 @@ imported by:
  &#8226;   <a href="#pathlib._abc">pathlib._abc</a>
  &#8226;   <a href="#pathlib._local">pathlib._local</a>
  &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#setuptools._distutils.compilers.C.base">setuptools._distutils.compilers.C.base</a>
  &#8226;   <a href="#setuptools._distutils.dir_util">setuptools._distutils.dir_util</a>
  &#8226;   <a href="#setuptools._distutils.dist">setuptools._distutils.dist</a>
@@ -13734,7 +16409,9 @@ imported by:
   <a name="pyexpat"></a>
   <tt>pyexpat</tt> <span class="moduletype"><tt>C:\Users\Ethan\AppData\Local\Programs\Python\Python313\DLLs\pyexpat.pyd</tt></span>  <div class="import">
 imported by:
-    <a href="#xml.parsers.expat">xml.parsers.expat</a>
+    <a href="#_elementtree">_elementtree</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+ &#8226;   <a href="#xml.parsers.expat">xml.parsers.expat</a>
 
   </div>
 
@@ -13746,6 +16423,272 @@ imported by:
 <span class="moduletype">MissingModule</span>  <div class="import">
 imported by:
     <a href="#pyi_rth_pkgutil.py">pyi_rth_pkgutil.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/pymupdf/__init__.py" type="text/plain"><tt>pymupdf</tt></a>
+<span class="moduletype">Package</span>  <div class="import">
+imports:
+    <a href="#PIL">PIL</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#atexit">atexit</a>
+ &#8226;   <a href="#base64">base64</a>
+ &#8226;   <a href="#binascii">binascii</a>
+ &#8226;   <a href="#collections">collections</a>
+ &#8226;   <a href="#cppyy">cppyy</a>
+ &#8226;   <a href="#glob">glob</a>
+ &#8226;   <a href="#importlib">importlib</a>
+ &#8226;   <a href="#inspect">inspect</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#json">json</a>
+ &#8226;   <a href="#logging">logging</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#mupdf">mupdf</a>
+ &#8226;   <a href="#mupdf_cppyy">mupdf_cppyy</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#pathlib">pathlib</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf._apply_pages">pymupdf._apply_pages</a>
+ &#8226;   <a href="#pymupdf._extra">pymupdf._extra</a>
+ &#8226;   <a href="#pymupdf._mupdf">pymupdf._mupdf</a>
+ &#8226;   <a href="#pymupdf._wxcolors">pymupdf._wxcolors</a>
+ &#8226;   <a href="#pymupdf.extra">pymupdf.extra</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+ &#8226;   <a href="#pymupdf.pymupdf">pymupdf.pymupdf</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
+ &#8226;   <a href="#pymupdf_fonts">pymupdf_fonts</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#string">string</a>
+ &#8226;   <a href="#subprocess">subprocess</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#tarfile">tarfile</a>
+ &#8226;   <a href="#textwrap">textwrap</a>
+ &#8226;   <a href="#time">time</a>
+ &#8226;   <a href="#traceback">traceback</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#unicodedata">unicodedata</a>
+ &#8226;   <a href="#warnings">warnings</a>
+ &#8226;   <a href="#weakref">weakref</a>
+ &#8226;   <a href="#zipfile">zipfile</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#fitz">fitz</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf._apply_pages">pymupdf._apply_pages</a>
+ &#8226;   <a href="#pymupdf._extra">pymupdf._extra</a>
+ &#8226;   <a href="#pymupdf._mupdf">pymupdf._mupdf</a>
+ &#8226;   <a href="#pymupdf._wxcolors">pymupdf._wxcolors</a>
+ &#8226;   <a href="#pymupdf.extra">pymupdf.extra</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+ &#8226;   <a href="#pymupdf.pymupdf">pymupdf.pymupdf</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf._apply_pages"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/pymupdf/_apply_pages.py" type="text/plain"><tt>pymupdf._apply_pages</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#multiprocessing">multiprocessing</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#time">time</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf._extra"></a>
+  <tt>pymupdf._extra</tt> <span class="moduletype"><tt>C:\Users\Ethan\IdeaProjects\CleanCutPDF\.venv\Lib\site-packages\pymupdf\_extra.pyd</tt></span>  <div class="import">
+imports:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.extra">pymupdf.extra</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf._mupdf"></a>
+  <tt>pymupdf._mupdf</tt> <span class="moduletype"><tt>C:\Users\Ethan\IdeaProjects\CleanCutPDF\.venv\Lib\site-packages\pymupdf\_mupdf.pyd</tt></span>  <div class="import">
+imports:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf._wxcolors"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/pymupdf/_wxcolors.py" type="text/plain"><tt>pymupdf._wxcolors</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf.extra"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/pymupdf/extra.py" type="text/plain"><tt>pymupdf.extra</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__builtin__">__builtin__</a>
+ &#8226;   <a href="#builtins">builtins</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf._extra">pymupdf._extra</a>
+ &#8226;   <a href="#sys">sys</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf.mupdf"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/pymupdf/mupdf.py" type="text/plain"><tt>pymupdf.mupdf</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__builtin__">__builtin__</a>
+ &#8226;   <a href="#builtins">builtins</a>
+ &#8226;   <a href="#inspect">inspect</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf._mupdf">pymupdf._mupdf</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#traceback">traceback</a>
+ &#8226;   <a href="#types">types</a>
+ &#8226;   <a href="#weakref">weakref</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf.pymupdf"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/pymupdf/pymupdf.py" type="text/plain"><tt>pymupdf.pymupdf</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf.table"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/pymupdf/table.py" type="text/plain"><tt>pymupdf.table</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#dataclasses">dataclasses</a>
+ &#8226;   <a href="#html">html</a>
+ &#8226;   <a href="#inspect">inspect</a>
+ &#8226;   <a href="#itertools">itertools</a>
+ &#8226;   <a href="#operator">operator</a>
+ &#8226;   <a href="#pandas">pandas</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+ &#8226;   <a href="#string">string</a>
+ &#8226;   <a href="#weakref">weakref</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf.utils"></a>
+  <a target="code" href="///C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Lib/site-packages/pymupdf/utils.py" type="text/plain"><tt>pymupdf.utils</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#fontTools">fontTools</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#json">json</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#mupdf">mupdf</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+ &#8226;   <a href="#pymupdf.pymupdf">pymupdf.pymupdf</a>
+ &#8226;   <a href="#random">random</a>
+ &#8226;   <a href="#string">string</a>
+ &#8226;   <a href="#tempfile">tempfile</a>
+ &#8226;   <a href="#typing">typing</a>
+ &#8226;   <a href="#weakref">weakref</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pymupdf_fonts"></a>
+  <a target="code" href="" type="text/plain"><tt>pymupdf_fonts</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#pymupdf">pymupdf</a>
 
   </div>
 
@@ -13825,10 +16768,12 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._encryption">PyPDF2._encryption</a>
+    <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PyPDF2._encryption">PyPDF2._encryption</a>
  &#8226;   <a href="#PyPDF2._writer">PyPDF2._writer</a>
  &#8226;   <a href="#email.generator">email.generator</a>
  &#8226;   <a href="#email.utils">email.utils</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
  &#8226;   <a href="#secrets">secrets</a>
  &#8226;   <a href="#setuptools._vendor.more_itertools.more">setuptools._vendor.more_itertools.more</a>
  &#8226;   <a href="#setuptools._vendor.more_itertools.recipes">setuptools._vendor.more_itertools.recipes</a>
@@ -13858,7 +16803,18 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._reader">PyPDF2._reader</a>
+    <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.GimpPaletteFile">PIL.GimpPaletteFile</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageColor">PIL.ImageColor</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImtImagePlugin">PIL.ImtImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.XbmImagePlugin">PIL.XbmImagePlugin</a>
+ &#8226;   <a href="#PIL.XpmImagePlugin">PIL.XpmImagePlugin</a>
+ &#8226;   <a href="#PyPDF2._reader">PyPDF2._reader</a>
  &#8226;   <a href="#PyPDF2._writer">PyPDF2._writer</a>
  &#8226;   <a href="#PyPDF2.generic._base">PyPDF2.generic._base</a>
  &#8226;   <a href="#PyPDF2.generic._data_structures">PyPDF2.generic._data_structures</a>
@@ -13931,6 +16887,8 @@ imported by:
  &#8226;   <a href="#posixpath">posixpath</a>
  &#8226;   <a href="#pprint">pprint</a>
  &#8226;   <a href="#pydoc">pydoc</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#re._casefix">re._casefix</a>
  &#8226;   <a href="#re._compiler">re._compiler</a>
@@ -14003,6 +16961,8 @@ imported by:
  &#8226;   <a href="#urllib.parse">urllib.parse</a>
  &#8226;   <a href="#urllib.request">urllib.request</a>
  &#8226;   <a href="#warnings">warnings</a>
+ &#8226;   <a href="#xml.etree.ElementPath">xml.etree.ElementPath</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
  &#8226;   <a href="#zipfile._path">zipfile._path</a>
  &#8226;   <a href="#zipfile._path.glob">zipfile._path.glob</a>
 
@@ -18451,7 +21411,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#setuptools.dist">setuptools.dist</a>
+    <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#setuptools.dist">setuptools.dist</a>
  &#8226;   <a href="#webbrowser">webbrowser</a>
 
   </div>
@@ -18483,7 +21444,9 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#argparse">argparse</a>
+    <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#argparse">argparse</a>
  &#8226;   <a href="#ctypes.util">ctypes.util</a>
  &#8226;   <a href="#customtkinter.windows.widgets.font.font_manager">customtkinter.windows.widgets.font.font_manager</a>
  &#8226;   <a href="#http.server">http.server</a>
@@ -18818,6 +21781,9 @@ imported by:
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#ntpath">ntpath</a>
  &#8226;   <a href="#nturl2path">nturl2path</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
  &#8226;   <a href="#setuptools._distutils.fancy_getopt">setuptools._distutils.fancy_getopt</a>
  &#8226;   <a href="#setuptools._distutils.util">setuptools._distutils.util</a>
  &#8226;   <a href="#setuptools._vendor.tomli._parser">setuptools._vendor.tomli._parser</a>
@@ -18855,7 +21821,23 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._encryption">PyPDF2._encryption</a>
+    <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.FtexImagePlugin">PIL.FtexImagePlugin</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.McIdasImagePlugin">PIL.McIdasImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.MspImagePlugin">PIL.MspImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.SgiImagePlugin">PIL.SgiImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._binary">PIL._binary</a>
+ &#8226;   <a href="#PyPDF2._encryption">PyPDF2._encryption</a>
  &#8226;   <a href="#PyPDF2._reader">PyPDF2._reader</a>
  &#8226;   <a href="#PyPDF2._security">PyPDF2._security</a>
  &#8226;   <a href="#PyPDF2._writer">PyPDF2._writer</a>
@@ -18920,7 +21902,11 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#_aix_support">_aix_support</a>
+    <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#_aix_support">_aix_support</a>
  &#8226;   <a href="#_pyrepl.pager">_pyrepl.pager</a>
  &#8226;   <a href="#asyncio.base_events">asyncio.base_events</a>
  &#8226;   <a href="#asyncio.base_subprocess">asyncio.base_subprocess</a>
@@ -18941,6 +21927,7 @@ imported by:
  &#8226;   <a href="#packaging.tags">packaging.tags</a>
  &#8226;   <a href="#platform">platform</a>
  &#8226;   <a href="#pyi_rth_multiprocessing.py">pyi_rth_multiprocessing.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#setuptools._distutils.compilers.C.msvc">setuptools._distutils.compilers.C.msvc</a>
  &#8226;   <a href="#setuptools._distutils.spawn">setuptools._distutils.spawn</a>
  &#8226;   <a href="#setuptools._distutils.util">setuptools._distutils.util</a>
@@ -18961,7 +21948,20 @@ imported by:
   <a name="sys"></a>
   <tt>sys</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
-    <a href="#_aix_support">_aix_support</a>
+    <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageMode">PIL.ImageMode</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL._imagingcms">PIL._imagingcms</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#_aix_support">_aix_support</a>
  &#8226;   <a href="#_collections_abc">_collections_abc</a>
  &#8226;   <a href="#_colorize">_colorize</a>
  &#8226;   <a href="#_compression">_compression</a>
@@ -19091,6 +22091,9 @@ imported by:
  &#8226;   <a href="#pyi_rth__tkinter.py">pyi_rth__tkinter.py</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
  &#8226;   <a href="#pyi_rth_multiprocessing.py">pyi_rth_multiprocessing.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.extra">pymupdf.extra</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
  &#8226;   <a href="#quopri">quopri</a>
  &#8226;   <a href="#re._compiler">re._compiler</a>
  &#8226;   <a href="#runpy">runpy</a>
@@ -19178,6 +22181,7 @@ imported by:
  &#8226;   <a href="#weakref">weakref</a>
  &#8226;   <a href="#webbrowser">webbrowser</a>
  &#8226;   <a href="#xml.dom.domreg">xml.dom.domreg</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
  &#8226;   <a href="#xml.parsers.expat">xml.parsers.expat</a>
  &#8226;   <a href="#xml.sax">xml.sax</a>
  &#8226;   <a href="#xml.sax.saxutils">xml.sax.saxutils</a>
@@ -19255,7 +22259,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#setuptools._distutils.archive_util">setuptools._distutils.archive_util</a>
+    <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#setuptools._distutils.archive_util">setuptools._distutils.archive_util</a>
  &#8226;   <a href="#setuptools._vendor.jaraco.context">setuptools._vendor.jaraco.context</a>
  &#8226;   <a href="#setuptools.archive_util">setuptools.archive_util</a>
  &#8226;   <a href="#shutil">shutil</a>
@@ -19284,7 +22289,10 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#_pyrepl.pager">_pyrepl.pager</a>
+    <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#_pyrepl.pager">_pyrepl.pager</a>
  &#8226;   <a href="#asyncio.windows_utils">asyncio.windows_utils</a>
  &#8226;   <a href="#ctypes.util">ctypes.util</a>
  &#8226;   <a href="#importlib.resources._common">importlib.resources._common</a>
@@ -19292,6 +22300,8 @@ imported by:
  &#8226;   <a href="#multiprocessing.heap">multiprocessing.heap</a>
  &#8226;   <a href="#multiprocessing.synchronize">multiprocessing.synchronize</a>
  &#8226;   <a href="#multiprocessing.util">multiprocessing.util</a>
+ &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
  &#8226;   <a href="#setuptools._core_metadata">setuptools._core_metadata</a>
  &#8226;   <a href="#setuptools._distutils.compilers.C.base">setuptools._distutils.compilers.C.base</a>
  &#8226;   <a href="#setuptools._distutils.util">setuptools._distutils.util</a>
@@ -19334,6 +22344,7 @@ imported by:
  &#8226;   <a href="#importlib.metadata">importlib.metadata</a>
  &#8226;   <a href="#importlib.metadata._adapters">importlib.metadata._adapters</a>
  &#8226;   <a href="#pydoc">pydoc</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#setuptools._core_metadata">setuptools._core_metadata</a>
  &#8226;   <a href="#setuptools._vendor.importlib_metadata">setuptools._vendor.importlib_metadata</a>
  &#8226;   <a href="#setuptools._vendor.importlib_metadata._adapters">setuptools._vendor.importlib_metadata._adapters</a>
@@ -19423,7 +22434,9 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._writer">PyPDF2._writer</a>
+    <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PyPDF2._writer">PyPDF2._writer</a>
  &#8226;   <a href="#_datetime">_datetime</a>
  &#8226;   <a href="#_pydatetime">_pydatetime</a>
  &#8226;   <a href="#_pyrepl.unix_console">_pyrepl.unix_console</a>
@@ -19452,6 +22465,8 @@ imported by:
  &#8226;   <a href="#multiprocessing.queues">multiprocessing.queues</a>
  &#8226;   <a href="#multiprocessing.synchronize">multiprocessing.synchronize</a>
  &#8226;   <a href="#pydoc">pydoc</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf._apply_pages">pymupdf._apply_pages</a>
  &#8226;   <a href="#queue">queue</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#setuptools._vendor.backports.tarfile">setuptools._vendor.backports.tarfile</a>
@@ -19489,6 +22504,7 @@ imports:
  &#8226;   <a href="#sys">sys</a>
  &#8226;   <a href="#tkinter.commondialog">tkinter.commondialog</a>
  &#8226;   <a href="#tkinter.constants">tkinter.constants</a>
+ &#8226;   <a href="#tkinter.filedialog">tkinter.filedialog</a>
  &#8226;   <a href="#tkinter.messagebox">tkinter.messagebox</a>
  &#8226;   <a href="#traceback">traceback</a>
  &#8226;   <a href="#types">types</a>
@@ -19605,6 +22621,7 @@ imports:
 imported by:
     <a href="#customtkinter">customtkinter</a>
  &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
+ &#8226;   <a href="#tkinter">tkinter</a>
 
   </div>
 
@@ -19918,6 +22935,8 @@ imported by:
  &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
  &#8226;   <a href="#py_compile">py_compile</a>
  &#8226;   <a href="#pydoc">pydoc</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
  &#8226;   <a href="#site">site</a>
  &#8226;   <a href="#socketserver">socketserver</a>
  &#8226;   <a href="#threading">threading</a>
@@ -19993,7 +23012,11 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._merger">PyPDF2._merger</a>
+    <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PyPDF2._merger">PyPDF2._merger</a>
  &#8226;   <a href="#PyPDF2._writer">PyPDF2._writer</a>
  &#8226;   <a href="#_pyrepl._threading_handler">_pyrepl._threading_handler</a>
  &#8226;   <a href="#_weakrefset">_weakrefset</a>
@@ -20030,6 +23053,7 @@ imported by:
  &#8226;   <a href="#pickle">pickle</a>
  &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#pprint">pprint</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
  &#8226;   <a href="#queue">queue</a>
  &#8226;   <a href="#setuptools._vendor.importlib_metadata">setuptools._vendor.importlib_metadata</a>
  &#8226;   <a href="#setuptools._vendor.importlib_metadata._functools">setuptools._vendor.importlib_metadata._functools</a>
@@ -20080,7 +23104,64 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._cmap">PyPDF2._cmap</a>
+    <a href="#PIL.AvifImagePlugin">PIL.AvifImagePlugin</a>
+ &#8226;   <a href="#PIL.BlpImagePlugin">PIL.BlpImagePlugin</a>
+ &#8226;   <a href="#PIL.BmpImagePlugin">PIL.BmpImagePlugin</a>
+ &#8226;   <a href="#PIL.BufrStubImagePlugin">PIL.BufrStubImagePlugin</a>
+ &#8226;   <a href="#PIL.DdsImagePlugin">PIL.DdsImagePlugin</a>
+ &#8226;   <a href="#PIL.EpsImagePlugin">PIL.EpsImagePlugin</a>
+ &#8226;   <a href="#PIL.GifImagePlugin">PIL.GifImagePlugin</a>
+ &#8226;   <a href="#PIL.GimpGradientFile">PIL.GimpGradientFile</a>
+ &#8226;   <a href="#PIL.GimpPaletteFile">PIL.GimpPaletteFile</a>
+ &#8226;   <a href="#PIL.GribStubImagePlugin">PIL.GribStubImagePlugin</a>
+ &#8226;   <a href="#PIL.Hdf5StubImagePlugin">PIL.Hdf5StubImagePlugin</a>
+ &#8226;   <a href="#PIL.IcnsImagePlugin">PIL.IcnsImagePlugin</a>
+ &#8226;   <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.ImImagePlugin">PIL.ImImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.ImageCms">PIL.ImageCms</a>
+ &#8226;   <a href="#PIL.ImageFile">PIL.ImageFile</a>
+ &#8226;   <a href="#PIL.ImageFilter">PIL.ImageFilter</a>
+ &#8226;   <a href="#PIL.ImageMath">PIL.ImageMath</a>
+ &#8226;   <a href="#PIL.ImageMode">PIL.ImageMode</a>
+ &#8226;   <a href="#PIL.ImageOps">PIL.ImageOps</a>
+ &#8226;   <a href="#PIL.ImagePalette">PIL.ImagePalette</a>
+ &#8226;   <a href="#PIL.ImageQt">PIL.ImageQt</a>
+ &#8226;   <a href="#PIL.ImageSequence">PIL.ImageSequence</a>
+ &#8226;   <a href="#PIL.ImageShow">PIL.ImageShow</a>
+ &#8226;   <a href="#PIL.ImageTk">PIL.ImageTk</a>
+ &#8226;   <a href="#PIL.IptcImagePlugin">PIL.IptcImagePlugin</a>
+ &#8226;   <a href="#PIL.Jpeg2KImagePlugin">PIL.Jpeg2KImagePlugin</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.MpoImagePlugin">PIL.MpoImagePlugin</a>
+ &#8226;   <a href="#PIL.MspImagePlugin">PIL.MspImagePlugin</a>
+ &#8226;   <a href="#PIL.PaletteFile">PIL.PaletteFile</a>
+ &#8226;   <a href="#PIL.PalmImagePlugin">PIL.PalmImagePlugin</a>
+ &#8226;   <a href="#PIL.PcxImagePlugin">PIL.PcxImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfImagePlugin">PIL.PdfImagePlugin</a>
+ &#8226;   <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.PpmImagePlugin">PIL.PpmImagePlugin</a>
+ &#8226;   <a href="#PIL.PsdImagePlugin">PIL.PsdImagePlugin</a>
+ &#8226;   <a href="#PIL.QoiImagePlugin">PIL.QoiImagePlugin</a>
+ &#8226;   <a href="#PIL.SgiImagePlugin">PIL.SgiImagePlugin</a>
+ &#8226;   <a href="#PIL.SpiderImagePlugin">PIL.SpiderImagePlugin</a>
+ &#8226;   <a href="#PIL.TgaImagePlugin">PIL.TgaImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffTags">PIL.TiffTags</a>
+ &#8226;   <a href="#PIL.WebPImagePlugin">PIL.WebPImagePlugin</a>
+ &#8226;   <a href="#PIL.WmfImagePlugin">PIL.WmfImagePlugin</a>
+ &#8226;   <a href="#PIL.XbmImagePlugin">PIL.XbmImagePlugin</a>
+ &#8226;   <a href="#PIL._avif">PIL._avif</a>
+ &#8226;   <a href="#PIL._imaging">PIL._imaging</a>
+ &#8226;   <a href="#PIL._imagingcms">PIL._imagingcms</a>
+ &#8226;   <a href="#PIL._imagingmath">PIL._imagingmath</a>
+ &#8226;   <a href="#PIL._imagingtk">PIL._imagingtk</a>
+ &#8226;   <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PIL._util">PIL._util</a>
+ &#8226;   <a href="#PIL._webp">PIL._webp</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#PyPDF2._cmap">PyPDF2._cmap</a>
  &#8226;   <a href="#PyPDF2._codecs">PyPDF2._codecs</a>
  &#8226;   <a href="#PyPDF2._encryption">PyPDF2._encryption</a>
  &#8226;   <a href="#PyPDF2._merger">PyPDF2._merger</a>
@@ -20164,6 +23245,8 @@ imported by:
  &#8226;   <a href="#packaging.tags">packaging.tags</a>
  &#8226;   <a href="#packaging.utils">packaging.utils</a>
  &#8226;   <a href="#packaging.version">packaging.version</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
  &#8226;   <a href="#setuptools">setuptools</a>
  &#8226;   <a href="#setuptools._distutils._modified">setuptools._distutils._modified</a>
  &#8226;   <a href="#setuptools._distutils.archive_util">setuptools._distutils.archive_util</a>
@@ -20267,7 +23350,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2._protocols">PyPDF2._protocols</a>
+    <a href="#PIL._typing">PIL._typing</a>
+ &#8226;   <a href="#PyPDF2._protocols">PyPDF2._protocols</a>
  &#8226;   <a href="#PyPDF2._security">PyPDF2._security</a>
  &#8226;   <a href="#PyPDF2._utils">PyPDF2._utils</a>
  &#8226;   <a href="#PyPDF2.filters">PyPDF2.filters</a>
@@ -20410,6 +23494,7 @@ imported by:
     <a href="#_pyrepl.input">_pyrepl.input</a>
  &#8226;   <a href="#_pyrepl.utils">_pyrepl.utils</a>
  &#8226;   <a href="#encodings.idna">encodings.idna</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#re._parser">re._parser</a>
  &#8226;   <a href="#setuptools.unicode_utils">setuptools.unicode_utils</a>
  &#8226;   <a href="#stringprep">stringprep</a>
@@ -20782,6 +23867,7 @@ imported by:
  &#8226;   <a href="#setuptools.config._validate_pyproject.formats">setuptools.config._validate_pyproject.formats</a>
  &#8226;   <a href="#urllib.request">urllib.request</a>
  &#8226;   <a href="#xml.dom.xmlbuilder">xml.dom.xmlbuilder</a>
+ &#8226;   <a href="#xml.etree.ElementInclude">xml.etree.ElementInclude</a>
  &#8226;   <a href="#xml.sax.saxutils">xml.sax.saxutils</a>
  &#8226;   <a href="#xmlrpc.client">xmlrpc.client</a>
 
@@ -20926,7 +24012,15 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#PyPDF2">PyPDF2</a>
+    <a href="#PIL.IcoImagePlugin">PIL.IcoImagePlugin</a>
+ &#8226;   <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#PIL.JpegImagePlugin">PIL.JpegImagePlugin</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PIL.TgaImagePlugin">PIL.TgaImagePlugin</a>
+ &#8226;   <a href="#PIL.TiffImagePlugin">PIL.TiffImagePlugin</a>
+ &#8226;   <a href="#PIL._deprecate">PIL._deprecate</a>
+ &#8226;   <a href="#PIL.features">PIL.features</a>
+ &#8226;   <a href="#PyPDF2">PyPDF2</a>
  &#8226;   <a href="#PyPDF2._cmap">PyPDF2._cmap</a>
  &#8226;   <a href="#PyPDF2._merger">PyPDF2._merger</a>
  &#8226;   <a href="#PyPDF2._page">PyPDF2._page</a>
@@ -20981,6 +24075,7 @@ imported by:
  &#8226;   <a href="#pkgutil">pkgutil</a>
  &#8226;   <a href="#platform">platform</a>
  &#8226;   <a href="#pydoc">pydoc</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#random">random</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#re._parser">re._parser</a>
@@ -21022,6 +24117,7 @@ imported by:
  &#8226;   <a href="#unittest.runner">unittest.runner</a>
  &#8226;   <a href="#urllib.parse">urllib.parse</a>
  &#8226;   <a href="#urllib.request">urllib.request</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
  &#8226;   <a href="#zipfile">zipfile</a>
 
   </div>
@@ -21063,8 +24159,13 @@ imported by:
  &#8226;   <a href="#multiprocessing.sharedctypes">multiprocessing.sharedctypes</a>
  &#8226;   <a href="#multiprocessing.util">multiprocessing.util</a>
  &#8226;   <a href="#pdf_splitter.py">pdf_splitter.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
+ &#8226;   <a href="#pymupdf.mupdf">pymupdf.mupdf</a>
+ &#8226;   <a href="#pymupdf.table">pymupdf.table</a>
+ &#8226;   <a href="#pymupdf.utils">pymupdf.utils</a>
  &#8226;   <a href="#tempfile">tempfile</a>
  &#8226;   <a href="#unittest.signals">unittest.signals</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
  &#8226;   <a href="#xml.sax.expatreader">xml.sax.expatreader</a>
 
   </div>
@@ -21090,7 +24191,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#pydoc">pydoc</a>
+    <a href="#pdf_splitter.py">pdf_splitter.py</a>
+ &#8226;   <a href="#pydoc">pydoc</a>
 
   </div>
 
@@ -21143,6 +24245,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#xml.dom">xml.dom</a>
+ &#8226;   <a href="#xml.etree">xml.etree</a>
  &#8226;   <a href="#xml.parsers">xml.parsers</a>
  &#8226;   <a href="#xml.sax">xml.sax</a>
 
@@ -21323,6 +24426,117 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="xml.etree"></a>
+  <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/xml/etree/__init__.py" type="text/plain"><tt>xml.etree</tt></a>
+<span class="moduletype">Package</span>  <div class="import">
+imports:
+    <a href="#xml">xml</a>
+ &#8226;   <a href="#xml.etree">xml.etree</a>
+ &#8226;   <a href="#xml.etree.ElementPath">xml.etree.ElementPath</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#xml.etree">xml.etree</a>
+ &#8226;   <a href="#xml.etree.ElementInclude">xml.etree.ElementInclude</a>
+ &#8226;   <a href="#xml.etree.ElementPath">xml.etree.ElementPath</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+ &#8226;   <a href="#xml.etree.cElementTree">xml.etree.cElementTree</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="xml.etree.ElementInclude"></a>
+  <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/xml/etree/ElementInclude.py" type="text/plain"><tt>xml.etree.ElementInclude</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#copy">copy</a>
+ &#8226;   <a href="#urllib.parse">urllib.parse</a>
+ &#8226;   <a href="#xml.etree">xml.etree</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#_elementtree">_elementtree</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="xml.etree.ElementPath"></a>
+  <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/xml/etree/ElementPath.py" type="text/plain"><tt>xml.etree.ElementPath</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#re">re</a>
+ &#8226;   <a href="#xml.etree">xml.etree</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#_elementtree">_elementtree</a>
+ &#8226;   <a href="#xml.etree">xml.etree</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="xml.etree.ElementTree"></a>
+  <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/xml/etree/ElementTree.py" type="text/plain"><tt>xml.etree.ElementTree</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#'collections.abc'">'collections.abc'</a>
+ &#8226;   <a href="#_elementtree">_elementtree</a>
+ &#8226;   <a href="#collections">collections</a>
+ &#8226;   <a href="#contextlib">contextlib</a>
+ &#8226;   <a href="#io">io</a>
+ &#8226;   <a href="#pyexpat">pyexpat</a>
+ &#8226;   <a href="#re">re</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#warnings">warnings</a>
+ &#8226;   <a href="#weakref">weakref</a>
+ &#8226;   <a href="#xml.etree">xml.etree</a>
+ &#8226;   <a href="#xml.etree.ElementPath">xml.etree.ElementPath</a>
+ &#8226;   <a href="#xml.parsers">xml.parsers</a>
+ &#8226;   <a href="#xml.parsers.expat">xml.parsers.expat</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#PIL.Image">PIL.Image</a>
+ &#8226;   <a href="#_elementtree">_elementtree</a>
+ &#8226;   <a href="#xml.etree">xml.etree</a>
+ &#8226;   <a href="#xml.etree.ElementInclude">xml.etree.ElementInclude</a>
+ &#8226;   <a href="#xml.etree.cElementTree">xml.etree.cElementTree</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="xml.etree.cElementTree"></a>
+  <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/xml/etree/cElementTree.py" type="text/plain"><tt>xml.etree.cElementTree</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#xml.etree">xml.etree</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#_elementtree">_elementtree</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="xml.parsers"></a>
   <a target="code" href="///C:/Users/Ethan/AppData/Local/Programs/Python/Python313/Lib/xml/parsers/__init__.py" type="text/plain"><tt>xml.parsers</tt></a>
 <span class="moduletype">Package</span>  <div class="import">
@@ -21334,6 +24548,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#xml.dom.expatbuilder">xml.dom.expatbuilder</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
  &#8226;   <a href="#xml.parsers.expat">xml.parsers.expat</a>
  &#8226;   <a href="#xml.sax.expatreader">xml.sax.expatreader</a>
  &#8226;   <a href="#xmlrpc.client">xmlrpc.client</a>
@@ -21356,6 +24571,7 @@ imports:
 imported by:
     <a href="#PyPDF2.xmp">PyPDF2.xmp</a>
  &#8226;   <a href="#xml.dom.expatbuilder">xml.dom.expatbuilder</a>
+ &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
  &#8226;   <a href="#xml.parsers">xml.parsers</a>
  &#8226;   <a href="#xml.sax.expatreader">xml.sax.expatreader</a>
  &#8226;   <a href="#xmlrpc.client">xmlrpc.client</a>
@@ -21574,6 +24790,7 @@ imported by:
     <a href="#importlib.metadata">importlib.metadata</a>
  &#8226;   <a href="#importlib.resources.readers">importlib.resources.readers</a>
  &#8226;   <a href="#pyi_rth_inspect.py">pyi_rth_inspect.py</a>
+ &#8226;   <a href="#pymupdf">pymupdf</a>
  &#8226;   <a href="#setuptools._distutils.archive_util">setuptools._distutils.archive_util</a>
  &#8226;   <a href="#setuptools._vendor.wheel.cli.convert">setuptools._vendor.wheel.cli.convert</a>
  &#8226;   <a href="#setuptools._vendor.wheel.wheelfile">setuptools._vendor.wheel.wheelfile</a>
@@ -21679,7 +24896,9 @@ imported by:
   <a name="zlib"></a>
   <tt>zlib</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
-    <a href="#PyPDF2._reader">PyPDF2._reader</a>
+    <a href="#PIL.PdfParser">PIL.PdfParser</a>
+ &#8226;   <a href="#PIL.PngImagePlugin">PIL.PngImagePlugin</a>
+ &#8226;   <a href="#PyPDF2._reader">PyPDF2._reader</a>
  &#8226;   <a href="#PyPDF2.filters">PyPDF2.filters</a>
  &#8226;   <a href="#encodings.zlib_codec">encodings.zlib_codec</a>
  &#8226;   <a href="#gzip">gzip</a>
