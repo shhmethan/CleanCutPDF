@@ -1227,7 +1227,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         ctk.CTkLabel(parent, text=f"Company: {company}", font=font).pack(anchor="center", padx=10, pady=(10, 0))
         ctk.CTkLabel(parent, text="Status: ✅ Active", font=font, text_color="#32cd32").pack(anchor="center", padx=10)
 
-        # Clear button (already present, just preserve styling)
+        # Clear button (already present, preserve styling)
         ctk.CTkButton(
             parent,
             text="🧹 Clear License Key",
@@ -1626,7 +1626,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         font = (self.font_family, self.font_size)
 
-        # ── Container: main frame with scroll + fixed footer ──
+        # ── Container: main frame with scroll and fixed footer ──
         main_frame = ctk.CTkFrame(popup)
         main_frame.pack(fill="both", expand=True, padx=10, pady=(10, 0))
 
@@ -2313,7 +2313,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         label2 = ctk.CTkLabel(plus_frame, text="Or drag and drop files into this area", font=font)
         label2.pack(pady=(10, 0))
     def download_split_here_sheet(self):
-        src_path = resource_path("resources/split_here_background.pdf")
+        url = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/resources/split_here_background.pdf"
 
         out_path = filedialog.asksaveasfilename(
             defaultextension=".pdf",
@@ -2325,16 +2325,19 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return
 
         try:
-            doc = fitz.open(src_path)
+            with urllib.request.urlopen(url) as response:
+                pdf_bytes = response.read()
+
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             page = doc[0]
 
-            # Insert "SPLIT HERE" in top-left area
+            # Insert text
             page.insert_text(
-                (72, 72),  # 1 inch from top-left corner
+                (72, 72),
                 "SPLIT HERE",
                 fontsize=36,
                 color=(0, 0, 0),
-                fontname="helv",
+                fontname="helv"
             )
 
             doc.save(out_path)
@@ -2344,8 +2347,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
         except Exception as e:
             messagebox.showerror("Error", f"Could not generate template:\n{e}")
             debug(f"Failed to generate SPLIT HERE sheet: {e}", "debug")
+
     def download_blank_split_here(self):
-        src_path = resource_path("resources/split_here_background.pdf")
+        url = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/resources/split_here_background.pdf"
 
         out_path = filedialog.asksaveasfilename(
             defaultextension=".pdf",
@@ -2357,12 +2361,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return
 
         try:
-            with open(src_path, "rb") as src, open(out_path, "wb") as dst:
-                dst.write(src.read())
+            with urllib.request.urlopen(url) as response:
+                with open(out_path, "wb") as f:
+                    f.write(response.read())
             messagebox.showinfo("Saved", f"Blank SPLIT HERE page saved to:\n{out_path}")
             debug(f"Copied blank page to: {out_path}", "debug")
         except Exception as e:
-            messagebox.showerror("Error", f"Could not copy blank page:\n{e}")
+            messagebox.showerror("Error", f"Could not download blank page:\n{e}")
+            debug(f"Failed to download blank page: {e}", "debug")
+
 
     # ─── PDF Preview ───
     def update_pdf_preview_page(self, session, offset):
