@@ -8,9 +8,11 @@ import ssl
 import sys
 import urllib
 import csv
-import tempfile
 import webbrowser
 from pathlib import Path
+import shutil
+import tempfile
+import subprocess
 
 # ─── Third-Party Libraries ───────────────────────────────────────────
 import fitz  # PyMuPDF
@@ -27,6 +29,9 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
+CURRENT_VERSION = "1.5"
+VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/main/version.json"
+
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
 USER_DATA_DIR = Path.home() / ".cleancutpdf"
 
@@ -38,6 +43,7 @@ PINK_LIGHT = USER_DATA_DIR / "pink_light.json"
 PINK_DARK = USER_DATA_DIR / "pink_dark.json"
 SESSION_FILE = USER_DATA_DIR / "sessions.json"
 LICENSE_FILE = USER_DATA_DIR / "license.json"
+VERSION_FILE = USER_DATA_DIR / "version.json"
 
 ACRONYMS = {"POA", "LLC", "INC", "LP", "LLP", "PLC", "DBA", "CPA", "PC", "PLLC", "LLLP"}
 THEMES = {
@@ -92,6 +98,8 @@ def debug(message, type):
         full_message = f"{timestamp} [SKIPPED] {message}"
     elif type == "keybind":
         full_message = f"{timestamp} [KEYBIND] {message}"
+    elif type == "log":
+        full_message = f"{timestamp} [LOG] {message}"
 
     debug_log.append(full_message)
     print(full_message)
@@ -370,6 +378,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def finish_initialization(self):
         self.settings = {}
         self.load_settings()
+        self.after(1000, self.check_for_updates)
         create_light_pink_theme(self)
         create_dark_pink_theme(self)
 
@@ -396,7 +405,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.after(100, self._apply_tab_font_size)
 
         self.splitter_tab = self.notebook.add("Splitter")
-        self.quick_splitter_tab = self.notebook.add("QuickSplitter")
+        self.quick_splitter_tab = self.notebook.add("Quick Split")
         self.settings_tab = self.notebook.add("Settings")
         self.log_tab = self.notebook.add("Logs")
         self.about_tab = self.notebook.add("About")
@@ -426,6 +435,60 @@ class PDFSplitterApp(TkinterDnD.Tk):
         if self.settings.get("auto_restore_session", True):
             self.restore_previous_session()
         self.start_auto_save_sessions()
+    def check_for_updates(self):
+        try:
+            with urllib.request.urlopen(VERSION_URL) as response:
+                data = json.loads(response.read())
+
+            remote_version = data.get("version")
+            notes = data.get("notes", "")
+            url = data.get("download_url")
+
+            if remote_version and remote_version > CURRENT_VERSION:
+                confirm = messagebox.askyesno(
+                    "Update Available",
+                    f"A new version ({remote_version}) is available!\n\nChangelog:\n{notes}\n\nWould you like to download it now?"
+                )
+                if confirm:
+                    self.download_and_replace_exe(url, remote_version)
+
+        except Exception as e:
+            debug(f"Auto-update check failed: {e}", "error")
+    def download_and_replace_exe(self, url, new_version):
+        try:
+            temp_path = tempfile.gettempdir() + f"/cleancutpdf_update_{new_version}.exe"
+
+            debug(f"Downloading update to: {temp_path}", "debug")
+            with urllib.request.urlopen(url) as response, open(temp_path, 'wb') as out_file:
+                shutil.copyfileobj(response, out_file)
+
+            messagebox.showinfo("Update Ready",
+                                "The new version has been downloaded.\n\nPlease close the app so it can replace the old version."
+                                )
+
+            # Schedule a script to replace after exit
+            self.after(100, lambda: self.replace_on_exit(temp_path))
+
+        except Exception as e:
+            messagebox.showerror("Update Failed", f"Could not download update:\n{e}")
+            debug(f"Update download failed: {e}", "error")
+    def replace_on_exit(self, new_exe_path):
+
+        old_exe = sys.executable
+        debug(f"Will replace current exe: {old_exe}", "debug")
+
+        script = f"""
+        timeout /t 1 >nul
+        move /Y "{new_exe_path}" "{old_exe}"
+        start "" "{old_exe}"
+        """
+        temp_script = Path(tempfile.gettempdir()) / "cleancutpdf_update.bat"
+        with open(temp_script, "w") as f:
+            f.write(script)
+
+        subprocess.Popen(['cmd', '/c', str(temp_script)], shell=True)
+        self.quit()
+
 
     # ─── Loading UI ───
     def show_loading_overlay(self, message="Loading..."):
@@ -889,45 +952,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
         sort_menu.pack(side="left")
         self.sort_mode_var.trace_add("write", self.update_log_view)
 
-        # Log display (tk.Text inside a CTkFrame)
-        log_text_frame = ctk.CTkFrame(self.log_tab)
-        log_text_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-
-        is_light = ctk.get_appearance_mode() == "Light"
-
-        appearance = ctk.get_appearance_mode()
-        if appearance == "Light":
-            log_bg = "#fff0f5"  # or match your theme color
-            log_fg = "#000000"
-            insert_color = "#000000"
-        else:
-            log_bg = "#1e1e1e"
-            log_fg = "white"
-            insert_color = "white"
-
-        self.log_textbox = tk.Text(
-            log_text_frame,
-            wrap="word",
-            bg=log_bg,
-            fg=log_fg,
-            insertbackground=insert_color,
-            font=(self.font_family, self.font_size),
-            borderwidth=0,
-            highlightthickness=0
-        )
-
-        self.log_textbox.pack(fill="both", expand=True)
-        self.log_textbox.config(state="disabled")
-
-        is_light = ctk.get_appearance_mode() == "Light"
-
-        self.log_textbox.tag_configure("date", foreground="#005A9E" if is_light else "#89CFF0")
-        self.log_textbox.tag_configure("label", foreground="#444444" if is_light else "#AAAAAA")
-        self.log_textbox.tag_configure("value", foreground="#000000" if is_light else "#FFFFFF")
-        self.log_textbox.tag_configure("revoked", foreground="#d86da0")
-        self.log_textbox.tag_configure("skipped", foreground="#cc4b4b")
-        self.log_textbox.tag_configure("date_marker", foreground="#888888", font=(self.font_family, self.font_size, "bold"))
-        self.log_textbox.tag_configure("file_marker", foreground="#444444", font=(self.font_family, self.font_size, "italic"))
+        self.log_scroll_frame = ctk.CTkScrollableFrame(self.log_tab)
+        self.log_scroll_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10), anchor="n")
 
         ctk.CTkButton(search_frame, text="🧹 Clear Log", command=self.clear_log).pack(side="right", padx=(10, 0))
         ctk.CTkButton(search_frame, text="📤 Export to...", command=self.open_log_export_popup).pack(side="right", padx=(10, 5))
@@ -1033,13 +1059,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
             text="📥 Download SPLIT HERE Template",
             font=font_body,
             command=self.download_split_here_sheet
-        ).pack(pady=5)
-
-        ctk.CTkButton(
-            btn_frame,
-            text="📄 Download Blank Page",
-            font=font_body,
-            command=self.download_blank_split_here
         ).pack(pady=5)
     def rebuild_ui(self):
         current_tab = self.notebook.get()
@@ -1227,7 +1246,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         ctk.CTkLabel(parent, text=f"Company: {company}", font=font).pack(anchor="center", padx=10, pady=(10, 0))
         ctk.CTkLabel(parent, text="Status: ✅ Active", font=font, text_color="#32cd32").pack(anchor="center", padx=10)
 
-        # Clear button (already present, just preserve styling)
+        # Clear button (already present, preserve styling)
         ctk.CTkButton(
             parent,
             text="🧹 Clear License Key",
@@ -1520,86 +1539,97 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self.update_log_view()
     def update_log_view(self, *args):
+        # Clear previous content
+        for widget in self.log_scroll_frame.winfo_children():
+            widget.destroy()
+
         query = self.search_var.get().lower()
         sort_mode = self.sort_mode_var.get()
 
-        def extract_log_info(line):
+        def extract_info(line):
             info = {"raw": line, "client": "", "date": ""}
             client_match = re.search(r"Client:\s*(.*?)\s*\|", line)
-            date_match = re.match(r"\[(.*?)\]", line)
-
+            date_match = re.match(r"\[(\d{4}-\d{2}-\d{2})", line)
             if client_match:
-                info["client"] = client_match.group(1).strip().lower()
+                info["client"] = client_match.group(1).strip()
             if date_match:
                 info["date"] = date_match.group(1)
             return info
 
-        parsed = [extract_log_info(line) for line in self.full_log_lines]
+        parsed = [extract_info(l) for l in self.full_log_lines if "Client:" in l]
 
         if query:
-            parsed = [entry for entry in parsed if query in entry["raw"].lower()]
+            parsed = [p for p in parsed if query in p["raw"].lower()]
 
         reverse = sort_mode in ["Date ↓", "Z → A"]
         if "Date" in sort_mode:
             parsed.sort(key=lambda x: x["date"], reverse=reverse)
         else:
-            parsed.sort(key=lambda x: x["client"], reverse=reverse)
+            parsed.sort(key=lambda x: x["client"].lower(), reverse=reverse)
 
-        # 🔓 Enable the log box to modify it
-        self.log_textbox.config(state="normal")
-        self.log_textbox.delete("1.0", "end")
-
-        for entry in parsed:
-            self.log_textbox.config(state="normal")
-        self.log_textbox.delete("1.0", "end")
+        # Group by (date, client)
+        grouped = {}
+        for p in parsed:
+            key = (p["date"], p["client"])
+            grouped.setdefault(key, []).append(p["raw"])
 
         last_date = None
-        last_origin_file = None
+        for (date, client), lines in grouped.items():
+            # Add date separator if needed
+            if date != last_date:
+                formatted = datetime.datetime.strptime(date, "%Y-%m-%d").strftime("──── %B %d, %Y ────")
+                sep = ctk.CTkLabel(
+                    self.log_scroll_frame,
+                    text=formatted,
+                    font=(self.font_family, self.font_size, "bold"),
+                    text_color="#888888"
+                )
+                sep.pack(anchor="w", padx=12, pady=(10, 0))
+                last_date = date
 
+            # Bubble styling
+            bubble_color = "#f8f4fa" if ctk.get_appearance_mode() == "Light" else "#2a2a2a"
+            border_color = "#cccccc" if ctk.get_appearance_mode() == "Light" else "#444444"
 
-        for entry in parsed:
-            line = entry["raw"]
+            container = ctk.CTkFrame(
+                self.log_scroll_frame,
+                fg_color=bubble_color,
+                border_color=border_color,
+                border_width=1,
+                corner_radius=12
+            )
+            container.pack(fill="x", padx=12, pady=6)
 
-            date_match = re.match(r"\[(\d{4}-\d{2}-\d{2})", line)
-            if date_match:
-                date_str = date_match.group(1)
-                if date_str != last_date:
-                    formatted = datetime.datetime.strptime(date_str, "%Y-%m-%d").strftime("──── %B %d, %Y ────")
-                    self.log_textbox.insert("end", f"\n{formatted}\n", "date_marker")
-                    last_date = date_str
+            title = f"{client} – {date}"
+            ctk.CTkLabel(
+                container,
+                text=title,
+                font=(self.font_family, self.font_size + 1, "bold"),
+                anchor="w",
+                padx=10,
+                pady=6
+            ).pack(fill="x")
 
-            # Get original file name (based on known pattern from export logic)
-            origin_match = re.search(r"File: (.+?)_", line)  # grabs prefix before first underscore
-            origin_name = f"{origin_match.group(1)}.pdf" if origin_match else "Unknown File"
+            for line in lines:
+                clean = re.sub(r"^\[.*?\]\s*", "", line.strip())
 
-            if origin_name != last_origin_file:
-                self.log_textbox.insert("end", f"\n──── {origin_name} ────\n", "file_group")
-                last_origin_file = origin_name
+                tag_color = None
+                if "Revoked: True" in clean:
+                    tag_color = "#d86da0"
+                elif "Skipped: [" in clean:
+                    tag_color = "#cc4b4b"
 
-            # Timestamp line
-            full_timestamp = re.match(r"\[(.*?)\]", line)
-            if full_timestamp:
-                timestamp = full_timestamp.group(0) + " "
-                self.log_textbox.insert("end", timestamp, "date")
-                line_body = line[len(timestamp):]
-            else:
-                line_body = line
-
-            # Highlight each label:value pair
-            fields = re.findall(r"(\b\w+):\s*(.*?)(?=\s*\||$)", line_body)
-            for label, value in fields:
-                tag = "value"
-                if label == "Revoked" and value.strip().lower() == "true":
-                    tag = "revoked"
-                elif label == "Skipped" and value.strip() != "None":
-                    tag = "skipped"
-
-                self.log_textbox.insert("end", f"{label}:", "label")
-                self.log_textbox.insert("end", f" {value}  ", tag)
-
-            self.log_textbox.insert("end", "\n")
-        self.log_textbox.see("end")
-        self.log_textbox.config(state="disabled")
+                ctk.CTkLabel(
+                    container,
+                    text=clean,
+                    anchor="w",
+                    wraplength=820,
+                    justify="left",
+                    text_color=tag_color,
+                    font=(self.font_family, self.font_size),
+                    padx=12,
+                    pady=4
+                ).pack(fill="x", padx=4, pady=1)
     def clear_log(self):
         confirm = messagebox.askyesno("Clear Log", "Are you sure you want to permanently clear the entire export log?")
         if confirm:
@@ -1626,7 +1656,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         font = (self.font_family, self.font_size)
 
-        # ── Container: main frame with scroll + fixed footer ──
+        # ── Container: main frame with scroll and fixed footer ──
         main_frame = ctk.CTkFrame(popup)
         main_frame.pack(fill="both", expand=True, padx=10, pady=(10, 0))
 
@@ -2313,7 +2343,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         label2 = ctk.CTkLabel(plus_frame, text="Or drag and drop files into this area", font=font)
         label2.pack(pady=(10, 0))
     def download_split_here_sheet(self):
-        src_path = resource_path("resources/split_here_background.pdf")
+        url = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/master1/FullApp/resources/split_here_background.pdf"
 
         out_path = filedialog.asksaveasfilename(
             defaultextension=".pdf",
@@ -2325,16 +2355,19 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return
 
         try:
-            doc = fitz.open(src_path)
+            with urllib.request.urlopen(url) as response:
+                pdf_bytes = response.read()
+
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             page = doc[0]
 
-            # Insert "SPLIT HERE" in top-left area
+            # Insert text
             page.insert_text(
-                (72, 72),  # 1 inch from top-left corner
+                (72, 72),
                 "SPLIT HERE",
                 fontsize=36,
                 color=(0, 0, 0),
-                fontname="helv",
+                fontname="helv"
             )
 
             doc.save(out_path)
@@ -2343,26 +2376,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             debug(f"Saved SPLIT HERE sheet to: {out_path}", "debug")
         except Exception as e:
             messagebox.showerror("Error", f"Could not generate template:\n{e}")
-            debug(f"Failed to generate SPLIT HERE sheet: {e}", "debug")
-    def download_blank_split_here(self):
-        src_path = resource_path("resources/split_here_background.pdf")
-
-        out_path = filedialog.asksaveasfilename(
-            defaultextension=".pdf",
-            filetypes=[("PDF Files", "*.pdf")],
-            title="Save Blank Page As",
-            initialfile="blank_split_here.pdf"
-        )
-        if not out_path:
-            return
-
-        try:
-            with open(src_path, "rb") as src, open(out_path, "wb") as dst:
-                dst.write(src.read())
-            messagebox.showinfo("Saved", f"Blank SPLIT HERE page saved to:\n{out_path}")
-            debug(f"Copied blank page to: {out_path}", "debug")
-        except Exception as e:
-            messagebox.showerror("Error", f"Could not copy blank page:\n{e}")
+            debug(f"Failed to generate SPLIT HERE sheet: {e}", "error")
 
     # ─── PDF Preview ───
     def update_pdf_preview_page(self, session, offset):
@@ -2706,7 +2720,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         # Determine if click was on the '✖'
         if tab_label.endswith("✖") and click_x > width - 25:
             base_name = tab_label.replace(" ✖", "")
-            debug(f"[DEBUG] Detected ✖ click on '{tab_label}' → base name: '{base_name}'")
+            debug(f"[Detected ✖ click on '{tab_label}' → base name: '{base_name}'", "debug")
 
             confirm = messagebox.askyesno("Close Tab", f"Close '{base_name}'?")
             if confirm:
