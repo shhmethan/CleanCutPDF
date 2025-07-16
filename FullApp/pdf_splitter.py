@@ -495,6 +495,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self.quit()
 
+
     # ─── Loading UI ───
     def show_loading_overlay(self, message="Loading..."):
         if hasattr(self, "loading_overlay") and self.loading_overlay and self.loading_overlay.winfo_exists():
