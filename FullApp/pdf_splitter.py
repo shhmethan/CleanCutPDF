@@ -29,8 +29,8 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.5"
-VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/main/version.json"
+CURRENT_VERSION = "1.6"
+VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
 USER_DATA_DIR = Path.home() / ".cleancutpdf"
@@ -86,6 +86,7 @@ debug_log = []
 def debug(message, type):
     full_message = ""
     timestamp = datetime.datetime.now().strftime("[%H:%M:%S]")
+    type.lower()
     if type == "debug":
         full_message = f"{timestamp} [DEBUG] {message}"
     elif type == "warning":
@@ -100,6 +101,8 @@ def debug(message, type):
         full_message = f"{timestamp} [KEYBIND] {message}"
     elif type == "log":
         full_message = f"{timestamp} [LOG] {message}"
+    elif type == "update":
+        full_message = f"{timestamp} [UPDATE] {message}"
 
     debug_log.append(full_message)
     print(full_message)
@@ -441,16 +444,24 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 data = json.loads(response.read())
 
             remote_version = data.get("version")
-            notes = data.get("notes", "")
+            changelog = data.get("changelog", {})
             url = data.get("download_url")
 
             if remote_version and remote_version > CURRENT_VERSION:
+                debug(f"Update Available: {remote_version}", "update")
+
+                # Get this version's changelog, or fallback
+                notes_list = changelog.get(remote_version, ["No changelog available."])
+                formatted = "\n".join(f"• {line}" for line in notes_list)
+
                 confirm = messagebox.askyesno(
                     "Update Available",
-                    f"A new version ({remote_version}) is available!\n\nChangelog:\n{notes}\n\nWould you like to download it now?"
+                    f"A new version ({remote_version}) is available!\n\nChanges:\n{formatted}\n\nWould you like to download it now?"
                 )
                 if confirm:
                     self.download_and_replace_exe(url, remote_version)
+            else:
+                debug("App up to date.", "update")
 
         except Exception as e:
             debug(f"Auto-update check failed: {e}", "error")
@@ -458,7 +469,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         try:
             temp_path = tempfile.gettempdir() + f"/cleancutpdf_update_{new_version}.exe"
 
-            debug(f"Downloading update to: {temp_path}", "debug")
+            debug(f"Downloading update to: {temp_path}", "update")
             with urllib.request.urlopen(url) as response, open(temp_path, 'wb') as out_file:
                 shutil.copyfileobj(response, out_file)
 
@@ -475,7 +486,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def replace_on_exit(self, new_exe_path):
 
         old_exe = sys.executable
-        debug(f"Will replace current exe: {old_exe}", "debug")
+        debug(f"Will replace current exe: {old_exe}", "update")
 
         script = f"""
         timeout /t 1 >nul
@@ -488,7 +499,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         subprocess.Popen(['cmd', '/c', str(temp_script)], shell=True)
         self.quit()
-
 
     # ─── Loading UI ───
     def show_loading_overlay(self, message="Loading..."):
@@ -1014,44 +1024,72 @@ class PDFSplitterApp(TkinterDnD.Tk):
         scrollable = ctk.CTkScrollableFrame(tab)
         scrollable.pack(fill="both", expand=True, padx=20, pady=20)
 
+        content = ctk.CTkFrame(scrollable, fg_color="transparent")
+        content.pack(anchor="center")
+
         font_title = (self.font_family, self.font_size + 3, "bold")
         font_section = (self.font_family, self.font_size + 1, "bold")
         font_body = (self.font_family, self.font_size)
 
         def add_spacer(height=10):
-            ctk.CTkLabel(scrollable, text="", height=height).pack()
+            ctk.CTkLabel(content, text="", height=height).pack()
 
-        # Main Title
-        ctk.CTkLabel(scrollable, text="📄 Using SPLIT HERE Sheets", font=font_title, anchor="w").pack(anchor="w")
-
+        # SPLIT HERE Sheets
+        ctk.CTkLabel(content, text="📄 Using SPLIT HERE Sheets", font=font_title, anchor="center").pack()
         add_spacer(6)
-        ctk.CTkLabel(scrollable, text="General Tips:", font=font_section, anchor="w").pack(anchor="w", pady=(0, 4))
-
         tips = [
             "• Use brightly colored paper to make them stand out",
-            "• Clearly print 'SPLIT HERE' in large, bold text (use the template below if needed)",
-            "• Place a SPLIT HERE sheet between each document you want separated — not between each client",
-            "• Use tabs or sticky notes to help find them while scanning"
+            "• Add tabs or sticky notes to the edges for easier removal after scanning",
+            "• Clearly print 'SPLIT HERE' in large bold text (or use the template)",
+            "• Place a sheet between documents, not between clients"
         ]
-        for line in tips:
-            ctk.CTkLabel(scrollable, text=line, font=font_body, anchor="w", justify="left", wraplength=760).pack(anchor="w")
+        for tip in tips:
+            ctk.CTkLabel(content, text=tip, font=font_body, anchor="w", justify="left", wraplength=760).pack(anchor="center")
 
-        add_spacer(12)
-        ctk.CTkLabel(scrollable, text="When Scanning:", font=font_section, anchor="w").pack(anchor="w", pady=(0, 4))
+        add_spacer(14)
 
-        scanning = [
-            "• Use 'multiple size originals' mode if your scanner supports it",
-            "• Feed documents with SPLIT HERE sheets in order",
-            "• Sort into single- and double-sided batches ahead of time",
-            "• Drag the resulting PDF into CleanCutPDF — the app will split automatically"
+        # Scanner Settings
+        ctk.CTkLabel(content, text="🖨️ Printer & Scanner Tips", font=font_section, anchor="center").pack()
+        printer_tips = [
+            "• If using tabs, enable 'multiple size originals' mode on your scanner",
+            "• Position tabs so they face outward, away from the feeder side",
+            "• Pre-sort into single- and double-sided batches for cleaner scans",
+            "• After scanning, drag and drop your PDF into CleanCutPDF — SPLIT HERE sheets are auto-detected"
         ]
-        for line in scanning:
-            ctk.CTkLabel(scrollable, text=line, font=font_body, anchor="w", justify="left", wraplength=760).pack(anchor="w")
+        for tip in printer_tips:
+            ctk.CTkLabel(content, text=tip, font=font_body, anchor="w", justify="left", wraplength=760).pack(anchor="center")
 
         add_spacer(20)
 
-        # Buttons
-        btn_frame = ctk.CTkFrame(scrollable, fg_color="transparent")
+        # Splitter
+        ctk.CTkLabel(content, text="🧾 Using the Splitter", font=font_title, anchor="center").pack()
+        add_spacer(6)
+        splitter_tips = [
+            "• Best for clients who have multiple documents to split and rename",
+            "• Scan each client separately, with SPLIT HERE sheets between each document",
+            "• Use the Splitter to rename files with agency, description, and date"
+        ]
+        for tip in splitter_tips:
+            ctk.CTkLabel(content, text=tip, font=font_body, anchor="w", justify="left", wraplength=760).pack(anchor="center")
+
+        add_spacer(20)
+
+        # Quick Splitter
+        ctk.CTkLabel(content, text="⚡ Using the Quick Splitter", font=font_title, anchor="center").pack()
+        add_spacer(6)
+        quick_tips = [
+            "• Best for scanning many clients with one document each (e.g., fax packets)",
+            "• Place SPLIT HERE sheets between each client’s stack",
+            "• Scan everything in one go, then split in CleanCutPDF",
+            "• Rename with the Splitter afterward if needed"
+        ]
+        for tip in quick_tips:
+            ctk.CTkLabel(content, text=tip, font=font_body, anchor="w", justify="left", wraplength=760).pack(anchor="center")
+
+        add_spacer(20)
+
+        # Download button
+        btn_frame = ctk.CTkFrame(content, fg_color="transparent")
         btn_frame.pack(pady=10)
 
         ctk.CTkButton(
@@ -1059,7 +1097,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             text="📥 Download SPLIT HERE Template",
             font=font_body,
             command=self.download_split_here_sheet
-        ).pack(pady=5)
+        ).pack()
     def rebuild_ui(self):
         current_tab = self.notebook.get()
 
@@ -1068,16 +1106,20 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.notebook.pack(fill="both", expand=True)
 
         self.splitter_tab = self.notebook.add("Splitter")
+        self.quick_splitter_tab = self.notebook.add("Quick Split")
         self.settings_tab = self.notebook.add("Settings")
         self.log_tab = self.notebook.add("Logs")
         self.about_tab = self.notebook.add("About")
         self.keybinds_tab = self.notebook.add("Keybinds")
+        self.help_tab = self.notebook.add("Help")
 
         self.build_splitter_tab()
+        self.build_quick_split_tab(self.quick_splitter_tab)
         self.build_settings_tab()
         self.build_log_tab()
         self.build_about_tab()
         self.build_keybinds_tab()
+        self.build_help_tab(self.help_tab)
 
         self._apply_font_size()
 
@@ -1284,6 +1326,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
             if "parts_frame" in session:
                 self._apply_font_to_widget(session["parts_frame"], font)
+            if hasattr(self, "update_log_view"):
+                self.update_log_view()
 
         # Update other fixed tabs
         for tab in [self.settings_tab, self.keybinds_tab, self.about_tab]:
@@ -1332,7 +1376,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return
 
         tab = self.pdf_tabview.get()
-        session = self.pdf_sessions.get(tab)
+        key = tab.replace(" ✖", "")  # Strip the ✖ symbol
+        session = self.pdf_sessions.get(key)
 
         if not session:
             messagebox.showerror("Reset Error", "No active session to reset.")
@@ -1452,8 +1497,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
             ranges = self.detect_split_ranges_from_reader(reader)
 
             out_folder = Path(self.settings.get("export_folder", "")) or Path.home() / "Desktop"
-            dated = datetime.date.today().strftime("Single Split Files")
-            export_dir = out_folder / dated
+            today_str = datetime.date.today().strftime("%Y-%m-%d")
+            export_dir = out_folder / "Quick Split Files" / today_str
             export_dir.mkdir(parents=True, exist_ok=True)
 
             for i, r in enumerate(ranges, start=1):
@@ -1462,7 +1507,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     writer.add_page(reader.pages[p])
 
                 original_name = re.sub(r'[\\/*?:"<>|]', "_", Path(path).stem)
-                fname = f"Part {i} – {original_name}.pdf"
+                fname = f"{original_name} – Part {i:02d}.pdf"
                 with open(export_dir / fname, "wb") as f:
                     writer.write(f)
 
@@ -1539,6 +1584,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self.update_log_view()
     def update_log_view(self, *args):
+
+        font_body = (self.font_family, self.font_size)
+        font_header = (self.font_family, self.font_size + 1, "bold")
+
         # Clear previous content
         for widget in self.log_scroll_frame.winfo_children():
             widget.destroy()
@@ -1823,6 +1872,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
             self.update_idletasks()  # Ensure UI is laid out before rendering
             self.render_splitter_tab(tab, session)
+
+            self.enable_tab_closing()
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
@@ -2187,17 +2238,25 @@ class PDFSplitterApp(TkinterDnD.Tk):
             control_frame = ctk.CTkFrame(frame, fg_color="transparent")
             control_frame.pack(pady=(10, 0))
 
-            prev_btn = ctk.CTkButton(control_frame, text="← Prev", width=80,
-                                     command=lambda: self.update_pdf_preview_page(session, -1))
-            prev_btn.pack(side="left", padx=5)
+            if page_index > 0:
+                prev_btn = ctk.CTkButton(
+                    control_frame, text="← Prev", width=80,
+                    command=lambda: self.update_pdf_preview_page(session, -1)
+                )
+                prev_btn.pack(side="left", padx=5)
 
-            zoom_btn = ctk.CTkButton(control_frame, text="🔍 Zoom", width=100,
-                                     command=lambda: self.open_fullscreen_preview(session, page_index))
+            zoom_btn = ctk.CTkButton(
+                control_frame, text="🔍 Zoom", width=100,
+                command=lambda: self.open_fullscreen_preview(session, page_index)
+            )
             zoom_btn.pack(side="left", padx=5)
 
-            next_btn = ctk.CTkButton(control_frame, text="Next →", width=80,
-                                     command=lambda: self.update_pdf_preview_page(session, 1))
-            next_btn.pack(side="left", padx=5)
+            if page_index < page_count - 1:
+                next_btn = ctk.CTkButton(
+                    control_frame, text="Next →", width=80,
+                    command=lambda: self.update_pdf_preview_page(session, 1)
+                )
+                next_btn.pack(side="left", padx=5)
 
             # === Image Preview ===
             img_label = ctk.CTkLabel(frame, image=ctk_image, text="")
@@ -2720,17 +2779,17 @@ class PDFSplitterApp(TkinterDnD.Tk):
         # Determine if click was on the '✖'
         if tab_label.endswith("✖") and click_x > width - 25:
             base_name = tab_label.replace(" ✖", "")
-            debug(f"[Detected ✖ click on '{tab_label}' → base name: '{base_name}'", "debug")
+            debug(f"Detected ✖ click on '{tab_label}' → base name: '{base_name}'", "debug")
 
             confirm = messagebox.askyesno("Close Tab", f"Close '{base_name}'?")
             if confirm:
-                debug(f"[DEBUG] Closing tab '{tab_label}' and deleting session '{base_name}'")
+                debug(f"Closing tab '{tab_label}' and deleting session '{base_name}'", "debug")
 
                 self.pdf_tabview.delete(tab_label)
 
                 if base_name in self.pdf_sessions:
                     del self.pdf_sessions[base_name]
-                    debug(f"[DEBUG] Session '{base_name}' removed from pdf_sessions")
+                    debug(f"Session '{base_name}' removed from pdf_sessions", "debug")
                     self.save_sessions()
                 else:
                     debug(f"[DEBUG] No matching session found for '{base_name}'")

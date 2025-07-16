@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "CleanCutPDF"
-#define MyAppVersion "1.5"
+#define MyAppVersion "1.6"
 #define MyAppPublisher "Ethan Brothers"
 #define MyAppExeName "pdf_splitter.exe"
 #define MyAppAssocName MyAppName + ""
@@ -12,7 +12,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{685E8200-C5E2-41EA-9AAF-B0EC9F0A720E}
+AppId={{A73CE270-479D-43AB-BB98-15A4BD6437F9}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}

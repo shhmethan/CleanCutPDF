@@ -1,5 +1,18 @@
 {
   "version": "1.6",
-  "notes": "• New auto-update system\n• Clean log UI with bubbles\n• Better undo handling\n• Performance improvements",
-  "download_url": "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/FullApp/dist/pdf_splitter.exe"
+  "changelog": {
+    "1.6": [
+      "🆕 Auto-update system with in-place .exe replacement",
+      "🧾 New log UI with grouped client/date bubbles",
+      "⚡ Quick Split output folder renamed and organized by date",
+      "📄 File names now include leading zeros (e.g., Part 01)",
+      "🎨 Theme switching no longer hides tabs",
+      "🔤 Font and font size changes apply to Logs immediately",
+      "🔍 Preview 'Prev' and 'Next' buttons now hide correctly",
+      "🖨️ Help Tab redesigned with icons, scanning tips, and SPLIT HERE instructions",
+      "🔑 Keybinds work reliably after reassignment",
+      "🗑️ Tab close ('✖') now works immediately after adding a PDF"
+    ]
+  },
+  "download_url": "https://github.com/shhmethan/CleanCutPDF/raw/refs/heads/master1/FullApp/dist/pdf_splitter.exe"
 }
