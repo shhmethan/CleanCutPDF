@@ -1,6 +1,9 @@
 {
-  "version": "1.6",
+  "version": "1.7",
   "changelog": {
+    "1.7": [
+      "Testing this out"
+    ],
     "1.6": [
       "🆕 Auto-update system with in-place .exe replacement",
       "🧾 New log UI with grouped client/date bubbles",

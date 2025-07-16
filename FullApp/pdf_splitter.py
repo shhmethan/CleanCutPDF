@@ -29,7 +29,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.6"
+CURRENT_VERSION = "1.6.0"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -350,6 +350,9 @@ def resource_path(relative_path):
     return Path(__file__).parent / relative_path
 
 # ───── MAIN APPLICATION ─────
+def parse_version(version_str):
+    return tuple(map(int, version_str.split(".")))
+
 class PDFSplitterApp(TkinterDnD.Tk):
     # ─── INITIALIZATION ───
     def __init__(self):
@@ -447,7 +450,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             changelog = data.get("changelog", {})
             url = data.get("download_url")
 
-            if remote_version and remote_version > CURRENT_VERSION:
+            if remote_version and parse_version(remote_version) > parse_version(CURRENT_VERSION):
                 debug(f"Update Available: {remote_version}", "update")
 
                 # Get this version's changelog, or fallback
@@ -484,20 +487,12 @@ class PDFSplitterApp(TkinterDnD.Tk):
             messagebox.showerror("Update Failed", f"Could not download update:\n{e}")
             debug(f"Update download failed: {e}", "error")
     def replace_on_exit(self, new_exe_path):
+        try:
+            debug("Launching updated CleanCutPDF", "update")
+            subprocess.Popen([new_exe_path], shell=True)
+        except Exception as e:
+            debug(f"Failed to launch new exe: {e}", "error")
 
-        old_exe = sys.executable
-        debug(f"Will replace current exe: {old_exe}", "update")
-
-        script = f"""
-        timeout /t 1 >nul
-        move /Y "{new_exe_path}" "{old_exe}"
-        start "" "{old_exe}"
-        """
-        temp_script = Path(tempfile.gettempdir()) / "cleancutpdf_update.bat"
-        with open(temp_script, "w") as f:
-            f.write(script)
-
-        subprocess.Popen(['cmd', '/c', str(temp_script)], shell=True)
         self.quit()
 
     # ─── Loading UI ───
@@ -897,11 +892,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
         inner_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         inner_frame.pack(anchor="center", pady=10)
 
+        version_label = ctk.CTkLabel(inner_frame, text=f"CleanCutPDF Version: {CURRENT_VERSION}", font=(self.font_family, self.font_size))
+        version_label.pack(pady=(10, 5))
+
+
         text = (
-            f"CleanCutPDF v1.5 – “Quick Precision”\n"
+            f"CleanCutPDF v{CURRENT_VERSION} – “Quick Precision”\n"
             f"Licensed to: {self.licensed_company}\n\n"
             "CleanCutPDF is a responsive, customizable tool for cleanly and efficiently splitting PDF documents.\n\n"
-            "New in Version 1.5:\n"
+            f"New in Version {CURRENT_VERSION}:\n"
             "• Quick Split tab for fast splitting with no renaming\n"
             "• Client folder toggle (Make Client Folder checkbox)\n"
             "• Logs now grouped by original PDF name\n"
@@ -929,7 +928,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "• Fully guided onboarding tutorial\n\n"
             "Your preferences are saved to your user directory (.cleancutpdf).\n\n"
             "Designed by Ethan Brothers\n"
-            "© 2025 — Version 1.5"
+            f"© 2025 — Version {CURRENT_VERSION}"
         )
 
         self.about_label = ctk.CTkLabel(
@@ -2966,13 +2965,12 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
     # ─── Debug Window ───
     def open_debug_console(self):
-
         if self.debug_console_window and self.debug_console_window.winfo_exists():
             self.debug_console_window.lift()
             return
 
         self.debug_console_window = tk.Toplevel(self)
-        self.debug_console_window.title("Debug Console")
+        self.debug_console_window.title(f"CleanCutPDF v{CURRENT_VERSION}")
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
 
@@ -2987,7 +2985,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         is_light = appearance == "Light"
 
         if is_light:
-            bg_color = "#fdf0f5" if self.theme == "Light Sydney" else "#ffffff"
+            bg_color = "#fdf0f5" if self.theme == "Light Pink" else "#ffffff"
             fg_color = "#000000"
             insert_color = "#000000"
         else:
