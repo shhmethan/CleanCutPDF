@@ -30,7 +30,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.6.2"
+CURRENT_VERSION = "1.6.3"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -74,7 +74,8 @@ DEFAULT_SETTINGS = {
     "export_log_enabled": True,
     "auto_restore_session": True,
     "tutorial_shown": False,
-    "suppressFutureDateWarning": False
+    "suppressFutureDateWarning": False,
+    "check_updates_on_startup": True
 }
 SORT_MODES = [
     "Date ↑", "Date ↓",
@@ -380,12 +381,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
             self.destroy()
             return
 
-        self.after(500, self.finish_initialization)
+        self.finish_initialization()
     def finish_initialization(self):
         self.settings = {}
         self.load_settings()
-        self.after(1000, self.check_for_updates)
-        self.cleanup_old_exe()
         create_light_pink_theme(self)
         create_dark_pink_theme(self)
 
@@ -437,6 +436,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.hide_loading_overlay()
         self.bind_all("<Control-Shift-V>", self._handle_ctrl_shift_v)
 
+        if self.settings.get("check_updates_on_startup", True):
+            self.after(1500, self.check_for_updates)
+        self.cleanup_old_exe()
+
         self.make_client_folder_var = tk.BooleanVar(value=True)
 
         if self.settings.get("auto_restore_session", True):
@@ -465,6 +468,34 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 if confirm:
                     self.download_and_replace_exe(url, remote_version)
             else:
+                debug("App up to date.", "update")
+
+        except Exception as e:
+            debug(f"Auto-update check failed: {e}", "error")
+    def check_for_updates_manual(self):
+        try:
+            with urllib.request.urlopen(VERSION_URL) as response:
+                data = json.loads(response.read())
+
+            remote_version = data.get("version")
+            changelog = data.get("changelog", {})
+            url = data.get("download_url")
+
+            if remote_version and parse_version(remote_version) > parse_version(CURRENT_VERSION):
+                debug(f"Update Available: {remote_version}", "update")
+
+                # Get this version's changelog, or fallback
+                notes_list = changelog.get(remote_version, ["No changelog available."])
+                formatted = "\n".join(f"• {line}" for line in notes_list)
+
+                confirm = messagebox.askyesno(
+                    "Update Available",
+                    f"A new version ({remote_version}) is available!\n\nChanges:\n{formatted}\n\nWould you like to download it now?"
+                )
+                if confirm:
+                    self.download_and_replace_exe(url, remote_version)
+            else:
+                messagebox.showerror("No New Updates", "No update needed. App up is to date.")
                 debug("App up to date.", "update")
 
         except Exception as e:
@@ -506,6 +537,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
     
     move /Y "pdf_splitter.exe" "pdf_splitter.old.exe"
     move /Y "pdf_splitter.update.exe" "pdf_splitter.exe"
+    
+    timeout /t 3 >nul
     
     start "" "pdf_splitter.exe"
     
@@ -1274,57 +1307,72 @@ class PDFSplitterApp(TkinterDnD.Tk):
         auto_restore_checkbox.pack(pady=5)
         self.settings_widgets_to_scale.append(auto_restore_checkbox)
 
+        self.check_updates_var = ctk.BooleanVar(value=self.settings.get("check_updates_on_startup", True))
+
+        check_updates_checkbox = ctk.CTkCheckBox(
+            parent,
+            text="Check for updates on startup",
+            variable=self.check_updates_var,
+            command=lambda: self.save_setting("check_updates_on_startup", self.check_updates_var.get())
+        )
+        check_updates_checkbox.pack(pady=(10, 0))
+        ctk.CTkButton(
+            parent,
+            text="Check for Updates Now",
+            command=self.check_for_updates_manual
+        ).pack(pady=(5, 20))
+
         tutorial_btn = ctk.CTkButton(parent, text="📘 Run Tutorial Again", command=self.start_tutorial)
         tutorial_btn.pack(pady=(20, 0))
         self.settings_widgets_to_scale.append(tutorial_btn)
     def _build_license_section(self, parent):
-        font = (self.font_family, self.font_size)
+            font = (self.font_family, self.font_size)
 
-        ctk.CTkLabel(parent, text="License Information", font=(self.font_family, self.font_size + 2)).pack(pady=(20, 10))
+            ctk.CTkLabel(parent, text="License Information", font=(self.font_family, self.font_size + 2)).pack(pady=(20, 10))
 
-        license_key = ""
-        company = self.licensed_company or "Unknown"
-        masked = tk.BooleanVar(value=True)
+            license_key = ""
+            company = self.licensed_company or "Unknown"
+            masked = tk.BooleanVar(value=True)
 
-        if LICENSE_FILE.exists():
-            try:
-                with open(LICENSE_FILE, "r") as f:
-                    saved = json.load(f)
-                    license_key = saved.get("license_key", "")
-            except Exception as e:
-                debug(f"Error reading license file: {e}", "error")
+            if LICENSE_FILE.exists():
+                try:
+                    with open(LICENSE_FILE, "r") as f:
+                        saved = json.load(f)
+                        license_key = saved.get("license_key", "")
+                except Exception as e:
+                    debug(f"Error reading license file: {e}", "error")
 
-        def get_display_key():
-            return "• " * len(license_key) if masked.get() else license_key or "N/A"
+            def get_display_key():
+                return "• " * len(license_key) if masked.get() else license_key or "N/A"
 
-        key_var = tk.StringVar(value=get_display_key())
+            key_var = tk.StringVar(value=get_display_key())
 
-        row = ctk.CTkFrame(parent, fg_color="transparent")
-        row.pack(pady=5, anchor="center")
+            row = ctk.CTkFrame(parent, fg_color="transparent")
+            row.pack(pady=5, anchor="center")
 
-        ctk.CTkLabel(row, text="License Key:", font=font, width=120).pack(side="left", padx=(0, 5))
-        key_label = ctk.CTkLabel(row, textvariable=key_var, font=font)
-        key_label.pack(side="left", padx=(0, 5))
+            ctk.CTkLabel(row, text="License Key:", font=font, width=120).pack(side="left", padx=(0, 5))
+            key_label = ctk.CTkLabel(row, textvariable=key_var, font=font)
+            key_label.pack(side="left", padx=(0, 5))
 
-        toggle_btn = ctk.CTkButton(row, text="Show" if masked.get() else "Hide", width=60,
-                                   command=lambda: (masked.set(not masked.get()),
-                                                    key_var.set(get_display_key()),
-                                                    toggle_btn.configure(text="Show" if masked.get() else "Hide")))
-        toggle_btn.pack(side="left")
+            toggle_btn = ctk.CTkButton(row, text="Show" if masked.get() else "Hide", width=60,
+                                       command=lambda: (masked.set(not masked.get()),
+                                                        key_var.set(get_display_key()),
+                                                        toggle_btn.configure(text="Show" if masked.get() else "Hide")))
+            toggle_btn.pack(side="left")
 
-        # Additional info
-        ctk.CTkLabel(parent, text=f"Company: {company}", font=font).pack(anchor="center", padx=10, pady=(10, 0))
-        ctk.CTkLabel(parent, text="Status: ✅ Active", font=font, text_color="#32cd32").pack(anchor="center", padx=10)
+            # Additional info
+            ctk.CTkLabel(parent, text=f"Company: {company}", font=font).pack(anchor="center", padx=10, pady=(10, 0))
+            ctk.CTkLabel(parent, text="Status: ✅ Active", font=font, text_color="#32cd32").pack(anchor="center", padx=10)
 
-        # Clear button (already present, preserve styling)
-        ctk.CTkButton(
-            parent,
-            text="🧹 Clear License Key",
-            fg_color="#cc4b4b",
-            hover_color="#aa2b2b",
-            text_color="#ffffff",
-            command=self.clear_license_and_exit
-        ).pack(pady=(20, 0))
+            # Clear button (already present, preserve styling)
+            ctk.CTkButton(
+                parent,
+                text="🧹 Clear License Key",
+                fg_color="#cc4b4b",
+                hover_color="#aa2b2b",
+                text_color="#ffffff",
+                command=self.clear_license_and_exit
+            ).pack(pady=(20, 0))
 
     # ─── UI Update Helpers ───
     def _apply_font_to_widget(self, widget, font):
