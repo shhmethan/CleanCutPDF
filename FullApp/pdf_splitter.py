@@ -13,9 +13,10 @@ from pathlib import Path
 import shutil
 import tempfile
 import subprocess
+import os
 
 # ─── Third-Party Libraries ───────────────────────────────────────────
-import fitz  # PyMuPDF
+import fitz
 import keyboard
 from PIL import Image, ImageTk
 from PyPDF2 import PdfReader, PdfWriter
@@ -29,7 +30,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.6.0"
+CURRENT_VERSION = "1.6.1"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -43,7 +44,6 @@ PINK_LIGHT = USER_DATA_DIR / "pink_light.json"
 PINK_DARK = USER_DATA_DIR / "pink_dark.json"
 SESSION_FILE = USER_DATA_DIR / "sessions.json"
 LICENSE_FILE = USER_DATA_DIR / "license.json"
-VERSION_FILE = USER_DATA_DIR / "version.json"
 
 ACRONYMS = {"POA", "LLC", "INC", "LP", "LLP", "PLC", "DBA", "CPA", "PC", "PLLC", "LLLP"}
 THEMES = {
@@ -385,6 +385,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.settings = {}
         self.load_settings()
         self.after(1000, self.check_for_updates)
+        self.cleanup_old_exe()
         create_light_pink_theme(self)
         create_dark_pink_theme(self)
 
@@ -486,15 +487,43 @@ class PDFSplitterApp(TkinterDnD.Tk):
         except Exception as e:
             messagebox.showerror("Update Failed", f"Could not download update:\n{e}")
             debug(f"Update download failed: {e}", "error")
-    def replace_on_exit(self, new_exe_path):
-        try:
-            debug("Launching updated CleanCutPDF", "update")
-            subprocess.Popen([new_exe_path], shell=True)
-        except Exception as e:
-            debug(f"Failed to launch new exe: {e}", "error")
+    def replace_on_exit(self, download_url):
+        import tempfile
+        import os
+        import subprocess
+        from pathlib import Path
 
+        target_dir = Path(os.environ["LOCALAPPDATA"]) / "Programs" / "CleanCutPDF"
+        bat_path = Path(tempfile.gettempdir()) / "cleancutpdf_update.bat"
+
+        with open(bat_path, "w") as f:
+            f.write(rf"""@echo off
+    echo Downloading update...
+    powershell -Command "Invoke-WebRequest '%~1' -OutFile 'pdf_splitter.update.exe'"
+    
+    timeout /t 1 >nul
+    taskkill /f /im pdf_splitter.exe >nul 2>&1
+    
+    move /Y "pdf_splitter.exe" "pdf_splitter.old.exe"
+    move /Y "pdf_splitter.update.exe" "pdf_splitter.exe"
+    
+    start "" "pdf_splitter.exe"
+    
+    del "%~f0"
+    """)
+
+        subprocess.Popen(["cmd", "/c", str(bat_path), download_url], cwd=str(target_dir))
         self.quit()
 
+    def cleanup_old_exe(self):
+        current_exe = sys.executable
+        old_exe = current_exe.replace(".exe", ".old.exe")
+        if os.path.exists(old_exe):
+            try:
+                os.remove(old_exe)
+                debug("Old version removed after successful update.", "update")
+            except Exception as e:
+                debug(f"Failed to delete old version: {e}", "error")
 
     # ─── Loading UI ───
     def show_loading_overlay(self, message="Loading..."):
