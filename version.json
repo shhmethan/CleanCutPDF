@@ -1,6 +1,10 @@
 {
-  "version": "1.6.2",
+  "version": "1.6.3",
   "changelog": {
+    "1.6.3":
+            [
+              "Auto-update system works after this update."
+            ],
     "1.6.2": [
       "Testing this out"
     ],

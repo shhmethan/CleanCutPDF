@@ -30,7 +30,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.6.2"
+CURRENT_VERSION = "1.6.3"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -380,12 +380,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
             self.destroy()
             return
 
-        self.after(500, self.finish_initialization)
+        self.finish_initialization()
     def finish_initialization(self):
         self.settings = {}
         self.load_settings()
-        self.after(1000, self.check_for_updates)
-        self.cleanup_old_exe()
         create_light_pink_theme(self)
         create_dark_pink_theme(self)
 
@@ -436,6 +434,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self.hide_loading_overlay()
         self.bind_all("<Control-Shift-V>", self._handle_ctrl_shift_v)
+
+        self.check_for_updates()
+        self.cleanup_old_exe()
 
         self.make_client_folder_var = tk.BooleanVar(value=True)
 
@@ -506,6 +507,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
     
     move /Y "pdf_splitter.exe" "pdf_splitter.old.exe"
     move /Y "pdf_splitter.update.exe" "pdf_splitter.exe"
+    
+    timeout /t 3 >nul
     
     start "" "pdf_splitter.exe"
     
