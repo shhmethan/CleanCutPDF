@@ -514,7 +514,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         subprocess.Popen(["cmd", "/c", str(bat_path), download_url], cwd=str(target_dir))
         self.quit()
-
     def cleanup_old_exe(self):
         current_exe = sys.executable
         old_exe = current_exe.replace(".exe", ".old.exe")
