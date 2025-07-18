@@ -1,6 +1,25 @@
 {
-  "version": "1.6.3",
+  "version": "1.6.4",
   "changelog": {
+    "1.6.4": [
+      "🎨 Improved contrast of log bubbles for better visibility in Light and Dark modes",
+      "🟥 Fixed log color confusion — log headings and body text now use distinct colors",
+      "📄 Log entries now group by file, and casing is preserved for client and agency",
+      "🖼️ Rewrote Help tab layout with updated instructions and visual sections for Splitter vs. Quick Splitter",
+      "📥 New 'Download SPLIT HERE Sheet' button added to Help tab — no internet required",
+      "📄 SPLIT HERE template is now generated on the fly as a clean white PDF with centered text",
+      "🛠️ Fixed future date handling logic — now correctly interprets 123056 as 2056",
+      "🧠 Added 'Warn me for future dates' toggle in Settings, linked to the suppression checkbox",
+      "🔁 Export filenames now include start page (e.g., [1]) to avoid overwrites on identical metadata",
+      "🧹 Quick Split now properly removes blank pages when that setting is enabled",
+      "✏️ Fixed Quick Split label to say 'Quick Split Files' instead of 'Single Split Files'",
+      "📤 Export log CSV output now avoids Excel date formatting issue in the 'Pages' column",
+      "❌ Ctrl+W now fully removes the session so you can reopen closed PDFs correctly",
+      "🆙 About tab version label updated to match 1.6.4",
+      "🐛 Fixed crash caused by missing export directory when 'Make Client Folder' is enabled",
+      "🪟 Investigated mystery empty windows issue (linked to folder creation failure)",
+      "🔐 License check and keybind system logs more clearly debug info for issues"
+    ],
     "1.6.3": [
       "Auto-update system works after this update."
     ],
