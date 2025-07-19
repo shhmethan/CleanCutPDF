@@ -30,7 +30,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.6.5"
+CURRENT_VERSION = "1.6.6"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -105,6 +105,8 @@ def debug(message, type):
         full_message = f"{timestamp} [LOG] {message}"
     elif type == "update":
         full_message = f"{timestamp} [UPDATE] {message}"
+    elif type == "undo":
+        full_message = f"{timestamp} [UNDO/REDO] {message}"
 
     debug_log.append(full_message)
     print(full_message)
@@ -361,11 +363,82 @@ def resource_path(relative_path):
 def parse_version(version_str):
     return tuple(map(int, version_str.split(".")))
 
+class CTkUndoEntry(ctk.CTkEntry):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._undo_stack = []
+        self._redo_stack = []
+        self._last_value = self.get()
+        self._typing_timer = None
+
+        self.after(10, self._bind_events)
+
+    def _bind_events(self):
+        try:
+            self._entry.bind("<Key>", self._on_keypress)
+            self._entry.bind("<Control-z>", self._undo)
+            self._entry.bind("<Control-y>", self._redo)
+            debug("[UNDO] Smart undo/redo system initialized", "undo")
+        except Exception as e:
+            debug(f"[UNDO] Failed to bind events: {e}", "error")
+
+    def _on_keypress(self, event=None):
+        keys_to_commit_immediately = ["Return", "Tab", "space"]
+
+        if event.keysym in keys_to_commit_immediately:
+            self._commit_snapshot()
+            return
+
+        if self._typing_timer:
+            self.after_cancel(self._typing_timer)
+
+        # Wait 600ms before committing this snapshot
+        self._typing_timer = self.after(600, self._commit_snapshot)
+
+    def _commit_snapshot(self):
+        current = self.get()
+        if current != self._last_value:
+            self._undo_stack.append(self._last_value)
+            self._redo_stack.clear()
+            debug(f"[UNDO] Committed snapshot: '{self._last_value}'", "undo")
+            self._last_value = current
+
+    def _undo(self, event=None):
+        self._commit_snapshot()  # Commit any unsaved change before undoing
+        if self._undo_stack:
+            prev = self._undo_stack.pop()
+            self._redo_stack.append(self.get())
+            debug(f"[UNDO] Reverted to '{prev}' | redo stack = {self._redo_stack}", "undo")
+            self._last_value = prev
+            self._entry.delete(0, "end")
+            self._entry.insert(0, prev)
+        else:
+            debug("[UNDO] Nothing to undo.", "undo")
+        return "break"
+
+    def _redo(self, event=None):
+        if self._redo_stack:
+            next_val = self._redo_stack.pop()
+            self._undo_stack.append(self.get())
+            debug(f"[REDO] Reapplied '{next_val}' | undo stack = {self._undo_stack}", "undo")
+            self._last_value = next_val
+            self._entry.delete(0, "end")
+            self._entry.insert(0, next_val)
+        else:
+            debug("[REDO] Nothing to redo.", "undo")
+        return "break"
+
+CTkEntry = CTkUndoEntry
+
 class PDFSplitterApp(TkinterDnD.Tk):
     # ─── INITIALIZATION ───
     def __init__(self):
         super().__init__()
+        self.start_time = time.perf_counter()
+
         self.pdf_sessions = {}
+        self.settings = {}
 
         # Load license info
         if LICENSE_FILE.exists():
@@ -391,11 +464,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return
 
         self.load_version_info()
+
+        self.load_settings()
+
+        self.font_size = self.settings.get("font_size", 12)
+        self.font_family = self.settings.get("font_family", "Segoe UI")
+
         self.show_fullscreen_loading_overlay()
         self.finish_initialization()
     def finish_initialization(self):
-        self.settings = {}
-        self.load_settings()
         create_light_pink_theme(self)
         create_dark_pink_theme(self)
 
@@ -413,9 +490,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
         theme_config = THEMES.get(self.theme, {"mode": "light", "theme": "blue"})
         ctk.set_appearance_mode(theme_config["mode"])
         ctk.set_default_color_theme(theme_config["theme"])
-
-        self.font_size = self.settings.get("font_size", 12)
-        self.font_family = self.settings.get("font_family", "Segoe UI")
 
         self.notebook = ctk.CTkTabview(self)
         self.notebook.pack(fill="both", expand=True)
@@ -441,7 +515,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self._apply_tab_font_size()
         self.apply_keybinds()
 
-        self.enhance_all_entries()
         self.after(200, self.check_export_folder_prompt)
 
         self.bind_all("<Control-Shift-V>", self._handle_ctrl_shift_v)
@@ -457,6 +530,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.start_auto_save_sessions()
 
         self.after(1000, self.hide_loading_overlay)
+        elapsed = time.perf_counter() - self.start_time
+        debug(f"Startup completed in {elapsed:.2f} seconds", "debug")
     def check_for_updates(self):
         try:
             with urllib.request.urlopen(VERSION_URL) as response:
@@ -698,6 +773,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             inactive_color = inactive_color[0] if mode == "Light" else inactive_color[1]
 
         self.loading_overlay.configure(bg=bg_color)
+
         debug(f"Overlay background color set to {bg_color}", "debug")
 
         # Dot animation canvas
@@ -707,9 +783,24 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         text_color = "black" if mode == "Light" else "white"
 
-        label = tk.Label(self.loading_overlay, text="Loading...", fg=text_color, bg=bg_color, font=("Segoe UI", 16, "bold"))
-        label.place(relx=0.5, rely=0.4, anchor="center")
+        # ─── Centered Vertical Layout ───
+        center_frame = tk.Frame(self.loading_overlay, bg=bg_color)
+        center_frame.update_idletasks()
+        center_frame.place(relx=0.5, rely=0.5, anchor="center")
 
+        # Label
+        label = tk.Label(
+            center_frame,
+            text="Loading...",
+            fg=text_color,
+            bg=bg_color,
+            font=(self.font_family, self.font_size + 2, "bold")
+        )
+        label.pack(pady=(0, 2))  # Slight spacing above dots
+
+        # Canvas for dots
+        canvas = tk.Canvas(center_frame, bg=bg_color, highlightthickness=0, width=120, height=30)
+        canvas.pack()
 
         dot_radius = 6
         spacing = 30
@@ -946,6 +1037,65 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.enable_tab_closing()
         self._apply_tab_font_size()
     def build_quick_split_tab(self, tab):
+        bubble_color, border_color = self.get_log_bubble_colors()
+
+        wrapper = ctk.CTkFrame(tab)
+        wrapper.pack(fill="both", expand=True, padx=20, pady=20)
+
+        bubble = ctk.CTkFrame(wrapper, fg_color=bubble_color, border_color=border_color, border_width=3, corner_radius=10)
+        bubble.pack(padx=40, pady=30, fill="both", expand=True)
+
+        ctk.CTkLabel(
+            bubble,
+            text="⚡ Quick Split Mode",
+            font=(self.font_family, self.font_size + 4, "bold"),
+            text_color="#AA0055"
+        ).pack(pady=(20, 5))
+
+        ctk.CTkLabel(
+            bubble,
+            text="Perfect for batch-scanning single documents for multiple clients.",
+            font=(self.font_family, self.font_size - 1),
+            text_color="#888888"
+        ).pack(pady=(0, 10))
+
+        usage_points = [
+            "• Use when each client has only one document",
+            "• Place SPLIT HERE sheets between each client’s file",
+            "• Scan everything in one pass",
+            "• Files will be auto-split and named 'Part 01', 'Part 02', etc.",
+            "• Saved to: Quick Split Files/YYYY-MM-DD"
+        ]
+
+        for point in usage_points:
+            ctk.CTkLabel(
+                bubble,
+                text=point,
+                font=(self.font_family, self.font_size),
+                anchor="w",
+                justify="left",
+                wraplength=700
+            ).pack(anchor="center", padx=40, pady=2)
+
+        ctk.CTkButton(
+            bubble,
+            text="➕ Open PDF",
+            font=(self.font_family, self.font_size),
+            command=self.load_quick_split_pdf,
+            width=160
+        ).pack(pady=20)
+
+        ctk.CTkLabel(
+            bubble,
+            text="You can also drag and drop one or multiple PDFs into this area.",
+            font=(self.font_family, self.font_size - 1),
+            text_color="#888888"
+        ).pack(pady=(0, 20))
+
+        # Enable drag-and-drop
+        wrapper.drop_target_register(DND_FILES)
+        wrapper.dnd_bind('<<Drop>>', self.handle_quick_drop)
+    def build_quick_split_tab2(self, tab):
         wrapper = ctk.CTkFrame(tab)
         wrapper.pack(fill="both", expand=True, padx=20, pady=20)
 
@@ -957,16 +1107,21 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         desc = (
             "This mode splits the PDF wherever 'SPLIT HERE' markers are found.\n"
-            "No client name or metadata required.\n"
-            "You can drag and drop one or multiple files here\n\n"
+            "No client name or metadata required.\n\n"
             "Files will be named generically (e.g., Part 1 - {original file name}.pdf, Part 2 - {original file name}.pdf) and\n"
             "saved into the folder called \"Quick Split Files\""
         )
         ctk.CTkLabel(wrapper, text=desc, font=(self.font_family, self.font_size), wraplength=600, justify="center").pack(pady=10)
 
-        open_button = ctk.CTkButton(wrapper, text="Open PDF for Quick Split", command=self.load_quick_split_pdf)
+        open_button = ctk.CTkButton(wrapper, text="➕ Open PDF", command=self.load_quick_split_pdf, font=(self.font_family, self.font_size))
         open_button.pack(pady=10)
+
+        drag_and_drop_label = "You can drag and drop one or multiple files here"
+        ctk.CTkLabel(wrapper, text=drag_and_drop_label, font=(self.font_family, self.font_size), wraplength=600, justify="center").pack(pady=10)
     def build_settings_tab(self):
+        self.settings_sidebar_buttons = {}
+        self.settings_sections = {}
+
         container = ctk.CTkFrame(self.settings_tab)
         container.pack(fill="both", expand=True, padx=20, pady=20)
 
@@ -977,9 +1132,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
         # Right: Content area
         self.settings_stack = ctk.CTkFrame(container)
         self.settings_stack.pack(side="left", fill="both", expand=True)
-
-        # Create section frames
-        self.settings_sections = {}
 
         for section in ["Appearance", "Export", "Behavior", "License"]:
             frame = ctk.CTkFrame(self.settings_stack)
@@ -995,8 +1147,18 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         # Sidebar buttons
         for section in self.settings_sections:
-            btn = ctk.CTkButton(menu, text=section, command=lambda s=section: self._show_settings_section(s))
+            btn = ctk.CTkButton(
+                menu,
+                text=section,
+                corner_radius=8,
+                fg_color="transparent",  # default color
+                text_color=("black", "white"),
+                hover_color="#cccccc",
+                command=lambda s=section: self._show_settings_section(s)
+            )
             btn.pack(fill="x", pady=5)
+            self.settings_sidebar_buttons[section] = btn
+
 
         self._show_settings_section("Appearance")
     def build_about_tab(self, tab):
@@ -1015,62 +1177,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
             ctk.CTkLabel(scroll, text="What's New:", font=(self.font_family, self.font_size + 6, "bold")).pack(anchor="center", padx=10)
             for line in self.changelog:
                 ctk.CTkLabel(scroll, text="• " + line, font=(self.font_family, self.font_size), wraplength=880, anchor="center", justify="left").pack(anchor="center", padx=20, pady=2)
-    def build_about_tab2(self):
-        scroll_frame = ctk.CTkScrollableFrame(self.about_tab)
-        scroll_frame.pack(fill="both", expand=True, padx=20, pady=20)
-
-        # Inner wrapper frame to center content
-        inner_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
-        inner_frame.pack(anchor="center", pady=10)
-
-        version_label = ctk.CTkLabel(inner_frame, text=f"CleanCutPDF Version: {CURRENT_VERSION}", font=(self.font_family, self.font_size))
-        version_label.pack(pady=(10, 5))
-
-
-        text = (
-            f"CleanCutPDF v{CURRENT_VERSION} – “Quick Precision”\n"
-            f"Licensed to: {self.licensed_company}\n\n"
-            "CleanCutPDF is a responsive, customizable tool for cleanly and efficiently splitting PDF documents.\n\n"
-            f"New in Version {CURRENT_VERSION}:\n"
-            "• Quick Split tab for fast splitting with no renaming\n"
-            "• Client folder toggle (Make Client Folder checkbox)\n"
-            "• Logs now grouped by original PDF name\n"
-            "• Visible 'X' close buttons on PDF tabs\n"
-            "• Default export folder prompt on startup\n"
-            "• Floating keybind reference overlay\n"
-            "• Font scaling now applies everywhere (including tabs/logs)\n"
-            "• Enhanced titlecasing (handles Vega-Albela, McFly, etc.)\n"
-            "• Help tab includes SPLIT HERE download and tips\n"
-            "• Improved tutorial that reflects all current UI elements\n"
-            "• Ctrl+Backspace / Ctrl+Delete support in input fields\n"
-            "• Drag-and-drop support for Quick Split\n"
-            "• Paste now works with Ctrl+Shift+V\n\n"
-            "Key Features:\n"
-            "• Drag-and-drop PDF support\n"
-            "• Auto-detects split markers (e.g., 'SPLIT HERE')\n"
-            "• Metadata-driven filename generation (Agency, Description, Date)\n"
-            "• Smart title casing with acronym protection (LLC, INC, IRS)\n"
-            "• Blank page removal (optional)\n"
-            "• Export folder customization with per-client subfolders\n"
-            "• Export log with undo, search, filters, and highlights\n"
-            "• Multi-tab PDF workflow with closeable tabs\n"
-            "• Customizable theme, font, and keybindings\n"
-            "• Built-in debug console and log view\n"
-            "• Fully guided onboarding tutorial\n\n"
-            "Your preferences are saved to your user directory (.cleancutpdf).\n\n"
-            "Designed by Ethan Brothers\n"
-            f"© 2025 — Version {CURRENT_VERSION}"
-        )
-
-        self.about_label = ctk.CTkLabel(
-            inner_frame,
-            text=text,
-            justify="center",
-            anchor="center",
-            wraplength=700,
-            font=(self.font_family, self.font_size)
-        )
-        self.about_label.pack(pady=10)
     def build_log_tab(self):
         search_frame = ctk.CTkFrame(self.log_tab)
         search_frame.pack(fill="x", padx=10, pady=10)
@@ -1079,7 +1185,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.sort_mode_var = ctk.StringVar(value="Date ↓")
 
         ctk.CTkLabel(search_frame, text="Search:").pack(side="left", padx=(0, 5))
-        self.search_entry = ctk.CTkEntry(search_frame, textvariable=self.search_var)
+        self.search_entry = CTkEntry(search_frame, textvariable=self.search_var)
         self.search_entry.pack(side="left", fill="x", expand=True)
         self.search_entry.bind("<KeyRelease>", self.update_log_view)
 
@@ -1105,73 +1211,86 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self.setting_keybind = False
         self.active_keybind_target = None
-
-        wrapper = ctk.CTkFrame(self.keybinds_tab, fg_color="transparent")
-        wrapper.pack(anchor="n", pady=20)
-
-        ctk.CTkLabel(wrapper, text="Custom Keybindings").pack(pady=(10, 10))
-
-        scroll_container = ctk.CTkFrame(wrapper, width=480, height=420)
-        scroll_container.pack()
-        scroll_container.pack_propagate(False)
-
-        scroll_frame = ctk.CTkScrollableFrame(scroll_container)
-        scroll_frame.pack(fill="both", expand=True)
-
         self.keybind_vars = {}
 
-        debug(f"Building keybind UI for: {list(self.keybindings.keys())}", "debug")
+        bubble_color, border_color = self.get_log_bubble_colors()
 
-        for action, combo in self.keybindings.items():
-            for idx, (action, combo) in enumerate(self.keybindings.items()):
-                ctk.CTkLabel(scroll_frame, text=action, anchor="w", width=220).grid(row=idx, column=0, sticky="w", pady=4, padx=10)
+        wrapper = ctk.CTkFrame(
+            self.keybinds_tab,
+            fg_color=bubble_color,
+            border_color=border_color,
+            border_width=3,
+            corner_radius=10
+        )
+        wrapper.pack(fill="both", expand=True, padx=20, pady=20)
 
-                var = ctk.StringVar(value=combo)
-                label = ctk.CTkLabel(
-                    scroll_frame,
-                    textvariable=var,
-                    width=180,
-                    corner_radius=6,
-                    fg_color="#eeeeee",
-                    text_color="black",
-                    cursor="hand2"
-                )
-                label.grid(row=idx, column=1, sticky="e", padx=(0, 10), pady=4)
+        title = ctk.CTkLabel(wrapper, text="🎯 Keyboard Shortcuts", font=(self.font_family, self.font_size + 4, "bold"))
+        title.pack(pady=(10, 4))
 
-                self.keybind_vars[action] = var
+        desc = ctk.CTkLabel(wrapper, text="Click a shortcut to change it. Press your new combo and it will be saved.",
+                            font=(self.font_family, self.font_size - 1),
+                            text_color="#888888")
+        desc.pack(pady=(0, 10))
 
-                self.add_tooltip(label, "Click to change keybind")
-                label.bind("<Button-1>", lambda e, a=action, lbl=label: self.start_keybind_input(a, lbl))
+        scroll_frame = ctk.CTkScrollableFrame(wrapper, width=800, height=400)
+        scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        for idx, (action, combo) in enumerate(self.keybindings.items()):
+            row = ctk.CTkFrame(scroll_frame, fg_color=bubble_color, corner_radius=6)
+            row.pack(fill="x", padx=10, pady=4)
+
+            label = ctk.CTkLabel(row, text=action, anchor="w", font=(self.font_family, self.font_size))
+            label.pack(side="left", padx=10, pady=6, fill="x", expand=True)
+
+            var = ctk.StringVar(value=combo)
+            shortcut_box = ctk.CTkLabel(
+                row,
+                textvariable=var,
+                font=(self.font_family, self.font_size),
+                fg_color="#eeeeee",
+                text_color="black",
+                corner_radius=6,
+                width=100,
+                anchor="center",
+                cursor="hand2"
+            )
+            shortcut_box.pack(side="right", padx=10, pady=6)
+
+            # Bind click
+            self.add_tooltip(shortcut_box, "Click to change keybind")
+            shortcut_box.bind("<Button-1>", lambda e, a=action, lbl=shortcut_box: self.start_keybind_input(a, lbl))
 
             self.keybind_vars[action] = var
 
-            self.add_tooltip(label, "Double-click to change keybind")
+        # Save Button
+        theme = ctk.ThemeManager.theme
+        btn_color = theme.get("CTkButton", {}).get("fg_color", "#3B8ED0")
 
-            label.bind("<Button-1>", lambda e, a=action, lbl=label: self.start_keybind_input(a, lbl))
+        if isinstance(btn_color, list):
+            btn_color = btn_color[0] if ctk.get_appearance_mode() == "Light" else btn_color[1]
 
-        ctk.CTkButton(wrapper, text="Save Keybinds", command=self.save_keybinds, fg_color="#ff69b4").pack(pady=(20, 10))
+        ctk.CTkButton(wrapper, text="💾 Save Keybinds", command=self.save_keybinds, fg_color=btn_color).pack(pady=15)
     def build_help_tab(self, tab):
         scrollable = ctk.CTkScrollableFrame(tab, width=880)
         scrollable.pack(fill="both", expand=True, padx=20, pady=20)
 
-        content = ctk.CTkFrame(scrollable, fg_color="transparent")
-        content.pack(anchor="center", padx=20)
-
-        wrap_factor = 800
+        bubble_color, border_color = self.get_log_bubble_colors()
 
         font_title = (self.font_family, self.font_size + 3, "bold")
         font_section = (self.font_family, self.font_size + 1, "bold")
         font_body = (self.font_family, self.font_size)
         font_code = (self.font_family, self.font_size - 1, "italic")
 
-        def add_spacer(height=10):
-            ctk.CTkLabel(content, text="", height=height).pack()
+        wrap_factor = 800
+        label_padx = 15
 
-        # 🧩 Using the Split & Rename
-        ctk.CTkLabel(content, text="🧩 Using Split & Rename", font=font_title, anchor="w").pack(anchor="w")
-        ctk.CTkLabel(content, text="Best for: Organizing multiple documents per client", font=font_section, anchor="w").pack(anchor="w")
-        ctk.CTkLabel(content, text="Example: Scanning large sets of old legal files", font=font_body, anchor="w").pack(anchor="w")
-        add_spacer(4)
+        # ─── Bubble 1: Split & Rename ───
+        bubble1 = ctk.CTkFrame(scrollable, fg_color=bubble_color, border_color=border_color, border_width=3, corner_radius=10)
+        bubble1.pack(fill="x", pady=10, padx=10)
+
+        ctk.CTkLabel(bubble1, text="🧩 Using Split & Rename", font=font_title, text_color="#3B8ED0").pack(anchor="w", padx=label_padx, pady=(10, 4))
+        ctk.CTkLabel(bubble1, text="Best for: Organizing multiple documents per client", font=font_section).pack(anchor="w", padx=label_padx)
+        ctk.CTkLabel(bubble1, text="Example: Scanning large sets of old legal files", font=font_body).pack(anchor="w", padx=label_padx, pady=(0, 5))
 
         for tip in [
             "• Use when a client has more than one document that needs to be saved separately",
@@ -1179,87 +1298,83 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "• Place SPLIT HERE sheets between each document in the client’s stack",
             "• Scan the entire client stack in one go"
         ]:
-            ctk.CTkLabel(content, text=tip, font=font_body, anchor="w", wraplength=wrap_factor, justify="left").pack(anchor="w")
+            ctk.CTkLabel(bubble1, text=tip, font=font_body, anchor="w", wraplength=wrap_factor, justify="left").pack(anchor="w", padx=label_padx, pady=2)
 
-        add_spacer(4)
-        ctk.CTkLabel(content, text="In the app, use Split & Rename to:", font=font_body, anchor="w").pack(anchor="w")
+        ctk.CTkLabel(bubble1, text="In the app, use Split & Rename to:", font=font_body).pack(anchor="w", padx=label_padx, pady=(8, 2))
         for action in [
             "○ Automatically detect splits",
             "○ Enter the client’s name once",
             "○ Fill in info like agency, description, and date for each file",
             "○ Save each document with custom names"
         ]:
-            ctk.CTkLabel(content, text=action, font=font_body, anchor="w", padx=20, wraplength=wrap_factor).pack(anchor="w")
+            ctk.CTkLabel(bubble1, text=action, font=font_body, anchor="w", wraplength=wrap_factor, justify="left", padx=20).pack(anchor="w", padx=label_padx)
 
-        add_spacer(6)
-        ctk.CTkLabel(content, text="📝 Why it’s helpful:", font=font_section, anchor="w").pack(anchor="w")
-        ctk.CTkLabel(
-            content,
-            text="This saves time compared to manually separating, reorienting, and renaming each file individually. "
-                 "Ideal when scanning lots of documents for multiple clients where each client has several items.",
-            font=font_body,
-            anchor="w",
-            wraplength=wrap_factor,
-            justify="left"
-        ).pack(anchor="w")
+        ctk.CTkLabel(bubble1, text="📝 Why it’s helpful:", font=font_section).pack(anchor="w", padx=label_padx, pady=(10, 2))
+        ctk.CTkLabel(bubble1, text=(
+            "This saves time compared to manually separating, reorienting, and renaming each file individually. "
+            "Ideal when scanning lots of documents for multiple clients where each client has several items."
+        ), font=font_body, wraplength=wrap_factor, justify="left").pack(anchor="w", padx=label_padx, pady=(0, 10))
 
-        add_spacer(18)
+        # ─── Bubble 2: Quick Split ───
+        bubble2 = ctk.CTkFrame(scrollable, fg_color=bubble_color, border_color=border_color, border_width=3, corner_radius=10)
+        bubble2.pack(fill="x", pady=10, padx=10)
 
-        # ⚡ Using the Quick Splitter
-        ctk.CTkLabel(content, text="⚡ Using Quick Split", font=font_title, anchor="w").pack(anchor="w")
-        ctk.CTkLabel(content, text="Best for: Scanning one document per client", font=font_section, anchor="w").pack(anchor="w")
-        ctk.CTkLabel(content, text="Example: Uploading 50+ single POA revocations to the IRS", font=font_body, anchor="w").pack(anchor="w")
-        add_spacer(4)
+        ctk.CTkLabel(bubble2, text="⚡ Using Quick Split", font=font_title, text_color="#AA0055").pack(anchor="w", padx=label_padx, pady=(10, 4))
+        ctk.CTkLabel(bubble2, text="Best for: Scanning one document per client", font=font_section).pack(anchor="w", padx=label_padx)
+        ctk.CTkLabel(bubble2, text="Example: Uploading 50+ single POA revocations to the IRS", font=font_body).pack(anchor="w", padx=label_padx, pady=(0, 5))
 
         for tip in [
             "• Place SPLIT HERE sheets between each client’s document",
             "• Scan all client documents in one batch"
         ]:
-            ctk.CTkLabel(content, text=tip, font=font_body, anchor="w", wraplength=wrap_factor, justify="left").pack(anchor="w")
+            ctk.CTkLabel(bubble2, text=tip, font=font_body, anchor="w", wraplength=wrap_factor, justify="left").pack(anchor="w", padx=label_padx, pady=2)
 
-        add_spacer(4)
-        ctk.CTkLabel(content, text="Use Quick Split to:", font=font_body, anchor="w").pack(anchor="w")
+        ctk.CTkLabel(bubble2, text="Use Quick Split to:", font=font_body).pack(anchor="w", padx=label_padx, pady=(8, 2))
         for action in [
             "○ Instantly split the file at each marker",
             "○ Auto-name each part:"
         ]:
-            ctk.CTkLabel(content, text=action, font=font_body, anchor="w", padx=20, wraplength=wrap_factor).pack(anchor="w")
+            ctk.CTkLabel(bubble2, text=action, font=font_body, anchor="w", wraplength=wrap_factor, justify="left", padx=20).pack(anchor="w", padx=label_padx)
 
-        ctk.CTkLabel(content, text="[Original Filename] – Part 01, Part 02, etc.", font=font_code, anchor="w", padx=40).pack(anchor="w")
-        ctk.CTkLabel(content, text="○ Save them to a designated folder", font=font_body, anchor="w", padx=20).pack(anchor="w")
+        ctk.CTkLabel(bubble2, text="[Original Filename] – Part 01, Part 02, etc.", font=font_code).pack(anchor="w", padx=label_padx + 25)
+        ctk.CTkLabel(bubble2, text="○ Save them to a designated folder", font=font_body).pack(anchor="w", padx=label_padx + 20, pady=(0, 8))
 
-        add_spacer(4)
-        ctk.CTkLabel(content, text="📥 Optional:", font=font_section, anchor="w").pack(anchor="w")
-        ctk.CTkLabel(
-            content,
-            text="Drag into the Split & Rename afterward if custom file names are needed",
-            font=font_body,
-            anchor="w",
-            wraplength=wrap_factor
-        ).pack(anchor="w")
+        ctk.CTkLabel(bubble2, text="📥 Optional:", font=font_section).pack(anchor="w", padx=label_padx)
+        ctk.CTkLabel(bubble2, text="Drag into the Split & Rename afterward if custom file names are needed",
+                     font=font_body, wraplength=wrap_factor, justify="left").pack(anchor="w", padx=label_padx, pady=2)
 
-        add_spacer(6)
-        ctk.CTkLabel(content, text="📝 Why it’s helpful:", font=font_section, anchor="w").pack(anchor="w")
-        ctk.CTkLabel(
-            content,
-            text="Saves time by avoiding repetitive scan/load/unload cycles. "
-                 "Great when each client only has one file and you want to keep things moving quickly.",
-            font=font_body,
-            anchor="w",
-            wraplength=wrap_factor,
-            justify="left"
-        ).pack(anchor="w")
+        ctk.CTkLabel(bubble2, text="📝 Why it’s helpful:", font=font_section).pack(anchor="w", padx=label_padx, pady=(10, 2))
+        ctk.CTkLabel(bubble2, text=(
+            "Saves time by avoiding repetitive scan/load/unload cycles. "
+            "Great when each client only has one file and you want to keep things moving quickly."
+        ), font=font_body, wraplength=wrap_factor, justify="left").pack(anchor="w", padx=label_padx, pady=(0, 10))
 
-        add_spacer(10)
-        btn_frame = ctk.CTkFrame(content, fg_color="transparent")
-        btn_frame.pack(pady=(10, 20))
+        # ─── Bubble 3: Printing Tips ───
+        bubble3 = ctk.CTkFrame(scrollable, fg_color=bubble_color, border_color=border_color, border_width=3, corner_radius=10)
+        bubble3.pack(fill="x", pady=10, padx=10)
 
+        ctk.CTkLabel(bubble3, text="🖨️ Printing SPLIT HERE Sheets", font=font_title, text_color="#228B22").pack(anchor="w", padx=label_padx, pady=(10, 4))
+
+        tips = [
+            "• Use brightly colored paper to make SPLIT HERE sheets stand out",
+            "• Clearly print 'SPLIT HERE' in large, bold text (use the template below if needed)",
+            "• Select 'Multiple Sized Originals' when scanning",
+            "• Insert SPLIT HERE sheets between documents — not between clients",
+            "• Sort files into double- and single-sided batches before scanning",
+            "• Use tabs or sticky notes to make sheets easier to spot",
+            "• Check that SPLIT HERE text is legible before printing",
+            "• Place pages in order during scanning to avoid mistakes"
+        ]
+        for line in tips:
+            ctk.CTkLabel(bubble3, text=line, font=font_body, anchor="w", wraplength=wrap_factor, justify="left").pack(anchor="w", padx=label_padx, pady=2)
+
+        # Download button
         ctk.CTkButton(
-            btn_frame,
+            bubble3,
             text="📥 Download SPLIT HERE Template",
             font=(self.font_family, self.font_size),
             command=self.download_split_here_sheet
-        ).pack()
+        ).pack(pady=(15, 10), padx=label_padx, anchor="w")
     def rebuild_ui(self):
             debug("Rebuilding UI", "debug")
             current_tab = self.notebook.get()
@@ -1312,178 +1427,186 @@ class PDFSplitterApp(TkinterDnD.Tk):
         for section, frame in self.settings_sections.items():
             frame.pack_forget()
         self.settings_sections[name].pack(fill="both", expand=True)
-    def _build_appearance_section(self, parent):
-        font = (self.font_family, self.font_size)
 
-        label = ctk.CTkLabel(parent, text="Theme", font=font)
-        label.pack(pady=(10, 5))
-        self.settings_widgets_to_scale.append(label)
+        theme = ctk.ThemeManager.theme
+        fg_color = theme.get("CTkButton", {}).get("fg_color", "#3B8ED0")
+
+        if isinstance(fg_color, list):
+            fg_color = fg_color[0] if ctk.get_appearance_mode() == "Light" else fg_color[1]
+
+        for section, button in self.settings_sidebar_buttons.items():
+            if section == name:
+                button.configure(fg_color=fg_color, text_color="white")
+            else:
+                button.configure(fg_color="transparent", text_color=("black", "white"))
+    def _build_appearance_section(self, parent):
+
+        bubble_color, border_color = self.get_log_bubble_colors()
+
+        # ─── Theme Settings ───
+        theme_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        theme_bubble.pack(padx=10, pady=(15, 10), fill="x")
+
+        ctk.CTkLabel(theme_bubble, text="🎨 Theme Settings", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="center", padx=15, pady=(10, 5))
 
         self.theme_var = ctk.StringVar(value=self.theme)
-        theme_menu = ctk.CTkOptionMenu(
-            parent,
-            values=list(THEMES.keys()),
-            variable=self.theme_var,
-            command=self.change_theme
-        )
-        theme_menu.pack(pady=5)
+        theme_menu = ctk.CTkOptionMenu(theme_bubble, values=list(THEMES.keys()), variable=self.theme_var, command=self.change_theme)
+        theme_menu.pack(padx=15, pady=(0, 10))
         self.settings_widgets_to_scale.append(theme_menu)
 
-        label2 = ctk.CTkLabel(parent, text="Font Size", font=font)
-        label2.pack(pady=(10, 0))
-        self.settings_widgets_to_scale.append(label2)
+        # ─── Font Settings ───
+        font_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        font_bubble.pack(padx=10, pady=(0, 20), fill="x")
+
+        ctk.CTkLabel(font_bubble, text="🔠 Font Settings", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="center", padx=15, pady=(10, 5))
 
         self.font_size_var = ctk.IntVar(value=self.font_size)
-        font_slider = ctk.CTkSlider(
-            parent, from_=12, to=22, number_of_steps=10,
-            variable=self.font_size_var, command=self.update_font_size
-        )
-        font_slider.pack(pady=5)
+        font_slider = ctk.CTkSlider(font_bubble, from_=12, to=32, number_of_steps=10, variable=self.font_size_var, command=self.update_font_size)
+        font_slider.pack(padx=15, pady=5)
         self.settings_widgets_to_scale.append(font_slider)
 
-        label3 = ctk.CTkLabel(parent, text="Font Family", font=font)
-        label3.pack(pady=(10, 0))
-        self.settings_widgets_to_scale.append(label3)
-
         self.font_family_var = ctk.StringVar(value=self.font_family)
-        font_menu = ctk.CTkOptionMenu(
-            parent,
-            values=FONTS,
-            variable=self.font_family_var,
-            command=self.update_font_family
-        )
-        font_menu.pack(pady=5)
+        font_menu = ctk.CTkOptionMenu(font_bubble, values=FONTS, variable=self.font_family_var, command=self.update_font_family)
+        font_menu.pack(padx=15, pady=(0, 10))
         self.settings_widgets_to_scale.append(font_menu)
     def _build_export_section(self, parent):
         font = (self.font_family, self.font_size)
+        bubble_color, border_color = self.get_log_bubble_colors()
 
-        label = ctk.CTkLabel(parent, text="Default Export Folder", font=font)
-        label.pack(pady=(10, 5))
-        self.settings_widgets_to_scale.append(label)
+        # ─── Folder Settings ───
+        folder_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        folder_bubble.pack(padx=10, pady=(15, 10), fill="x")
+
+        ctk.CTkLabel(folder_bubble, text="📁 Default Export Folder", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
 
         self.export_folder_var = ctk.StringVar(value=self.settings.get("export_folder", "Not Set"))
-        export_frame = ctk.CTkFrame(parent)
-        export_frame.pack(pady=5, padx=20, fill="x")
+        export_row = ctk.CTkFrame(folder_bubble, fg_color="transparent")
+        export_row.pack(padx=15, pady=(0, 10), fill="x")
 
-        self.export_display = ctk.CTkEntry(export_frame, textvariable=self.export_folder_var, state="disabled")
+        self.export_display = CTkEntry(export_row, textvariable=self.export_folder_var, state="disabled")
         self.export_display.pack(side="left", fill="x", expand=True, padx=(0, 10))
         self.settings_widgets_to_scale.append(self.export_display)
 
-        browse_button = ctk.CTkButton(export_frame, text="📁 Browse...", command=self.set_export_folder)
+        browse_button = ctk.CTkButton(export_row, text="Browse...", command=self.set_export_folder)
         browse_button.pack(side="left")
         self.settings_widgets_to_scale.append(browse_button)
 
-        # Export log toggle
+        # ─── Export Options ───
+        options_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        options_bubble.pack(padx=10, pady=(0, 20), fill="x")
+
+        ctk.CTkLabel(options_bubble, text="⚙ Export Options", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
+
         self.export_log_var = ctk.BooleanVar(value=self.settings.get("export_log_enabled", True))
-        log_box = ctk.CTkCheckBox(
-            parent,
-            text="Generate Export Log",
-            variable=self.export_log_var,
-            command=self.update_export_log_setting
-        )
-        log_box.pack(pady=5)
-        self.settings_widgets_to_scale.append(log_box)
+        log_checkbox = ctk.CTkCheckBox(options_bubble, text="Generate Export Log", variable=self.export_log_var, command=self.update_export_log_setting)
+        log_checkbox.pack(anchor="w", padx=20, pady=5)
+        self.settings_widgets_to_scale.append(log_checkbox)
     def _build_behavior_section(self, parent):
         font = (self.font_family, self.font_size)
+        bubble_color, border_color = self.get_log_bubble_colors()
+
+        # ─── File Processing ───
+        file_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        file_bubble.pack(padx=10, pady=(15, 10), fill="x")
+
+        ctk.CTkLabel(file_bubble, text="🗂 File Processing", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
 
         self.remove_blank_var = ctk.BooleanVar(value=self.settings.get("remove_blank_pages", True))
-        remove_blank_checkbox = ctk.CTkCheckBox(
-            parent,
-            text="Remove Blank Pages Automatically",
-            variable=self.remove_blank_var,
-            command=self.update_remove_blank_setting
-        )
-        remove_blank_checkbox.pack(pady=5)
-        self.settings_widgets_to_scale.append(remove_blank_checkbox)
+        blank_checkbox = ctk.CTkCheckBox(file_bubble, text="Remove Blank Pages Automatically", variable=self.remove_blank_var, command=self.update_remove_blank_setting)
+        blank_checkbox.pack(anchor="w", padx=20, pady=5)
+        self.settings_widgets_to_scale.append(blank_checkbox)
+
+        # ─── Startup Behavior ───
+        startup_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        startup_bubble.pack(padx=10, pady=(0, 10), fill="x")
+
+        ctk.CTkLabel(startup_bubble, text="🚀 Startup Behavior", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
 
         self.auto_restore_var = ctk.BooleanVar(value=self.settings.get("auto_restore_session", True))
-        auto_restore_checkbox = ctk.CTkCheckBox(
-            parent,
-            text="Auto-Restore Previous Session on Launch",
-            variable=self.auto_restore_var,
-            command=self.update_auto_restore_setting
-        )
-        auto_restore_checkbox.pack(pady=5)
-        self.settings_widgets_to_scale.append(auto_restore_checkbox)
+        restore_checkbox = ctk.CTkCheckBox(startup_bubble, text="Auto-Restore Previous Session", variable=self.auto_restore_var, command=self.update_auto_restore_setting)
+        restore_checkbox.pack(anchor="w", padx=20, pady=5)
+        self.settings_widgets_to_scale.append(restore_checkbox)
 
         self.check_updates_var = ctk.BooleanVar(value=self.settings.get("check_updates_on_startup", True))
+        updates_checkbox = ctk.CTkCheckBox(startup_bubble, text="Check for Updates on Startup", variable=self.check_updates_var, command=lambda: self.save_setting("check_updates_on_startup", self.check_updates_var.get()))
+        updates_checkbox.pack(anchor="w", padx=20, pady=(0, 10))
+        self.settings_widgets_to_scale.append(updates_checkbox)
 
-        check_updates_checkbox = ctk.CTkCheckBox(
-            parent,
-            text="Check for updates on startup",
-            variable=self.check_updates_var,
-            command=lambda: self.save_setting("check_updates_on_startup", self.check_updates_var.get())
-        )
+        # ─── Date Warning ───
+        date_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        date_bubble.pack(padx=10, pady=(0, 10), fill="x")
+
+        ctk.CTkLabel(date_bubble, text="📅 Date Warnings", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
+
         self.future_date_popup_var = ctk.BooleanVar(value=not self.settings.get("suppressFutureDateWarning", False))
+        future_checkbox = ctk.CTkCheckBox(date_bubble, text="Warn me when I enter a future date", variable=self.future_date_popup_var, command=self.update_future_date_setting)
+        future_checkbox.pack(anchor="w", padx=20, pady=(0, 10))
+        self.settings_widgets_to_scale.append(future_checkbox)
 
-        future_date_checkbox = ctk.CTkCheckBox(
-            parent,
-            text="Warn me when I enter a future date",
-            variable=self.future_date_popup_var,
-            command=self.update_future_date_setting
-        )
-        future_date_checkbox.pack(pady=(10, 0))
-        self.settings_widgets_to_scale.append(future_date_checkbox)
+        # ─── Tools ───
+        tools_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        tools_bubble.pack(padx=10, pady=(0, 20), fill="x")
 
-        check_updates_checkbox.pack(pady=(10, 0))
-        ctk.CTkButton(
-            parent,
-            text="Check for Updates Now",
-            command=self.check_for_updates_manual
-        ).pack(pady=(5, 20))
+        ctk.CTkLabel(tools_bubble, text="🛠 Tools", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
 
-        tutorial_btn = ctk.CTkButton(parent, text="📘 Run Tutorial Again", command=self.start_tutorial)
-        tutorial_btn.pack(pady=(20, 0))
+        tutorial_btn = ctk.CTkButton(tools_bubble, text="📘 Run Tutorial Again", command=self.start_tutorial)
+        tutorial_btn.pack(anchor="w", padx=15, pady=(0, 10))
         self.settings_widgets_to_scale.append(tutorial_btn)
+
+        update_btn = ctk.CTkButton(tools_bubble, text="📘 Check for Updates", command=self.check_for_updates_manual)
+        update_btn.pack(anchor="w", padx=15, pady=(0, 10))
+        self.settings_widgets_to_scale.append(update_btn)
     def _build_license_section(self, parent):
-            font = (self.font_family, self.font_size)
+        font = (self.font_family, self.font_size)
+        bubble_color, border_color = self.get_log_bubble_colors()
 
-            ctk.CTkLabel(parent, text="License Information", font=(self.font_family, self.font_size + 2)).pack(pady=(20, 10))
+        license_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        license_bubble.pack(padx=10, pady=20, fill="x")
 
-            license_key = ""
-            company = self.licensed_company or "Unknown"
-            masked = tk.BooleanVar(value=True)
+        ctk.CTkLabel(license_bubble, text="🔐 License Info", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
 
-            if LICENSE_FILE.exists():
-                try:
-                    with open(LICENSE_FILE, "r") as f:
-                        saved = json.load(f)
-                        license_key = saved.get("license_key", "")
-                except Exception as e:
-                    messagebox.showerror("License Error", "License file not found.")
-                    debug(f"Error reading license file: {e}", "error")
+        license_key = ""
+        company = self.licensed_company or "Unknown"
+        masked = tk.BooleanVar(value=True)
 
-            def get_display_key():
-                return "• " * len(license_key) if masked.get() else license_key or "N/A"
+        if LICENSE_FILE.exists():
+            try:
+                with open(LICENSE_FILE, "r") as f:
+                    saved = json.load(f)
+                    license_key = saved.get("license_key", "")
+            except Exception as e:
+                messagebox.showerror("License Error", "License file not found.")
+                debug(f"Error reading license file: {e}", "error")
 
-            key_var = tk.StringVar(value=get_display_key())
+        def get_display_key():
+            return "• " * len(license_key) if masked.get() else license_key or "N/A"
 
-            row = ctk.CTkFrame(parent, fg_color="transparent")
-            row.pack(pady=5, anchor="center")
+        key_var = tk.StringVar(value=get_display_key())
 
-            ctk.CTkLabel(row, text="License Key:", font=font, width=120).pack(side="left", padx=(0, 5))
-            key_label = ctk.CTkLabel(row, textvariable=key_var, font=font)
-            key_label.pack(side="left", padx=(0, 5))
+        row = ctk.CTkFrame(license_bubble, fg_color="transparent")
+        row.pack(pady=5, padx=15, anchor="w")
 
-            toggle_btn = ctk.CTkButton(row, text="Show" if masked.get() else "Hide", width=60,
-                                       command=lambda: (masked.set(not masked.get()),
-                                                        key_var.set(get_display_key()),
-                                                        toggle_btn.configure(text="Show" if masked.get() else "Hide")))
-            toggle_btn.pack(side="left")
+        ctk.CTkLabel(row, text="License Key:", font=font, width=120).pack(side="left", padx=(0, 5))
+        key_label = ctk.CTkLabel(row, textvariable=key_var, font=font)
+        key_label.pack(side="left", padx=(0, 5))
 
-            # Additional info
-            ctk.CTkLabel(parent, text=f"Company: {company}", font=font).pack(anchor="center", padx=10, pady=(10, 0))
-            ctk.CTkLabel(parent, text="Status: ✅ Active", font=font, text_color="#32cd32").pack(anchor="center", padx=10)
+        toggle_btn = ctk.CTkButton(row, text="Show" if masked.get() else "Hide", width=60,
+                                   command=lambda: (masked.set(not masked.get()),
+                                                    key_var.set(get_display_key()),
+                                                    toggle_btn.configure(text="Show" if masked.get() else "Hide")))
+        toggle_btn.pack(side="left")
 
-            # Clear button (already present, preserve styling)
-            ctk.CTkButton(
-                parent,
-                text="🧹 Clear License Key",
-                fg_color="#cc4b4b",
-                hover_color="#aa2b2b",
-                text_color="#ffffff",
-                command=self.clear_license_and_exit
-            ).pack(pady=(20, 0))
+        ctk.CTkLabel(license_bubble, text=f"Company: {company}", font=font).pack(anchor="w", padx=15, pady=(10, 0))
+        ctk.CTkLabel(license_bubble, text="Status: ✅ Active", font=font, text_color="#32cd32").pack(anchor="w", padx=15)
+
+        ctk.CTkButton(
+            license_bubble,
+            text="🧹 Clear License Key",
+            fg_color="#cc4b4b",
+            hover_color="#aa2b2b",
+            text_color="#ffffff",
+            command=self.clear_license_and_exit
+        ).pack(pady=(20, 10), padx=15, anchor="w")
 
     # ─── UI Update Helpers ───
     def _apply_font_to_widget(self, widget, font):
@@ -1700,7 +1823,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             for i, r in enumerate(ranges, start=1):
                 writer = PdfWriter()
                 for p in range(r["start"], r["end"] + 1):
-                    page = self.reader.pages[p]
+                    page = reader.pages[p]
                     if self.settings.get("remove_blank_pages", True) and self.is_blank_page(page):
                         skipped_pages.append(p + 1)
                         continue
@@ -1915,7 +2038,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         def make_entry(label_text):
             ctk.CTkLabel(scrollable, text=label_text, font=font).pack(anchor="w")
             var = tk.StringVar()
-            entry = ctk.CTkEntry(scrollable, textvariable=var)
+            entry = CTkEntry(scrollable, textvariable=var)
             entry.pack(pady=2, fill="x")
             return var
 
@@ -2309,109 +2432,103 @@ class PDFSplitterApp(TkinterDnD.Tk):
         session["widgets_to_scale"] = []
         ranges = session["ranges"]
 
-        # Outer content frame: form on the left, preview on the right
-        content = ctk.CTkFrame(tab_frame)
-        content.pack(fill="both", expand=True)
+        bubble_color, border_color = self.get_log_bubble_colors()
 
-        # LEFT: Form area
+        # ─── Outer Bubble Frame ───
+        bubble = ctk.CTkFrame(tab_frame, fg_color=bubble_color, border_color=border_color, border_width=3, corner_radius=10)
+        bubble.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # ─── Title ───
+        ctk.CTkLabel(
+            bubble,
+            text="🧩 Split & Rename",
+            font=(self.font_family, self.font_size + 4, "bold"),
+            text_color="#3B8ED0"
+        ).pack(pady=(10, 0))
+
+        # ─── Main Content Split ───
+        content = ctk.CTkFrame(bubble)
+        content.pack(fill="both", expand=True, padx=10, pady=10)
+
         form_frame = ctk.CTkFrame(content)
-        form_frame.pack(side="left", fill="both", expand=True, padx=(0, 10), pady=(10, 5))
+        form_frame.pack(side="left", fill="both", expand=True, padx=(0, 10))
 
-        # Client Name section
-        client_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        client_frame.pack(pady=(10, 0), anchor="center")
+        # ─── Client Name Section ───
+        ctk.CTkLabel(form_frame, text="", height=30).pack()
 
-        label = ctk.CTkLabel(client_frame, text="Client Name:")
-        label.grid(row=0, column=0)
-        debug("Adding the enhance", "debug")
-        self.enhance_all_entries()
-        session["widgets_to_scale"].append(label)
+        client_box = ctk.CTkFrame(form_frame, fg_color="transparent")
+        client_box.pack(pady=(0, 10), padx=10, anchor="w", fill="x")
 
-        info_icon = ctk.CTkLabel(client_frame, text="❓", text_color="#888888", cursor="question_arrow")
-        info_icon.grid(row=0, column=1, padx=(5, 10))
+        name_label = ctk.CTkLabel(client_box, text="Client Name:")
+        name_label.pack(side="left")
+        session["widgets_to_scale"].append(name_label)
+
+        info_icon = ctk.CTkLabel(client_box, text="❓", text_color="#888888", cursor="question_arrow")
+        info_icon.pack(side="left", padx=(5, 10))
         self.add_tooltip(info_icon,
                          "TitleCase Rules:\n"
                          "• Words are capitalized automatically\n"
                          "• Acronyms like LLC, INC, IRS stay uppercase\n"
                          "• INC. is preserved with period\n"
-                         "• ALL CAPS input stays all caps"
-                         )
-        session["widgets_to_scale"].append(info_icon)
+                         "• ALL CAPS input stays all caps")
 
-        entry = ctk.CTkEntry(client_frame, textvariable=session["client_name_var"], width=300)
-        entry.grid(row=0, column=2)
-        session["widgets_to_scale"].append(entry)
+        name_entry = CTkEntry(client_box, textvariable=session["client_name_var"], width=300)
+        name_entry.pack(side="left")
+        session["widgets_to_scale"].append(name_entry)
 
-        # Parts section
+        # ─── Parts Section ───
         for idx, r in enumerate(ranges, start=1):
-            part_frame = ctk.CTkFrame(form_frame, fg_color="transparent", width=700)
-            part_frame.pack(pady=6, anchor="center")
-            part_frame.pack_propagate(False)
+            part_card = ctk.CTkFrame(form_frame, fg_color=bubble_color, corner_radius=10)
+            part_card.pack(fill="x", padx=10, pady=(0, 10))
 
-            part_label = ctk.CTkLabel(part_frame, text=f"Part {idx} — Pages {r['start']+1} to {r['end']+1}")
-            part_label.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
-            session["widgets_to_scale"].append(part_label)
+            header = ctk.CTkFrame(part_card, fg_color="transparent")
+            header.pack(fill="x", pady=(10, 0), padx=10)
+
+            part_title = ctk.CTkLabel(header, text=f"Part {idx} — Pages {r['start'] + 1} to {r['end'] + 1}",
+                                      font=(self.font_family, self.font_size + 1, "bold"))
+            part_title.pack(side="left")
+            session["widgets_to_scale"].append(part_title)
 
             revoked_var = ctk.BooleanVar()
-            agency_var = ctk.StringVar()
-            desc_var = ctk.StringVar(value="POA")
-            date_var = ctk.StringVar()
+            revoked_toggle = ctk.CTkSwitch(header, text="Revoked", variable=revoked_var)
+            revoked_toggle.pack(side="right")
+            session["widgets_to_scale"].append(revoked_toggle)
 
-            switch = ctk.CTkSwitch(part_frame, text="Revoked", variable=revoked_var)
-            switch.grid(row=1, column=0, sticky="w", pady=2)
-            session["widgets_to_scale"].append(switch)
+            # ─── Agency Code Row with Tooltip ───
+            agency_row = ctk.CTkFrame(part_card, fg_color="transparent")
+            agency_row.pack(anchor="w", padx=12, pady=(10, 0), fill="x")
 
-            agency_frame = ctk.CTkFrame(part_frame, fg_color="transparent")
-            agency_frame.grid(row=2, column=0, sticky="w", columnspan=2)
-
-            agency_label = ctk.CTkLabel(agency_frame, text="Agency Code:")
+            agency_label = ctk.CTkLabel(agency_row, text="Agency Code")
             agency_label.pack(side="left")
-            session["widgets_to_scale"].append(agency_label)
 
-            agency_icon = ctk.CTkLabel(agency_frame, text="❓", text_color="#888888", cursor="question_arrow")
-            agency_icon.pack(side="left", padx=(5, 0))
-            self.add_tooltip(agency_icon,
+            tooltip_icon = ctk.CTkLabel(agency_row, text="❓", text_color="#888888", cursor="question_arrow")
+            tooltip_icon.pack(side="left", padx=(5, 0))
+            self.add_tooltip(tooltip_icon,
+                             "Agency Codes:\n"
                              "• I = IRS\n"
                              "• F = FTB\n"
                              "• E = EDD\n"
                              "• C = CDTFA\n"
                              "• B = BOE"
                              )
-            session["widgets_to_scale"].append(agency_icon)
 
-            agency_entry = ctk.CTkEntry(part_frame, textvariable=agency_var)
-            agency_entry.grid(row=2, column=1, padx=(10, 0), pady=2)
+            agency_var = ctk.StringVar()
+            agency_entry = CTkEntry(part_card, textvariable=agency_var, placeholder_text="F")
+            agency_entry.pack(anchor="w", padx=12, fill="x", pady=(0, 5))
             session["widgets_to_scale"].append(agency_entry)
 
-
-            desc_frame = ctk.CTkFrame(part_frame, fg_color="transparent")
-            desc_frame.grid(row=3, column=0, sticky="w", columnspan=2)
-
-            desc_label = ctk.CTkLabel(desc_frame, text="Description:")
-            desc_label.pack(side="left")
-            session["widgets_to_scale"].append(desc_label)
-
-            desc_info = ctk.CTkLabel(desc_frame, text="❓", text_color="#888888", cursor="question_arrow")
-            desc_info.pack(side="left", padx=(5, 0))
-            self.add_tooltip(desc_info,
-                             "TitleCase Rules:\n"
-                             "• Words are capitalized automatically\n"
-                             "• Acronyms like LLC, INC, IRS stay uppercase\n"
-                             "• INC. is preserved with period\n"
-                             "• ALL CAPS input stays all caps"
-                             )
-            session["widgets_to_scale"].append(desc_info)
-
-            desc_entry = ctk.CTkEntry(part_frame, textvariable=desc_var)
-            desc_entry.grid(row=3, column=1, padx=(10, 0), pady=2)
+            # ─── Description Field ───
+            desc_var = ctk.StringVar(value="POA")
+            ctk.CTkLabel(part_card, text="Description").pack(anchor="w", padx=12, pady=(6, 0))
+            desc_entry = CTkEntry(part_card, textvariable=desc_var, placeholder_text="POA")
+            desc_entry.pack(anchor="w", padx=12, fill="x", pady=(0, 5))
             session["widgets_to_scale"].append(desc_entry)
 
-            date_label = ctk.CTkLabel(part_frame, text="Date (MMDDYY):")
-            date_label.grid(row=4, column=0, sticky="w", pady=2)
-            session["widgets_to_scale"].append(date_label)
-
-            date_entry = ctk.CTkEntry(part_frame, textvariable=date_var)
-            date_entry.grid(row=4, column=1, padx=(10, 0), pady=2)
+            # ─── Date Field ───
+            date_var = ctk.StringVar()
+            ctk.CTkLabel(part_card, text="Date (MMDDYY)").pack(anchor="w", padx=12, pady=(6, 0))
+            date_entry = CTkEntry(part_card, textvariable=date_var, placeholder_text="e.g. 032524")
+            date_entry.pack(anchor="w", padx=12, fill="x", pady=(0, 10))
             session["widgets_to_scale"].append(date_entry)
 
             session["entries"].append({
@@ -2427,44 +2544,27 @@ class PDFSplitterApp(TkinterDnD.Tk):
             date_var.trace_add("write", self.make_autofill_handler("date", date_var, idx - 1, session["entries"]))
             revoked_var.trace_add("write", self.make_autofill_handler("revoked", revoked_var, idx - 1, session["entries"]))
 
-            self.enhance_entry_keybinds(entry)
-            self.enhance_entry_keybinds(agency_entry)
-            self.enhance_entry_keybinds(desc_entry)
-            self.enhance_entry_keybinds(date_entry)
-
-
-# RIGHT: PDF preview area
+        # ─── Preview Panel ───
         preview_frame = ctk.CTkFrame(content, width=600)
         preview_frame.pack_propagate(False)
         preview_frame.pack(side="left", fill="y", padx=10, pady=10)
 
+        ctk.CTkLabel(preview_frame, text="Preview", font=(self.font_family, self.font_size + 1, "bold")).pack(pady=(10, 5))
         self.render_pdf_preview(session, preview_frame)
 
-        # "Make Client Folder" checkbox
-        make_folder_checkbox = ctk.CTkCheckBox(
-            tab_frame,
-            text="Make Client Folder",
-            variable=self.make_client_folder_var
-        )
-        make_folder_checkbox.pack(pady=(10, 0))
-        session["widgets_to_scale"].append(make_folder_checkbox)
+        # ─── Client Folder Checkbox ───
+        make_folder = ctk.CTkCheckBox(bubble, text="Make Client Folder", variable=self.make_client_folder_var)
+        make_folder.pack(pady=(5, 0))
+        session["widgets_to_scale"].append(make_folder)
 
-        # Bottom buttons
-        button_row = ctk.CTkFrame(tab_frame, fg_color="transparent")
+        # ─── Bottom Button Row ───
+        button_row = ctk.CTkFrame(bubble, fg_color="transparent")
         button_row.pack(pady=10)
 
-        export_btn = ctk.CTkButton(button_row, text="Export PDFs", command=lambda: self.export_session(session))
-        export_btn.pack(side="left", padx=10)
-        session["widgets_to_scale"].append(export_btn)
+        ctk.CTkButton(button_row, text="Export PDFs", command=lambda: self.export_session(session)).pack(side="left", padx=10)
+        ctk.CTkButton(button_row, text="Reset Form", fg_color="#cc4b4b", hover_color="#aa2b2b", command=self.reset_ui).pack(side="left", padx=10)
+        ctk.CTkButton(button_row, text="Show Keybinds", command=self.open_keybind_overlay).pack(side="left", padx=10)
 
-        reset_btn = ctk.CTkButton(button_row, text="Reset Form", fg_color="#cc4b4b", hover_color="#aa2b2b",
-                                  command=self.reset_ui)
-        reset_btn.pack(side="left", padx=10)
-        session["widgets_to_scale"].append(reset_btn)
-
-        keybind_btn = ctk.CTkButton(button_row, text="Show Keybinds", command=self.open_keybind_overlay)
-        keybind_btn.pack(side="left", padx=10)
-        session["widgets_to_scale"].append(keybind_btn)
         self._apply_font_size()
     def render_pdf_preview(self, session, frame, page_index=0):
         try:
@@ -2657,6 +2757,59 @@ class PDFSplitterApp(TkinterDnD.Tk):
         # Example: '{C:/file1.pdf} {C:/file2.pdf}'
         return [p.strip("{}") for p in data.strip().split() if p.strip()]
     def add_plus_tab(self):
+        if not hasattr(self, "pdf_tabview") or not isinstance(self.pdf_tabview, ctk.CTkTabview):
+            return
+
+        existing_tabs = getattr(self.pdf_tabview, "_tabs", {})
+        if "+" in existing_tabs:
+            return
+
+        plus_tab = self.pdf_tabview.add("➕ New PDF")
+        self.pdf_tabview.set("➕ New PDF")
+
+        bubble_color, border_color = self.get_log_bubble_colors()
+
+        # Use pack for more reliable layout and border rendering
+        wrapper = ctk.CTkFrame(plus_tab)
+        wrapper.pack(fill="both", expand=True)
+
+        bubble = ctk.CTkFrame(
+            wrapper,
+            fg_color=bubble_color,
+            border_color=border_color,
+            border_width=2,
+            corner_radius=12
+        )
+        bubble.pack(expand=True, ipadx=20, ipady=20, padx=40, pady=40)
+
+        # Title
+        ctk.CTkLabel(
+            bubble,
+            text="📄 Open a PDF to Begin",
+            font=(self.font_family, self.font_size + 4, "bold"),
+            text_color="#3B8ED0"
+        ).pack(pady=(20, 10))
+
+        # Button
+        ctk.CTkButton(
+            bubble,
+            text="➕ Open PDF",
+            command=self.load_pdf,
+            width=160
+        ).pack(pady=(0, 10))
+
+        # Tip
+        ctk.CTkLabel(
+            bubble,
+            text="Or drag and drop files into this area.",
+            font=(self.font_family, self.font_size - 1),
+            text_color="#888888"
+        ).pack(pady=(0, 20))
+
+        # Enable drag and drop
+        wrapper.drop_target_register(DND_FILES)
+        wrapper.dnd_bind('<<Drop>>', self.handle_drop)
+    def add_plus_tab2(self):
         if not hasattr(self, "pdf_tabview") or not isinstance(self.pdf_tabview, ctk.CTkTabview):
             return
 
@@ -3100,34 +3253,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
             self.save_sessions()
 
         self.enable_tab_closing()
-    def enhance_entry_keybinds(self, entry_widget):
-        def delete_word_left(event):
-            pos = entry_widget.index("insert")
-            text = entry_widget.get()
-            before = text[:pos]
-            after = text[pos:]
-            # Remove word before cursor
-            new_before = re.sub(r'\s*\S+\s*$', '', before)
-            debug(f"New Text: {new_before}", "debug")
-            entry_widget.delete(0, "end")
-            entry_widget.insert(0, new_before + after)
-            entry_widget.icursor(len(new_before))
-            return "break"
-        def delete_word_right(event):
-            pos = entry_widget.index("insert")
-            text = entry_widget.get()
-            before = text[:pos]
-            after = text[pos:]
-            # Remove word after cursor
-            new_after = re.sub(r'^\s*\S+\s*', '', after)
-            debug(f"New Text: {new_after}", "debug")
-            entry_widget.delete(0, "end")
-            entry_widget.insert(0, before + new_after)
-            entry_widget.icursor(len(before))
-            return "break"
-
-        entry_widget.bind("<Control-BackSpace>", delete_word_left)
-        entry_widget.bind("<Control-Delete>", delete_word_right)
     def open_keybind_overlay(self):
         if hasattr(self, "keybind_overlay") and self.keybind_overlay.winfo_exists():
             self.keybind_overlay.lift()
@@ -3163,7 +3288,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return
 
         widget = self.focus_get()
-        if isinstance(widget, (tk.Entry, ctk.CTkEntry, tk.Text)):
+        if isinstance(widget, (tk.Entry, CTkEntry, tk.Text)):
             try:
                 widget.insert("insert", clipboard_text)
             except Exception as e:
@@ -3179,7 +3304,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         debug(f"[DEBUG] Attempting to paste into: {target} ({type(target)})")
 
         try:
-            if isinstance(target, (ctk.CTkEntry, tk.Entry)):
+            if isinstance(target, (CTkEntry, tk.Entry)):
                 if str(target.cget("state")) != "disabled":
                     current = target.get()
                     pos = target.index("insert")
@@ -3195,45 +3320,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 debug("[DEBUG] Focused widget does not support paste")
         except Exception as e:
             debug(f"[DEBUG] Paste failed: {e}")
-    def enhance_all_entries(self):
-        def bind_text_nav(entry_widget):
-            def delete_word_left(event):
-                pos = entry_widget.index("insert")
-                text = entry_widget.get()
-                debug(f"[Keybind] Ctrl+Backspace pressed at pos {pos} with text: '{text}'", "debug")
-                before = text[:pos]
-                after = text[pos:]
-                new_before = re.sub(r'\s*\S+\s*$', '', before)
-                debug(f"[Keybind] Before deletion: '{before}' → After: '{new_before}'", "debug")
-                entry_widget.delete(0, "end")
-                entry_widget.insert(0, new_before + after)
-                entry_widget.icursor(len(new_before))
-                return "break"
-
-            def delete_word_right(event):
-                pos = entry_widget.index("insert")
-                text = entry_widget.get()
-                debug(f"[Keybind] Ctrl+Delete pressed at pos {pos} with text: '{text}'", "debug")
-                before = text[:pos]
-                after = text[pos:]
-                new_after = re.sub(r'^\s*\S+\s*', '', after)
-                debug(f"[Keybind] After deletion: '{after}' → Remaining: '{new_after}'", "debug")
-                entry_widget.delete(0, "end")
-                entry_widget.insert(0, before + new_after)
-                entry_widget.icursor(len(before))
-                return "break"
-
-            entry_widget.bind("<Control-BackSpace>", delete_word_left)
-            entry_widget.bind("<Control-Delete>", delete_word_right)
-            entry_widget.bind("<Control-Left>", lambda e: entry_widget.icursor(entry_widget.index("insert") - len(re.findall(r'\S+', entry_widget.get()[:entry_widget.index("insert")]))[-1]))
-            entry_widget.bind("<Control-Right>", lambda e: entry_widget.icursor(entry_widget.index("insert") + len(re.findall(r'\S+', entry_widget.get()[entry_widget.index("insert"):]))[0]))
-
-    # Walk through all widgets and bind if it's an entry
-        for widget in self.winfo_children():
-            self._bind_recursive(widget, bind_text_nav)
     def _bind_recursive(self, widget, handler_fn):
         for child in widget.winfo_children():
-            if isinstance(child, (tk.Entry, ctk.CTkEntry)):
+            if isinstance(child, (tk.Entry, CTkEntry)):
                 handler_fn(child)
             self._bind_recursive(child, handler_fn)
     def _run_if_focused(self, action, callback):
@@ -3496,6 +3585,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         except Exception as e:
             messagebox.showerror("Error", f"Could not delete license:\n{e}")
         self.destroy()
+
 
 if __name__ == "__main__":
     app = PDFSplitterApp()
