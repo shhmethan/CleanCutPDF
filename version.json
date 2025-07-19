@@ -1,6 +1,10 @@
 {
-  "version": "1.6.4",
+  "version": "1.6.5",
   "changelog": {
+    "1.6.5": [
+      "Fixed the Log background colors",
+      "Made Debug log output to file"
+    ],
     "1.6.4": [
       "🎨 Improved contrast of log bubbles for better visibility in Light and Dark modes",
       "🟥 Fixed log color confusion — log headings and body text now use distinct colors",

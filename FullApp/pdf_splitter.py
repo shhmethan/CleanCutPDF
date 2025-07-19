@@ -30,7 +30,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.6.4"
+CURRENT_VERSION = "1.6.5"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -39,6 +39,7 @@ USER_DATA_DIR = Path.home() / ".cleancutpdf"
 USER_DATA_DIR.mkdir(exist_ok=True)
 SETTINGS_FILE = USER_DATA_DIR / "settings.json"
 LOG_FILE = USER_DATA_DIR / "full.log"
+DEBUG_FILE = USER_DATA_DIR / "debug.log"
 KEYBINDS_FILE = USER_DATA_DIR / "keybinds.json"
 PINK_LIGHT = USER_DATA_DIR / "pink_light.json"
 PINK_DARK = USER_DATA_DIR / "pink_dark.json"
@@ -107,6 +108,12 @@ def debug(message, type):
 
     debug_log.append(full_message)
     print(full_message)
+
+    try:
+        with open(DEBUG_FILE, "a", encoding="utf-8") as f:
+            f.write(full_message + "\n")
+    except Exception as e:
+        print(f"Failed to write debug log: {e}")
 def create_light_pink_theme(self):
         if not PINK_LIGHT.exists():
             pink_theme = {
@@ -375,6 +382,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.suppress_autofill = False
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        with open(DEBUG_FILE, "w", encoding="utf-8") as f:
+            f.write("")
 
         if not self.check_license():
             self.destroy()
@@ -1779,10 +1789,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.update_log_view()
     def update_log_view(self, *args):
 
-        font_body = (self.font_family, self.font_size)
-        font_header = (self.font_family, self.font_size + 1, "bold")
-
-        # Clear previous content
         for widget in self.log_scroll_frame.winfo_children():
             widget.destroy()
 
@@ -1830,16 +1836,14 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 sep.pack(anchor="w", padx=12, pady=(10, 0))
                 last_date = date
 
-            # Bubble styling
-            border_color = "#f2eaf7" if ctk.get_appearance_mode() == "Light" else "#242424"
-            bubble_color = "#2e2e2e" if ctk.get_appearance_mode() == "Light" else "#3a3a3a"
+            bubble_color, border_color = self.get_log_bubble_colors()
 
             container = ctk.CTkFrame(
                 self.log_scroll_frame,
                 fg_color=bubble_color,
                 border_color=border_color,
-                border_width=1,
-                corner_radius=10
+                border_width=3,
+                corner_radius=5
             )
             container.pack(fill="x", padx=12, pady=6)
 
@@ -1856,15 +1860,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             for line in lines:
                 clean = re.sub(r"^\[.*?\]\s*", "", line.strip())
 
-                tag_color = None
-                if "Revoked: True" in clean:
-                    tag_color = "#d86da0"
-                elif "Skipped: [" in clean:
-                    tag_color = "#cc4b4b"
-
                 default_text_color = "#dddddd" if ctk.get_appearance_mode() == "Dark" else "#222222"
-
-                line_text_color = tag_color if tag_color else default_text_color
 
                 ctk.CTkLabel(
                     container,
@@ -1872,7 +1868,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     anchor="w",
                     wraplength=820,
                     justify="left",
-                    text_color=line_text_color,
+                    text_color=default_text_color,
                     font=(self.font_family, self.font_size),
                     padx=12,
                     pady=4
@@ -2066,6 +2062,18 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def _extract_value(self, line, label):
         match = re.search(fr"{label}:\s*([^|]+)", line)
         return match.group(1).strip() if match else ""
+    def get_log_bubble_colors(self):
+        theme_name = self.settings.get("theme", "Light Blue")
+
+        colors = {
+            "Light Blue":  ("#cbd3d9", "#3b8ed0"),
+            "Dark Blue":   ("#1f2b3a", "#3a506b"),
+            "Dark Green":  ("#1e2f1e", "#3b5f3b"),
+            "Light Pink":  ("#f7d6e0", "#f2eaf7"),
+            "Dark Pink":   ("#3e3336", "#ff8fb3")
+        }
+
+        return colors.get(theme_name, ("#f0f0f0", "#cccccc"))
 
     # ─── PDF Load & Split ───
     def load_pdf(self):
