@@ -14,6 +14,7 @@ import shutil
 import tempfile
 import os
 import time
+import subprocess
 
 # ─── Third-Party Libraries ───────────────────────────────────────────
 import fitz
@@ -30,7 +31,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.6.6"
+CURRENT_VERSION = "1.6.7"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -230,6 +231,13 @@ def create_light_pink_theme(self):
                 },
                 "CTkScrollableFrame": {
                     "label_fg_color": ["#f7d6e0", "#2a2a2a"]
+                },
+                "CTkProgressBar": {
+                    "corner_radius": 10,
+                    "border_width": 0,
+                    "fg_color": "#f7d6e0",
+                    "progress_color": "#ff69b4",
+                    "border_color": "#ffb6c1"
                 }
             }
 
@@ -349,6 +357,13 @@ def create_dark_pink_theme(self):
         },
         "CTkScrollableFrame": {
             "label_fg_color": ["#3a3a3a", "#2a2a2a"]
+        },
+        "CTkProgressBar": {
+            "corner_radius": 10,
+            "border_width": 0,
+            "fg_color": "#3a3a3a",
+            "progress_color": "#ff69b4",
+            "border_color": "#ff85c1"
         }
     }
 
@@ -361,7 +376,29 @@ def resource_path(relative_path):
 
 # ───── MAIN APPLICATION ─────
 def parse_version(version_str):
-    return tuple(map(int, version_str.split(".")))
+    version_str = version_str.strip().lower()
+
+    if version_str.startswith("v"):
+        version_str = version_str[1:]
+
+    parts = version_str.split(".")
+    numbers = []
+
+    for part in parts:
+        number = ""
+
+        for char in part:
+            if char.isdigit():
+                number += char
+            else:
+                break
+
+        numbers.append(int(number) if number else 0)
+
+    while len(numbers) < 3:
+        numbers.append(0)
+
+    return tuple(numbers)
 
 class CTkUndoEntry(ctk.CTkEntry):
     def __init__(self, *args, **kwargs):
@@ -521,7 +558,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         if self.settings.get("check_updates_on_startup", True):
             self.after(1500, self.check_for_updates)
-        self.cleanup_old_exe()
 
         self.make_client_folder_var = tk.BooleanVar(value=True)
 
@@ -533,133 +569,339 @@ class PDFSplitterApp(TkinterDnD.Tk):
         elapsed = time.perf_counter() - self.start_time
         debug(f"Startup completed in {elapsed:.2f} seconds", "debug")
     def check_for_updates(self):
+
         try:
-            with urllib.request.urlopen(VERSION_URL) as response:
-                data = json.loads(response.read())
 
-            remote_version = data.get("version")
-            changelog = data.get("changelog", {})
-            url = data.get("download_url")
+            with urllib.request.urlopen(
+                    VERSION_URL,
+                    timeout=10
+            ) as response:
 
-            if remote_version and parse_version(remote_version) > parse_version(CURRENT_VERSION):
-                debug(f"Update Available: {remote_version}", "update")
+                data = json.loads(
+                    response.read().decode("utf-8")
+                )
 
-                # Get this version's changelog, or fallback
-                notes_list = changelog.get(remote_version, ["No changelog available."])
-                formatted = "\n".join(f"• {line}" for line in notes_list)
+            remote_version = str(
+                data.get("version", "")
+            )
+
+            changelog = data.get(
+                "changelog",
+                {}
+            )
+
+            if (
+                    remote_version
+                    and
+                    parse_version(remote_version)
+                    >
+                    parse_version(CURRENT_VERSION)
+            ):
+
+                debug(
+                    f"Update available: "
+                    f"{CURRENT_VERSION} -> {remote_version}",
+                    "update"
+                )
+
+                notes_list = changelog.get(
+                    remote_version,
+                    ["No changelog available."]
+                )
+
+                formatted = "\n".join(
+                    f"• {line}"
+                    for line in notes_list
+                )
 
                 confirm = messagebox.askyesno(
                     "Update Available",
-                    f"A new version ({remote_version}) is available!\n\nChanges:\n{formatted}\n\nWould you like to download it now?"
+
+                    f"A new version of CleanCutPDF is available!\n\n"
+
+                    f"Current version: {CURRENT_VERSION}\n"
+                    f"Latest version: {remote_version}\n\n"
+
+                    f"Changes:\n{formatted}\n\n"
+
+                    "Would you like to update now?"
                 )
+
                 if confirm:
-                    self.download_and_replace_exe(url, remote_version)
+
+                    debug(
+                        "User accepted update.",
+                        "update"
+                    )
+
+                    self.launch_updater()
+
+
+                else:
+
+                    debug(
+                        "User postponed update.",
+                        "update"
+                    )
+
+
             else:
-                debug("App up to date.", "update")
+
+                debug(
+                    f"App up to date: {CURRENT_VERSION}",
+                    "update"
+                )
+
 
         except Exception as e:
-            messagebox.showerror("Auto Update Error", f"Auto-update check failed: {e}")
-            debug(f"Auto-update check failed: {e}", "error")
+
+            # Startup update checks should NOT interrupt
+            # normal use of CleanCutPDF.
+
+            debug(
+                f"Automatic update check failed: {e}",
+                "error"
+            )
     def check_for_updates_manual(self):
+
         try:
-            with urllib.request.urlopen(VERSION_URL) as response:
-                data = json.loads(response.read())
 
-            remote_version = data.get("version")
-            changelog = data.get("changelog", {})
-            url = data.get("download_url")
+            with urllib.request.urlopen(
+                    VERSION_URL,
+                    timeout=10
+            ) as response:
 
-            if remote_version and parse_version(remote_version) > parse_version(CURRENT_VERSION):
-                debug(f"Update Available: {remote_version}", "update")
+                data = json.loads(
+                    response.read().decode("utf-8")
+                )
 
-                # Get this version's changelog, or fallback
-                notes_list = changelog.get(remote_version, ["No changelog available."])
-                formatted = "\n".join(f"• {line}" for line in notes_list)
+            remote_version = str(
+                data.get("version", "")
+            )
+
+            changelog = data.get(
+                "changelog",
+                {}
+            )
+
+            if (
+                    remote_version
+                    and
+                    parse_version(remote_version)
+                    >
+                    parse_version(CURRENT_VERSION)
+            ):
+
+                notes_list = changelog.get(
+                    remote_version,
+                    ["No changelog available."]
+                )
+
+                formatted = "\n".join(
+                    f"• {line}"
+                    for line in notes_list
+                )
 
                 confirm = messagebox.askyesno(
                     "Update Available",
-                    f"A new version ({remote_version}) is available!\n\nChanges:\n{formatted}\n\nWould you like to download it now?"
+
+                    f"A new version of CleanCutPDF is available!\n\n"
+
+                    f"Current version: {CURRENT_VERSION}\n"
+                    f"Latest version: {remote_version}\n\n"
+
+                    f"Changes:\n{formatted}\n\n"
+
+                    "Would you like to update now?"
                 )
+
                 if confirm:
-                    self.download_and_replace_exe(url, remote_version)
+                    self.launch_updater()
+
+
             else:
-                messagebox.showerror("No New Updates", "No update needed. App up is to date.")
-                debug("App up to date.", "update")
+
+                messagebox.showinfo(
+                    "No Updates Available",
+                    f"CleanCutPDF {CURRENT_VERSION} is up to date."
+                )
+
+                debug(
+                    f"Manual update check: "
+                    f"{CURRENT_VERSION} is current.",
+                    "update"
+                )
+
 
         except Exception as e:
-            debug(f"Auto-update check failed: {e}", "error")
-    def download_and_replace_exe(self, url, new_version):
-        try:
-            temp_path = tempfile.gettempdir() + f"/cleancutpdf_update_{new_version}.exe"
 
-            debug(f"Downloading update to: {temp_path}", "update")
-            with urllib.request.urlopen(url) as response, open(temp_path, 'wb') as out_file:
-                shutil.copyfileobj(response, out_file)
+            messagebox.showerror(
+                "Update Check Failed",
+                f"Could not check for updates:\n\n{e}"
+            )
 
-            messagebox.showinfo("Update Ready",
-                                "The new version has been downloaded.\n\nPlease close the app so it can replace the old version."
-                                )
-
-            # Schedule a script to replace after exit
-            self.after(100, lambda: self.replace_on_exit(temp_path))
-
-        except Exception as e:
-            messagebox.showerror("Update Failed", f"Could not download update:\n{e}")
-            debug(f"Update download failed: {e}", "error")
-    def replace_on_exit(self, download_url):
-        import tempfile
-        import os
-        import subprocess
-        from pathlib import Path
-
-        target_dir = Path(os.environ["LOCALAPPDATA"]) / "Programs" / "CleanCutPDF"
-        bat_path = Path(tempfile.gettempdir()) / "cleancutpdf_update.bat"
-
-        with open(bat_path, "w") as f:
-            f.write(rf"""@echo off
-    echo Downloading update...
-    powershell -Command "Invoke-WebRequest '%~1' -OutFile 'pdf_splitter.update.exe'"
-    
-    timeout /t 1 >nul
-    taskkill /f /im pdf_splitter.exe >nul 2>&1
-    
-    move /Y "pdf_splitter.exe" "pdf_splitter.old.exe"
-    move /Y "pdf_splitter.update.exe" "pdf_splitter.exe"
-    
-    timeout /t 3 >nul
-    
-    start "" "pdf_splitter.exe"
-    
-    del "%~f0"
-    """)
-
-        subprocess.Popen(["cmd", "/c", str(bat_path), download_url], cwd=str(target_dir))
-        self.quit()
-    def cleanup_old_exe(self):
-        current_exe = sys.executable
-        old_exe = current_exe.replace(".exe", ".old.exe")
-        if os.path.exists(old_exe):
-            try:
-                os.remove(old_exe)
-                debug("Old version removed after successful update.", "update")
-            except Exception as e:
-                debug(f"Failed to delete old version: {e}", "error")
+            debug(
+                f"Manual update check failed: {e}",
+                "error"
+            )
     def load_version_info(self):
+
+        # The installed version ALWAYS comes
+        # from the code itself.
+        self.current_version = CURRENT_VERSION
+
+        self.version_info = {}
+        self.changelog = []
+
         try:
-            with urllib.request.urlopen(VERSION_URL) as response:
-                data = json.loads(response.read().decode())
+
+            with urllib.request.urlopen(
+                    VERSION_URL,
+                    timeout=10
+            ) as response:
+
+                data = json.loads(
+                    response.read().decode("utf-8")
+                )
 
             self.version_info = data
-            self.current_version = data.get("version", "Unknown")
-            self.changelog = data.get("changelog", {}).get(self.current_version, [])
-            debug(f"Loaded version {self.current_version} from GitHub", "debug")
+
+            changelog = data.get(
+                "changelog",
+                {}
+            )
+
+            self.changelog = changelog.get(
+                CURRENT_VERSION,
+                []
+            )
+
+            debug(
+                f"Installed CleanCutPDF version: "
+                f"{CURRENT_VERSION}",
+                "debug"
+            )
+
 
         except Exception as e:
-            self.version_info = {}
-            self.current_version = "Unknown"
-            self.changelog = [f"Could not load version info:\n{e}"]
-            debug(f"Error loading version.json: {e}", "error")
 
+            # About page can still work even if
+            # GitHub is unavailable.
+
+            self.current_version = CURRENT_VERSION
+
+            self.changelog = []
+
+            debug(
+                f"Could not load remote version info: {e}",
+                "error"
+            )
+    def launch_updater(self):
+
+        try:
+
+            # ─────────────────────────────────────
+            # INSTALLED / COMPILED VERSION
+            # ─────────────────────────────────────
+
+            if getattr(sys, "frozen", False):
+
+                app_path = Path(sys.executable)
+
+                updater_path = (
+                        app_path.parent
+                        / "CleanCutPDFUpdaterv1.0.exe"
+                )
+
+                if not updater_path.exists():
+                    messagebox.showerror(
+                        "Updater Missing",
+                        "CleanCutPDFUpdaterv1.0.exe could not be found."
+                    )
+
+                    debug(
+                        f"Updater missing: {updater_path}",
+                        "error"
+                    )
+
+                    return
+
+                debug(
+                    f"Launching updater: {updater_path}",
+                    "update"
+                )
+
+                subprocess.Popen([
+                    str(updater_path),
+
+                    "--current-version",
+                    CURRENT_VERSION,
+
+                    "--app",
+                    str(app_path),
+
+                    "--pid",
+                    str(os.getpid())
+                ])
+
+                # Close CleanCutPDF so updater can replace EXE.
+                self.after(
+                    300,
+                    self.destroy
+                )
+
+
+            # ─────────────────────────────────────
+            # PYCHARM / DEVELOPMENT VERSION
+            # ─────────────────────────────────────
+
+            else:
+
+                updater_path = (
+                        Path(__file__).parent
+                        / "update.py"
+                )
+
+                if not updater_path.exists():
+                    messagebox.showerror(
+                        "Updater Missing",
+                        "update.py could not be found."
+                    )
+
+                    debug(
+                        f"Updater missing: {updater_path}",
+                        "error"
+                    )
+
+                    return
+
+                debug(
+                    f"Launching development updater: {updater_path}",
+                    "update"
+                )
+
+                subprocess.Popen([
+                    sys.executable,
+                    str(updater_path),
+
+                    "--current-version",
+                    CURRENT_VERSION
+                ])
+
+                # IMPORTANT:
+                # Don't close the main app when testing
+                # from PyCharm
+        except Exception as error:
+
+            debug(
+                f"Failed to launch updater: {error}",
+                "error"
+            )
+
+            messagebox.showerror(
+                "Updater Error",
+                f"Could not launch the CleanCutPDF updater.\n\n{error}"
+            )
     # ─── Loading UI ───
     def show_loading_overlay(self, message="Loading..."):
         debug("Starting loading overlay...", "debug")

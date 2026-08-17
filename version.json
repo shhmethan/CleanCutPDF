@@ -1,6 +1,17 @@
 {
-  "version": "1.6.6",
+  "version": "1.6.7",
   "changelog": {
+    "1.6.7": [
+      "Fixed Export PDFs completion issue",
+      "Added standalone CleanCutPDF updater",
+      "CleanCutPDF now launches the updater when a new version is available",
+      "Added full semantic version support for versions such as 1.6.7",
+      "Added update download and installation progress",
+      "Added option to automatically launch CleanCutPDF after updating",
+      "Added updater activity logging",
+      "Added automatic backup and rollback support during updates",
+      "Improved update version detection and handling"
+    ],
     "1.6.6": [
       "🔤 Export log title casing is now consistent and corrected",
       "⬆️ App now successfully opens new .exe versions after update",
@@ -17,7 +28,7 @@
       "📖 Help tab redesigned with bubble-style sections, improved readability, and colored section headers",
       "🖨️ Printing Tips section restored and now styled to match the rest of the Help tab",
       "⌨️ Keybinds remain active even after clicking into input fields",
-      "↩️ Ctrl+Z and Ctrl+Y now work in all text fields with manual undo/redo tracking",
+      "↩️ Ctrl+Z and Ctrl+Y now work in all text fields with manual undo/redo tracking"
     ],
     "1.6.5": [
       "Fixed the Log background colors",
@@ -61,5 +72,6 @@
       "🗑️ Tab close ('✖') now works immediately after adding a PDF"
     ]
   },
-  "download_url": "https://github.com/shhmethan/CleanCutPDF/raw/refs/heads/master1/FullApp/dist/pdf_splitter.exe"
+  "download_url": "https://github.com/shhmethan/CleanCutPDF/releases/download/v1.6.7/CleanCutPDF.exe",
+  "sha256": ""
 }
