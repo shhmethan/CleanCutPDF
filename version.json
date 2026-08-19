@@ -114,6 +114,6 @@
       "🗑️ Tab close ('✖') now works immediately after adding a PDF"
     ]
   },
-  "download_url": "https://github.com/shhmethan/CleanCutPDF/blob/master1/dist/CleanCutPDF.exe",
+  "download_url": "https://github.com/shhmethan/CleanCutPDF/raw/refs/heads/master1/dist/CleanCutPDF.exe",
   "sha256": "E68CEC87EE7E77B0473AD851ED00C1C90AF3AC77CC7909694399138C31C29C45"
 }
