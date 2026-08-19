@@ -2011,7 +2011,7 @@ class CleanCutPDFUpdater(
                 raise FileNotFoundError(
 
                     (
-                        "CleanCutPDFv1.6.7.exe "
+                        "CleanCutPDF.exe "
                         "could not be found."
                     )
                 )
@@ -2314,7 +2314,7 @@ def get_arguments():
         default=None,
 
         help=(
-            "Path to CleanCutPDFv1.6.7.exe"
+            "Path to CleanCutPDF.exe"
         )
     )
 

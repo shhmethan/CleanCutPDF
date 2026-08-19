@@ -1,6 +1,48 @@
 {
-  "version": "1.6.7",
+  "version": "1.8.0",
   "changelog": {
+    "1.8.0": [
+      "Added visual filename and title format builder",
+      "Filename fields can now be inserted and rearranged visually",
+      "Added support for custom punctuation and text in filename formats",
+      "Added Windows-safe filename validation",
+      "Invalid Windows filename characters are blocked in custom filename formats",
+      "Improved workspace filename customization",
+      "Added live filename preview while editing filename formats",
+      "Improved visual filename field insertion and drag behavior",
+      "Added application icon support for Windows builds"
+    ],
+    "1.7.0": [
+      "Added Accounting and Legal workspace profiles",
+      "Added workspace selector to Split & Rename",
+      "Each open PDF can use its own workspace",
+      "Workspace selection is saved with PDF sessions",
+      "Switching workspaces preserves the entered data for each workspace",
+      "Added workspace-specific form fields",
+      "Added workspace-specific default descriptions",
+      "Added workspace-specific Description autofill settings",
+      "Added workspace-specific filename and title templates",
+      "Accounting workspace supports Revoked, Agency Code, Description, and Date fields",
+      "Legal workspace supports Matter / Case Number, Document Type, Description, and Document Date fields",
+      "Added Workspaces section to Settings",
+      "Improved PDF session restoration for workspace-aware data",
+      "Improved handling of older sessions created before workspace support",
+      "Improved filename generation to support workspace-specific fields",
+      "Removed automatic page-number suffixes from normal exported filenames",
+      "Improved duplicate filename handling",
+      "Blank dates can now be exported after confirmation",
+      "Improved date validation",
+      "Improved embedded PDF preview sizing",
+      "Improved fullscreen PDF preview behavior",
+      "Fixed fullscreen preview mouse-wheel bindings remaining active after closing the preview",
+      "Made long multi-part forms scrollable",
+      "Improved Description field defaults and autofill behavior",
+      "Improved keyboard shortcut handling using native Tkinter bindings",
+      "Improved session saving and restoration",
+      "Improved tutorial behavior and navigation",
+      "Improved theme-switching stability",
+      "Improved loading overlay positioning and animation"
+    ],
     "1.6.7": [
       "Fixed Export PDFs completion issue",
       "Added standalone CleanCutPDF updater",
@@ -72,6 +114,6 @@
       "🗑️ Tab close ('✖') now works immediately after adding a PDF"
     ]
   },
-  "download_url": "https://github.com/shhmethan/CleanCutPDF/releases/download/v1.6.7/CleanCutPDF.exe",
-  "sha256": ""
+  "download_url": "https://github.com/shhmethan/CleanCutPDF/releases/download/v1.8.0/CleanCutPDF.exe",
+  "sha256": "E68CEC87EE7E77B0473AD851ED00C1C90AF3AC77CC7909694399138C31C29C45"
 }
