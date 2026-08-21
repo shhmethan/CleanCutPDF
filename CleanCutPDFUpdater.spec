@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['FullApp\\update.py'],
+    ['FullApp/update.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -35,4 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['FullApp/resources/favicon.ico'],
 )

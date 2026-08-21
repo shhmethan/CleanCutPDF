@@ -16,6 +16,8 @@ import tempfile
 import os
 import time
 import subprocess
+import secrets
+from decimal import Decimal, InvalidOperation
 
 # ─── Third-Party Libraries ───────────────────────────────────────────
 import pymupdf as fitz
@@ -25,13 +27,13 @@ from PyPDF2 import PdfReader, PdfWriter
 # ─── GUI: Tkinter & CustomTkinter ────────────────────────────────────
 import tkinter as tk
 import tkinter.scrolledtext as st
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
 import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.8.0"
+CURRENT_VERSION = "1.9.0"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -67,58 +69,100 @@ DEFAULT_KEYBINDS = {
     "Undo Last Export": "ctrl+shift+z",
     "Paste Clipboard": "ctrl+shift+v"
 }
-WORKSPACES = {
+DEFAULT_CUSTOM_FIELDS = {
+    "revoked": {
+        "key": "revoked", "label": "Revoked", "type": "toggle", "placement": "header",
+        "default": False, "required": False, "autofill": True, "system": True
+    },
+    "agency": {
+        "key": "agency", "label": "Agency Code", "type": "text", "placeholder": "F",
+        "default": "", "required": False, "autofill": True, "system": True,
+        "tooltip": "Agency Codes:\n• I = IRS\n• F = FTB\n• E = EDD\n• C = CDTFA\n• B = BOE"
+    },
+    "description": {
+        "key": "description", "label": "Description", "type": "text", "placeholder": "POA",
+        "default": "POA", "required": False, "autofill": True, "title_case": True, "system": True
+    },
+    "date": {
+        "key": "date", "label": "Date", "type": "date", "placeholder": "e.g. 8-20-2026",
+        "default": "", "required": False, "autofill": True, "date_format": "M-D-YYYY", "system": True
+    },
+    "matter_number": {
+        "key": "matter_number", "label": "Matter / Case #", "type": "text",
+        "placeholder": "Matter or case number", "default": "", "required": False,
+        "autofill": True, "system": True
+    },
+    "document_type": {
+        "key": "document_type", "label": "Document Type", "type": "text",
+        "placeholder": "e.g. Notice, Letter, Filing", "default": "", "required": False,
+        "autofill": True, "title_case": True, "system": True
+    },
+    # Pre-loaded accounting fields requested for the reusable field library.
+    # They are available to every workspace but are not assigned automatically,
+    # so existing workspace layouts remain unchanged after an update.
+    "amount": {
+        "key": "amount", "label": "Amount", "type": "currency",
+        "placeholder": "e.g. 134.06", "default": "", "required": False,
+        "autofill": False, "title_case": False, "system": True
+    },
+    "payment_method": {
+        "key": "payment_method", "label": "Payment Method", "type": "choice",
+        "placeholder": "", "default": "", "required": False,
+        "autofill": False, "title_case": False,
+        "options": ["ACH", "CC", "CK", "Other"], "system": True
+    },
+    "check_number": {
+        "key": "check_number", "label": "Check Number", "type": "text",
+        "placeholder": "e.g. 1234", "default": "", "required": False,
+        "autofill": False, "title_case": False,
+        "condition": {"field": "payment_method", "equals": "CK"}, "system": True
+    },
+    "company": {
+        "key": "company", "label": "Company", "type": "choice",
+        "placeholder": "", "default": "", "required": False,
+        "autofill": False, "title_case": False,
+        "options": ["JARB", "AB INC", "JL APC", "JARB LLC", "Other"], "system": True
+    }
+}
+
+DEFAULT_WORKSPACE_DEFINITIONS = {
     "Accounting": {
         "client_label": "Client Name",
         "summary": "Accounting and tax-document workflow with agency, revoked status, description, and date.",
-        "default_filename_template": "{client}_{revoked}_{agency_description}_{date}",
-        "fields": [
-            {
-                "key": "revoked", "label": "Revoked", "type": "bool", "placement": "header",
-                "default": False, "autofill": True
-            },
-            {
-                "key": "agency", "label": "Agency Code", "type": "text", "placeholder": "F",
-                "default": "", "autofill": True,
-                "tooltip": "Agency Codes:\n• I = IRS\n• F = FTB\n• E = EDD\n• C = CDTFA\n• B = BOE"
-            },
-            {
-                "key": "description", "label": "Description", "type": "text", "placeholder": "POA",
-                "default": "POA", "autofill": True, "title_case": True,
-                "tooltip": "The default Description and its forward-autofill behavior are customizable per workspace in Settings > Workspaces."
-            },
-            {
-                "key": "date", "label": "Date (MMDDYY)", "type": "date", "placeholder": "e.g. 032524",
-                "default": "", "autofill": True
-            }
-        ]
+        "filename_template": "{client}_{revoked}_{agency_description}_{date}",
+        "field_keys": ["revoked", "agency", "description", "date"],
+        "field_overrides": {
+            "description": {"default": "POA", "autofill": True}
+        },
+        "permanent": True
     },
     "Legal": {
         "client_label": "Client / Matter Name",
         "summary": "Legal workflow with matter/case number, document type, description, and document date.",
-        "default_filename_template": "{client}_{matter_number}_{document_type}_{description}_{date}",
-        "fields": [
-            {
-                "key": "matter_number", "label": "Matter / Case #", "type": "text",
-                "placeholder": "Matter or case number", "default": "", "autofill": True
-            },
-            {
-                "key": "document_type", "label": "Document Type", "type": "text",
-                "placeholder": "e.g. Notice, Letter, Filing", "default": "", "autofill": True,
-                "title_case": True
-            },
-            {
-                "key": "description", "label": "Description", "type": "text",
-                "placeholder": "Description", "default": "", "autofill": True, "title_case": True,
-                "tooltip": "Set a Legal-specific default Description and autofill behavior in Settings > Workspaces."
-            },
-            {
-                "key": "date", "label": "Document Date (MMDDYY)", "type": "date",
-                "placeholder": "e.g. 081926", "default": "", "autofill": True
-            }
-        ]
+        "filename_template": "{client}_{matter_number}_{document_type}_{description}_{date}",
+        "field_keys": ["matter_number", "document_type", "description", "date"],
+        "field_overrides": {
+            "description": {"default": "", "autofill": True}
+        },
+        "permanent": False
     }
 }
+
+CUSTOM_FIELD_TYPE_LABELS = {
+    "text": "Text",
+    "number": "Number",
+    "currency": "Currency",
+    "date": "Date",
+    "choice": "Dropdown / Choice",
+    "checkbox": "Checkbox",
+    "toggle": "Toggle"
+}
+DATE_FORMATS = ["M-D-YYYY", "MM-DD-YYYY", "YYYY.MM.DD", "MMDDYY"]
+
+# Runtime-materialized workspace profiles.  These are rebuilt from settings so
+# the rest of the app can continue using the existing WORKSPACES interface.
+WORKSPACES = {}
+
 
 DEFAULT_SETTINGS = {
     "font_family": "Segoe UI",
@@ -132,11 +176,13 @@ DEFAULT_SETTINGS = {
     "tutorial_shown": False,
     "suppressFutureDateWarning": False,
     "check_updates_on_startup": True,
-    # Legacy Accounting keys are retained so existing settings migrate cleanly.
     "autofill_description": True,
     "default_description": "POA",
     "filename_template": "{client}_{revoked}_{agency_description}_{date}",
     "default_workspace": "Accounting",
+    "custom_fields": copy.deepcopy(DEFAULT_CUSTOM_FIELDS),
+    "workspaces": copy.deepcopy(DEFAULT_WORKSPACE_DEFINITIONS),
+    # Retained only for migration/backward compatibility with v1.8 and older.
     "workspace_settings": {
         "Accounting": {
             "default_description": "POA",
@@ -150,6 +196,7 @@ DEFAULT_SETTINGS = {
         }
     }
 }
+
 
 SORT_MODES = [
     "Date ↑", "Date ↓",
@@ -1151,55 +1198,131 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
     # ─── Settings ───
     def load_settings(self):
-        # Deep-copy because workspace_settings contains nested dictionaries.
         self.settings = copy.deepcopy(DEFAULT_SETTINGS)
         user_settings = {}
+
         try:
             with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
                 user_settings = json.load(f)
-
             if not isinstance(user_settings, dict):
                 raise ValueError("Invalid settings format")
-
-            # Merge ordinary top-level settings first.
-            for key, value in user_settings.items():
-                if key != "workspace_settings":
-                    self.settings[key] = value
-
-            # Merge each workspace independently so new workspace keys can be added safely.
-            saved_workspace_settings = user_settings.get("workspace_settings", {})
-            if isinstance(saved_workspace_settings, dict):
-                for workspace_name in WORKSPACES:
-                    saved = saved_workspace_settings.get(workspace_name, {})
-                    if isinstance(saved, dict):
-                        self.settings["workspace_settings"][workspace_name].update(saved)
-
-            # Migrate the pre-workspace Accounting settings into the Accounting profile.
-            # Only do this when the old settings file has no workspace_settings object yet.
-            if "workspace_settings" not in user_settings:
-                accounting = self.settings["workspace_settings"]["Accounting"]
-                accounting["default_description"] = user_settings.get("default_description", "POA")
-                accounting["autofill_description"] = user_settings.get("autofill_description", True)
-                accounting["filename_template"] = user_settings.get(
-                    "filename_template",
-                    WORKSPACES["Accounting"]["default_filename_template"]
-                )
-
         except (FileNotFoundError, json.JSONDecodeError, ValueError):
-            debug("Creating fresh settings.json with default values", "error")
+            debug("Creating or repairing settings.json with default values", "warning")
+            user_settings = {}
 
-        if self.settings.get("default_workspace") not in WORKSPACES:
+        # Ordinary top-level settings.
+        nested_keys = {"custom_fields", "workspaces", "workspace_settings"}
+        for key, value in user_settings.items():
+            if key not in nested_keys:
+                self.settings[key] = value
+
+        # Reusable field library. Built-in fields are always restored if an old
+        # settings file does not contain them, while user-created fields are retained.
+        fields = copy.deepcopy(DEFAULT_CUSTOM_FIELDS)
+        saved_fields = user_settings.get("custom_fields", {})
+        if isinstance(saved_fields, dict):
+            for key, config in saved_fields.items():
+                if not isinstance(config, dict):
+                    continue
+                existing = fields.get(key, {})
+                existing.update(copy.deepcopy(config))
+                existing["key"] = key
+                fields[key] = existing
+        self.settings["custom_fields"] = fields
+
+        # Workspace definitions. Accounting is permanent; every other workspace
+        # can be created, renamed, or deleted by the user.
+        workspaces = copy.deepcopy(DEFAULT_WORKSPACE_DEFINITIONS)
+        saved_workspaces = user_settings.get("workspaces", {})
+        if isinstance(saved_workspaces, dict) and saved_workspaces:
+            workspaces = {}
+            for name, definition in saved_workspaces.items():
+                if isinstance(definition, dict):
+                    workspaces[name] = copy.deepcopy(definition)
+
+            # Accounting can never disappear, even if an older/broken settings
+            # file omitted it.
+            if "Accounting" not in workspaces:
+                workspaces["Accounting"] = copy.deepcopy(DEFAULT_WORKSPACE_DEFINITIONS["Accounting"])
+
+        accounting = workspaces.setdefault(
+            "Accounting",
+            copy.deepcopy(DEFAULT_WORKSPACE_DEFINITIONS["Accounting"])
+        )
+        accounting["permanent"] = True
+
+        # v1.8 migration: its workspace_settings object stored filename/default
+        # Description behavior separately from the workspace profile.
+        saved_workspace_settings = user_settings.get("workspace_settings", {})
+        if not isinstance(saved_workspace_settings, dict):
+            saved_workspace_settings = {}
+
+        for workspace_name, old_settings in saved_workspace_settings.items():
+            if workspace_name not in workspaces or not isinstance(old_settings, dict):
+                continue
+            definition = workspaces[workspace_name]
+            if old_settings.get("filename_template"):
+                definition["filename_template"] = old_settings["filename_template"]
+            overrides = definition.setdefault("field_overrides", {})
+            desc_override = overrides.setdefault("description", {})
+            if "default_description" in old_settings:
+                desc_override["default"] = old_settings["default_description"]
+            if "autofill_description" in old_settings:
+                desc_override["autofill"] = bool(old_settings["autofill_description"])
+
+        # Pre-workspace migration.
+        if "workspace_settings" not in user_settings and "Accounting" in workspaces:
+            definition = workspaces["Accounting"]
+            definition["filename_template"] = user_settings.get(
+                "filename_template",
+                definition.get("filename_template", "{client}_{revoked}_{agency_description}_{date}")
+            )
+            desc_override = definition.setdefault("field_overrides", {}).setdefault("description", {})
+            desc_override["default"] = user_settings.get("default_description", "POA")
+            desc_override["autofill"] = user_settings.get("autofill_description", True)
+
+        # Normalize every workspace and discard references to deleted fields.
+        for name, definition in workspaces.items():
+            definition.setdefault("client_label", "Client Name")
+            definition.setdefault("summary", "Custom document workflow.")
+            definition.setdefault("filename_template", "{client}_{date}")
+            definition.setdefault("field_overrides", {})
+            definition.setdefault("permanent", name == "Accounting")
+            field_keys = definition.get("field_keys", [])
+            if not isinstance(field_keys, list):
+                field_keys = []
+            definition["field_keys"] = [key for key in field_keys if key in fields]
+
+        self.settings["workspaces"] = workspaces
+
+        if self.settings.get("default_workspace") not in workspaces:
             self.settings["default_workspace"] = "Accounting"
 
-        # Keep old Accounting keys synchronized for backward compatibility.
-        accounting = self.settings["workspace_settings"]["Accounting"]
-        self.settings["default_description"] = accounting.get("default_description", "POA")
-        self.settings["autofill_description"] = accounting.get("autofill_description", True)
-        self.settings["filename_template"] = accounting.get(
-            "filename_template",
-            WORKSPACES["Accounting"]["default_filename_template"]
+        # Keep legacy keys synchronized for older updater/build logic.
+        accounting_override = workspaces["Accounting"].get("field_overrides", {}).get("description", {})
+        self.settings["default_description"] = accounting_override.get(
+            "default", fields.get("description", {}).get("default", "POA")
+        )
+        self.settings["autofill_description"] = accounting_override.get(
+            "autofill", fields.get("description", {}).get("autofill", True)
+        )
+        self.settings["filename_template"] = workspaces["Accounting"].get(
+            "filename_template", "{client}_{revoked}_{agency_description}_{date}"
         )
 
+        # Keep a compatibility workspace_settings object so upgrades from this
+        # build remain friendly to older code, even though workspaces is now the
+        # real source of truth.
+        self.settings["workspace_settings"] = {}
+        for name, definition in workspaces.items():
+            desc_override = definition.get("field_overrides", {}).get("description", {})
+            self.settings["workspace_settings"][name] = {
+                "default_description": desc_override.get("default", ""),
+                "autofill_description": desc_override.get("autofill", True),
+                "filename_template": definition.get("filename_template", "{client}_{date}")
+            }
+
+        self.rebuild_runtime_workspaces()
         self.save_settings()
 
         try:
@@ -1208,18 +1331,65 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 if not isinstance(file_keybinds, dict):
                     raise ValueError("Keybinds file must be a dictionary")
         except (FileNotFoundError, json.JSONDecodeError, ValueError):
-            debug("Generating default keybinds", "error")
+            debug("Generating default keybinds", "warning")
             file_keybinds = {}
 
         self.keybindings = {**DEFAULT_KEYBINDS, **file_keybinds}
-
         if self.keybindings != file_keybinds:
             with open(KEYBINDS_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.keybindings, f, indent=2)
+
+    def rebuild_runtime_workspaces(self):
+        global WORKSPACES
+        runtime = {}
+        field_library = self.settings.setdefault("custom_fields", {})
+        definitions = self.settings.setdefault("workspaces", {})
+
+        for workspace_name, definition in definitions.items():
+            fields = []
+            overrides = definition.get("field_overrides", {})
+            for key in definition.get("field_keys", []):
+                base = field_library.get(key)
+                if not isinstance(base, dict):
+                    continue
+                field = copy.deepcopy(base)
+                field.update(copy.deepcopy(overrides.get(key, {})))
+                field["key"] = key
+                fields.append(field)
+
+            runtime[workspace_name] = {
+                "client_label": definition.get("client_label", "Client Name"),
+                "summary": definition.get("summary", "Custom document workflow."),
+                "default_filename_template": definition.get("filename_template", "{client}_{date}"),
+                "filename_template": definition.get("filename_template", "{client}_{date}"),
+                "permanent": bool(definition.get("permanent", workspace_name == "Accounting")),
+                "fields": fields
+            }
+
+        if "Accounting" not in runtime:
+            # Should never happen because load_settings repairs it, but this keeps
+            # the renderer safe if settings are edited while the app is open.
+            definition = copy.deepcopy(DEFAULT_WORKSPACE_DEFINITIONS["Accounting"])
+            fields = []
+            for key in definition["field_keys"]:
+                fields.append(copy.deepcopy(DEFAULT_CUSTOM_FIELDS[key]))
+            runtime["Accounting"] = {
+                "client_label": definition["client_label"],
+                "summary": definition["summary"],
+                "default_filename_template": definition["filename_template"],
+                "filename_template": definition["filename_template"],
+                "permanent": True,
+                "fields": fields
+            }
+
+        WORKSPACES.clear()
+        WORKSPACES.update(runtime)
+
     def save_settings(self):
         SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(SETTINGS_FILE, "w") as f:
+        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(self.settings, f, indent=2)
+
     def save_sessions(self):
         data = []
         for name, session in self.pdf_sessions.items():
@@ -1246,10 +1416,28 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.save_sessions()
         debug("Saving sessions", "debug")
         self.destroy()
+    def reconcile_workspace_data_ranges(self, workspace_data, ranges):
+        """Keep saved field values, but always trust the current PDF for part ranges."""
+        if not isinstance(workspace_data, dict):
+            return {}
+
+        reconciled = {}
+        for workspace_name, rows in workspace_data.items():
+            if not isinstance(rows, list):
+                continue
+            new_rows = []
+            for index, current_range in enumerate(ranges):
+                row = {}
+                if index < len(rows) and isinstance(rows[index], dict):
+                    row.update(copy.deepcopy(rows[index]))
+                row["range"] = copy.deepcopy(current_range)
+                new_rows.append(row)
+            reconciled[workspace_name] = new_rows
+        return reconciled
+
     def restore_previous_session(self):
         if not self.settings.get("auto_restore_session", True):
             return
-
         if not SESSION_FILE.exists():
             return
 
@@ -1270,8 +1458,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 workspace_data = item.get("workspace_data", {})
                 if not isinstance(workspace_data, dict):
                     workspace_data = {}
-
-                # Old session files had only `parts`; treat those as Accounting data.
                 if not workspace_data and legacy_parts:
                     workspace_data = {"Accounting": copy.deepcopy(legacy_parts)}
 
@@ -1283,17 +1469,14 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     continue
 
                 reader = PdfReader(path)
-                current_rows = workspace_data.get(workspace, [])
-                range_source = current_rows or legacy_parts
-                ranges = (
-                    [p["range"] for p in range_source if "range" in p]
-                    if range_source
-                    else self.detect_split_ranges_from_reader(reader)
-                )
+
+                # Always redetect the structure from the current PDF.  Saved
+                # sessions retain field values, not stale split boundaries.
+                ranges = self.detect_split_ranges_from_reader(reader, source_path=path)
+                workspace_data = self.reconcile_workspace_data_ranges(workspace_data, ranges)
 
                 tab_label = f"{pdf_name} ✖"
                 tab = self.pdf_tabview.add(tab_label)
-
                 session = {
                     "tab": tab,
                     "tab_label": tab_label,
@@ -1313,31 +1496,30 @@ class PDFSplitterApp(TkinterDnD.Tk):
         except Exception as e:
             messagebox.showwarning("Session Restore Failed", str(e))
             debug(f"Session restore error: {e}", "error")
+
     def check_future_date(self, raw_date, callback_on_confirm):
         try:
             today = datetime.date.today()
-            normalized = self.format_date(raw_date)
-            entered_date = datetime.datetime.strptime(normalized, "%m-%d-%Y").date()
+            entered_date = self.parse_flexible_date(raw_date)
         except Exception:
             debug(f"Invalid date format: {raw_date}", "debug")
-            return  # skip if invalid
-
-        if entered_date <= today:
             return
 
-        if self.settings.get("suppressFutureDateWarning", False):
+        if entered_date <= today or self.settings.get("suppressFutureDateWarning", False):
+            callback_on_confirm()
             return
 
         popup = tk.Toplevel(self)
         bg_color = ctk.ThemeManager.theme["CTkFrame"]["fg_color"]
+        if isinstance(bg_color, (list, tuple)):
+            bg_color = bg_color[0] if ctk.get_appearance_mode() == "Light" else bg_color[1]
         popup.configure(bg=bg_color)
         popup.attributes("-topmost", True)
         popup.grab_set()
         popup.resizable(False, False)
-        popup.geometry("380x160")
+        popup.geometry("380x175")
         popup.title("Confirm Future Date")
 
-        # --- Widgets with font scaling ---
         ctk.CTkLabel(
             popup,
             text="This date is in the future. Are you sure?",
@@ -1352,27 +1534,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
             font=(self.font_family, self.font_size)
         ).pack(pady=(0, 10))
 
-        btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
-        btn_frame.pack(pady=(0, 10))
-
-        ctk.CTkButton(
-            btn_frame, text="Yes", width=80,
-            font=(self.font_family, self.font_size),
-            command=lambda: on_yes()
-        ).pack(side="left", padx=10)
-
-        ctk.CTkButton(
-            btn_frame, text="Cancel", width=80,
-            font=(self.font_family, self.font_size),
-            command=lambda: on_cancel()
-        ).pack(side="left", padx=10)
-
-
         def on_yes():
             if suppress_var.get():
                 self.settings["suppressFutureDateWarning"] = True
                 self.save_settings()
-                debug("Future date warning suppressed by user", "debug")
                 if hasattr(self, "future_date_popup_var"):
                     self.future_date_popup_var.set(False)
             popup.destroy()
@@ -1383,9 +1548,14 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
         btn_frame.pack(pady=(0, 10))
-
-        ctk.CTkButton(btn_frame, text="Yes", width=80, command=on_yes).pack(side="left", padx=10)
-        ctk.CTkButton(btn_frame, text="Cancel", width=80, command=on_cancel).pack(side="left", padx=10)
+        ctk.CTkButton(
+            btn_frame, text="Yes", width=80,
+            font=(self.font_family, self.font_size), command=on_yes
+        ).pack(side="left", padx=10)
+        ctk.CTkButton(
+            btn_frame, text="Cancel", width=80,
+            font=(self.font_family, self.font_size), command=on_cancel
+        ).pack(side="left", padx=10)
 
     # ─── Tab Builders ───
     def build_splitter_tab(self):
@@ -1501,7 +1671,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.settings_stack = ctk.CTkFrame(container)
         self.settings_stack.pack(side="left", fill="both", expand=True)
 
-        for section in ["Appearance", "Export", "Behavior", "Workspaces", "License"]:
+        for section in ["Appearance", "Export", "Behavior", "Workspaces", "Custom Fields", "License"]:
             frame = ctk.CTkFrame(self.settings_stack)
             frame.pack(fill="both", expand=True)
             frame.pack_forget()  # Hide initially
@@ -1512,6 +1682,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self._build_export_section(self.settings_sections["Export"])
         self._build_behavior_section(self.settings_sections["Behavior"])
         self._build_workspaces_section(self.settings_sections["Workspaces"])
+        self._build_custom_fields_section(self.settings_sections["Custom Fields"])
         self._build_license_section(self.settings_sections["License"])
 
         # Sidebar buttons
@@ -1910,7 +2081,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         ctk.CTkLabel(
             file_bubble,
-            text="Description defaults and autofill are configured separately for each workspace in Settings > Workspaces.",
+            text="Field defaults, required rules, autofill, choices, date formats, and conditions are configured in Settings > Custom Fields.",
             font=(self.font_family, max(10, self.font_size - 1)),
             text_color="#888888",
             wraplength=700,
@@ -1961,15 +2132,184 @@ class PDFSplitterApp(TkinterDnD.Tk):
         update_btn = ctk.CTkButton(tools_bubble, text="📘 Check for Updates", command=self.check_for_updates_manual)
         update_btn.pack(anchor="w", padx=15, pady=(0, 10))
         self.settings_widgets_to_scale.append(update_btn)
+
+        reset_btn = ctk.CTkButton(
+            tools_bubble,
+            text="Reset Settings to Defaults",
+            fg_color="#cc4b4b",
+            hover_color="#aa2b2b",
+            text_color="#ffffff",
+            command=self.open_settings_reset_captcha
+        )
+        reset_btn.pack(anchor="w", padx=15, pady=(0, 10))
+        self.settings_widgets_to_scale.append(reset_btn)
+    def open_settings_reset_captcha(self):
+        """Require a short CAPTCHA before resetting application settings."""
+        alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        captcha_code = "".join(secrets.choice(alphabet) for _ in range(6))
+
+        popup = tk.Toplevel(self)
+        popup.title("Reset Settings")
+        popup.transient(self)
+        popup.grab_set()
+        popup.resizable(False, False)
+        popup.attributes("-topmost", True)
+
+        width = 500
+        height = 330
+        self.update_idletasks()
+        x = self.winfo_rootx() + max(0, (self.winfo_width() - width) // 2)
+        y = self.winfo_rooty() + max(0, (self.winfo_height() - height) // 2)
+        popup.geometry(f"{width}x{height}+{x}+{y}")
+
+        bubble_color, border_color = self.get_log_bubble_colors()
+        root_frame = ctk.CTkFrame(popup, fg_color=bubble_color, border_color=border_color, border_width=2)
+        root_frame.pack(fill="both", expand=True, padx=14, pady=14)
+
+        ctk.CTkLabel(
+            root_frame,
+            text="Reset CleanCutPDF Settings?",
+            font=(self.font_family, self.font_size + 3, "bold")
+        ).pack(pady=(18, 8))
+
+        ctk.CTkLabel(
+            root_frame,
+            text=(
+                "This resets the main settings.json file, including themes, export settings, "
+                "workspaces, custom fields, and behavior options.\n\n"
+                "Your license, logs, saved sessions, and keybinds are not deleted."
+            ),
+            font=(self.font_family, max(10, self.font_size - 1)),
+            text_color="#aaaaaa",
+            wraplength=430,
+            justify="center"
+        ).pack(padx=20, pady=(0, 12))
+
+        ctk.CTkLabel(
+            root_frame,
+            text="Type this code to continue:",
+            font=(self.font_family, self.font_size)
+        ).pack(pady=(0, 5))
+
+        # Space the characters to make the challenge easy to read but difficult
+        # to confirm accidentally.
+        ctk.CTkLabel(
+            root_frame,
+            text="  ".join(captcha_code),
+            font=("Consolas", self.font_size + 6, "bold")
+        ).pack(pady=(0, 8))
+
+        captcha_var = ctk.StringVar()
+        captcha_entry = CTkEntry(root_frame, textvariable=captcha_var, width=230, justify="center")
+        captcha_entry.pack(pady=(0, 12))
+
+        status_var = ctk.StringVar(value="")
+        status_label = ctk.CTkLabel(
+            root_frame,
+            textvariable=status_var,
+            text_color="#ff6b6b",
+            font=(self.font_family, max(10, self.font_size - 1))
+        )
+        status_label.pack(pady=(0, 5))
+
+        button_row = ctk.CTkFrame(root_frame, fg_color="transparent")
+        button_row.pack(pady=(0, 14))
+
+        def attempt_reset():
+            entered = captcha_var.get().strip().upper()
+            if entered != captcha_code:
+                status_var.set("CAPTCHA does not match.")
+                captcha_var.set("")
+                captcha_entry.focus_set()
+                self.bell()
+                return
+
+            try:
+                popup.grab_release()
+            except tk.TclError:
+                pass
+            popup.destroy()
+            self.reset_main_settings_to_defaults()
+
+        ctk.CTkButton(
+            button_row,
+            text="Cancel",
+            width=110,
+            command=popup.destroy
+        ).pack(side="left", padx=6)
+
+        ctk.CTkButton(
+            button_row,
+            text="Reset Settings",
+            width=130,
+            fg_color="#cc4b4b",
+            hover_color="#aa2b2b",
+            text_color="#ffffff",
+            command=attempt_reset
+        ).pack(side="left", padx=6)
+
+        captcha_entry.bind("<Return>", lambda _event: attempt_reset())
+        popup.protocol("WM_DELETE_WINDOW", popup.destroy)
+        popup.after(80, captcha_entry.focus_force)
+
+    def reset_main_settings_to_defaults(self):
+        """Reset settings.json only; leave license and other user data intact."""
+        try:
+            self.settings = copy.deepcopy(DEFAULT_SETTINGS)
+            self.rebuild_runtime_workspaces()
+            self.save_settings()
+            debug("Main settings reset to defaults. License and other user data preserved.", "saved")
+        except Exception as error:
+            debug(f"Failed to reset settings: {error}", "error")
+            messagebox.showerror(
+                "Reset Failed",
+                f"CleanCutPDF could not reset the settings file:\n\n{error}"
+            )
+            return
+
+        messagebox.showinfo(
+            "Settings Reset",
+            "The main CleanCutPDF settings were reset to their defaults.\n\n"
+            "Your license, logs, saved sessions, and keybinds were left unchanged.\n\n"
+            "CleanCutPDF will now restart so all defaults take effect."
+        )
+        self.restart_after_settings_reset()
+
+    def restart_after_settings_reset(self):
+        """Restart the current development script or compiled executable."""
+        try:
+            self.save_sessions()
+        except Exception as error:
+            debug(f"Could not save sessions before settings-reset restart: {error}", "warning")
+
+        try:
+            if getattr(sys, "frozen", False):
+                subprocess.Popen([sys.executable])
+            else:
+                subprocess.Popen([sys.executable, str(Path(__file__).resolve())])
+        except Exception as error:
+            debug(f"Automatic restart after settings reset failed: {error}", "error")
+            messagebox.showwarning(
+                "Restart Required",
+                "Settings were reset successfully, but CleanCutPDF could not restart automatically.\n\n"
+                "Please close and reopen the app."
+            )
+            return
+
+        self.destroy()
+
     def _build_workspaces_section(self, parent):
+        # The workspace editor can grow substantially (especially the visual
+        # filename builder), so keep the entire section vertically scrollable.
+        scroll = ctk.CTkScrollableFrame(parent)
+        scroll.pack(fill="both", expand=True, padx=8, pady=8)
+        self.workspaces_scroll = scroll
+
         bubble_color, border_color = self.get_log_bubble_colors()
 
         selector_bubble = ctk.CTkFrame(
-            parent,
-            fg_color=bubble_color,
-            border_color=border_color,
-            border_width=2,
-            corner_radius=10
+            scroll, fg_color=bubble_color, border_color=border_color,
+            border_width=2, corner_radius=10
         )
         selector_bubble.pack(padx=10, pady=(15, 10), fill="x")
 
@@ -1981,130 +2321,241 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         ctk.CTkLabel(
             selector_bubble,
-            text="Each workspace can use different fields, Description defaults, autofill behavior, and filename rules.",
+            text=(
+                "Accounting is permanent. Other workspaces can be created, renamed, or deleted. "
+                "Assign and reorder fields from the Custom Fields section."
+            ),
             font=(self.font_family, max(10, self.font_size - 1)),
-            text_color="#888888",
-            wraplength=720,
-            justify="left"
+            text_color="#888888", wraplength=720, justify="left"
         ).pack(anchor="w", padx=15, pady=(0, 8))
 
-        self.workspace_settings_selector_var = ctk.StringVar(
-            value=self.settings.get("default_workspace", "Accounting")
-        )
-        selector = ctk.CTkOptionMenu(
-            selector_bubble,
-            values=list(WORKSPACES.keys()),
-            variable=self.workspace_settings_selector_var,
-            command=self.refresh_workspace_settings_editor
-        )
-        selector.pack(anchor="w", padx=15, pady=(0, 12))
-        self.settings_widgets_to_scale.append(selector)
+        row = ctk.CTkFrame(selector_bubble, fg_color="transparent")
+        row.pack(fill="x", padx=15, pady=(0, 12))
 
-        self.workspace_settings_editor = ctk.CTkFrame(parent, fg_color="transparent")
-        self.workspace_settings_editor.pack(fill="both", expand=True, padx=10, pady=(0, 20))
-        self.refresh_workspace_settings_editor(self.workspace_settings_selector_var.get())
+        selected = self.settings.get("default_workspace", "Accounting")
+        if selected not in WORKSPACES:
+            selected = "Accounting"
+        self.workspace_settings_selector_var = ctk.StringVar(value=selected)
+        self.workspace_settings_selector = ctk.CTkOptionMenu(
+            row, values=list(WORKSPACES.keys()),
+            variable=self.workspace_settings_selector_var,
+            command=self.refresh_workspace_settings_editor,
+            width=190
+        )
+        self.workspace_settings_selector.pack(side="left", padx=(0, 8))
+
+        ctk.CTkButton(row, text="+ New", width=85, command=self.create_workspace).pack(side="left", padx=4)
+        ctk.CTkButton(row, text="Rename", width=85, command=self.rename_selected_workspace).pack(side="left", padx=4)
+        ctk.CTkButton(
+            row, text="Delete", width=85, fg_color="#cc4b4b", hover_color="#aa2b2b",
+            command=self.delete_selected_workspace
+        ).pack(side="left", padx=4)
+
+        self.workspace_settings_editor = ctk.CTkFrame(scroll, fg_color="transparent")
+        self.workspace_settings_editor.pack(fill="x", expand=True, padx=10, pady=(0, 20))
+        self.refresh_workspace_settings_editor(selected)
+
+    def create_workspace(self):
+        name = simpledialog.askstring("New Workspace", "Workspace name:", parent=self)
+        if not name:
+            return
+        name = name.strip()
+        if not name:
+            return
+        if name in self.settings.get("workspaces", {}):
+            messagebox.showerror("Workspace Exists", f"A workspace named '{name}' already exists.")
+            return
+
+        self.settings.setdefault("workspaces", {})[name] = {
+            "client_label": "Client Name",
+            "summary": "Custom document workflow.",
+            "filename_template": "{client}_{date}",
+            "field_keys": [],
+            "field_overrides": {},
+            "permanent": False
+        }
+        self.settings["default_workspace"] = name
+        self.rebuild_runtime_workspaces()
+        self.save_settings()
+        self.rebuild_ui()
+        self.notebook.set("Settings")
+        self._show_settings_section("Workspaces")
+        self.workspace_settings_selector_var.set(name)
+        self.refresh_workspace_settings_editor(name)
+
+    def rename_selected_workspace(self):
+        old_name = self.workspace_settings_selector_var.get()
+        definition = self.settings.get("workspaces", {}).get(old_name, {})
+        if definition.get("permanent") or old_name == "Accounting":
+            messagebox.showinfo("Permanent Workspace", "Accounting cannot be renamed.")
+            return
+
+        new_name = simpledialog.askstring(
+            "Rename Workspace", "New workspace name:", initialvalue=old_name, parent=self
+        )
+        if not new_name:
+            return
+        new_name = new_name.strip()
+        if not new_name or new_name == old_name:
+            return
+        if new_name in self.settings.get("workspaces", {}):
+            messagebox.showerror("Workspace Exists", f"A workspace named '{new_name}' already exists.")
+            return
+
+        workspaces = self.settings["workspaces"]
+        workspaces[new_name] = workspaces.pop(old_name)
+
+        if self.settings.get("default_workspace") == old_name:
+            self.settings["default_workspace"] = new_name
+
+        for session in self.pdf_sessions.values():
+            if session.get("workspace") == old_name:
+                session["workspace"] = new_name
+            data = session.get("workspace_data", {})
+            if old_name in data:
+                data[new_name] = data.pop(old_name)
+
+        self.rebuild_runtime_workspaces()
+        self.save_settings()
+        self.rebuild_ui()
+        self.notebook.set("Settings")
+        self._show_settings_section("Workspaces")
+        self.workspace_settings_selector_var.set(new_name)
+        self.refresh_workspace_settings_editor(new_name)
+
+    def delete_selected_workspace(self):
+        name = self.workspace_settings_selector_var.get()
+        definition = self.settings.get("workspaces", {}).get(name, {})
+        if definition.get("permanent") or name == "Accounting":
+            messagebox.showinfo("Permanent Workspace", "Accounting cannot be deleted.")
+            return
+        if not messagebox.askyesno("Delete Workspace", f"Delete the '{name}' workspace?"):
+            return
+
+        self.settings.get("workspaces", {}).pop(name, None)
+        self.settings.get("workspace_settings", {}).pop(name, None)
+        if self.settings.get("default_workspace") == name:
+            self.settings["default_workspace"] = "Accounting"
+
+        for session in self.pdf_sessions.values():
+            if session.get("workspace") == name:
+                self.capture_workspace_data(session)
+                session["workspace"] = "Accounting"
+            session.get("workspace_data", {}).pop(name, None)
+
+        self.rebuild_runtime_workspaces()
+        self.save_settings()
+        self.rebuild_ui()
+        self.notebook.set("Settings")
+        self._show_settings_section("Workspaces")
 
     def refresh_workspace_settings_editor(self, workspace_name):
         if workspace_name not in WORKSPACES:
             workspace_name = "Accounting"
-
         self.workspace_settings_selector_var.set(workspace_name)
+        self.settings["default_workspace"] = workspace_name
+
         for child in self.workspace_settings_editor.winfo_children():
             child.destroy()
 
         bubble_color, border_color = self.get_log_bubble_colors()
-        profile = WORKSPACES[workspace_name]
-        settings = self.get_workspace_settings(workspace_name)
+        profile = self.get_workspace_profile(workspace_name)
+        definition = self.settings["workspaces"][workspace_name]
 
         profile_bubble = ctk.CTkFrame(
-            self.workspace_settings_editor,
-            fg_color=bubble_color,
-            border_color=border_color,
-            border_width=2,
-            corner_radius=10
+            self.workspace_settings_editor, fg_color=bubble_color,
+            border_color=border_color, border_width=2, corner_radius=10
         )
         profile_bubble.pack(fill="x")
 
+        permanent_text = " (Permanent)" if definition.get("permanent") else ""
         ctk.CTkLabel(
             profile_bubble,
-            text=f"{workspace_name} Workspace",
+            text=f"{workspace_name} Workspace{permanent_text}",
             font=(self.font_family, self.font_size + 2, "bold")
-        ).pack(anchor="w", padx=15, pady=(12, 3))
+        ).pack(anchor="w", padx=15, pady=(12, 6))
 
-        ctk.CTkLabel(
-            profile_bubble,
-            text=profile.get("summary", ""),
-            font=(self.font_family, max(10, self.font_size - 1)),
-            text_color="#888888",
-            wraplength=700,
-            justify="left"
-        ).pack(anchor="w", padx=15, pady=(0, 10))
+        ctk.CTkLabel(profile_bubble, text="Client field label").pack(anchor="w", padx=15)
+        client_label_var = ctk.StringVar(value=definition.get("client_label", "Client Name"))
+        client_entry = CTkEntry(profile_bubble, textvariable=client_label_var)
+        client_entry.pack(fill="x", padx=15, pady=(0, 8))
 
-        ctk.CTkLabel(profile_bubble, text="Default Description").pack(anchor="w", padx=15, pady=(3, 2))
-        default_var = ctk.StringVar(value=settings.get("default_description", ""))
-        default_entry = CTkEntry(profile_bubble, textvariable=default_var, placeholder_text="Leave blank for no default")
-        default_entry.pack(fill="x", padx=15, pady=(0, 6))
-        default_entry.bind(
-            "<FocusOut>",
-            lambda _e, w=workspace_name, v=default_var: self.save_workspace_setting(w, "default_description", v.get().strip())
-        )
-        default_entry.bind(
-            "<Return>",
-            lambda _e, w=workspace_name, v=default_var: self.save_workspace_setting(w, "default_description", v.get().strip())
-        )
+        ctk.CTkLabel(profile_bubble, text="Workspace description").pack(anchor="w", padx=15)
+        summary_var = ctk.StringVar(value=definition.get("summary", ""))
+        summary_entry = CTkEntry(profile_bubble, textvariable=summary_var)
+        summary_entry.pack(fill="x", padx=15, pady=(0, 8))
 
-        autofill_var = ctk.BooleanVar(value=settings.get("autofill_description", True))
-        autofill_check = ctk.CTkCheckBox(
-            profile_bubble,
-            text="Autofill Description to following parts",
-            variable=autofill_var,
-            command=lambda w=workspace_name, v=autofill_var: self.save_workspace_setting(w, "autofill_description", v.get())
-        )
-        autofill_check.pack(anchor="w", padx=15, pady=(2, 10))
+        def save_profile_text(_event=None):
+            definition["client_label"] = client_label_var.get().strip() or "Client Name"
+            definition["summary"] = summary_var.get().strip() or "Custom document workflow."
+            self.rebuild_runtime_workspaces()
+            self.save_settings()
 
-        ctk.CTkLabel(profile_bubble, text="Filename / Title Format").pack(anchor="w", padx=15, pady=(3, 2))
+        client_entry.bind("<FocusOut>", save_profile_text)
+        client_entry.bind("<Return>", save_profile_text)
+        summary_entry.bind("<FocusOut>", save_profile_text)
+        summary_entry.bind("<Return>", save_profile_text)
+
+        ctk.CTkLabel(profile_bubble, text="Filename / Title Format").pack(anchor="w", padx=15, pady=(5, 2))
         self.build_visual_filename_editor(
             profile_bubble,
             workspace_name,
-            settings.get("filename_template", profile["default_filename_template"])
+            definition.get("filename_template", profile["default_filename_template"])
         )
 
-        field_names = ", ".join(field["label"] for field in profile.get("fields", []))
+        field_names = ", ".join(field["label"] for field in profile.get("fields", [])) or "No fields assigned"
         ctk.CTkLabel(
             profile_bubble,
-            text=f"Fields shown in this workspace: {field_names}",
+            text=f"Assigned fields: {field_names}\nManage assignments and order in Settings > Custom Fields.",
             font=(self.font_family, max(10, self.font_size - 2)),
-            text_color="#888888",
-            wraplength=700,
-            justify="left"
+            text_color="#888888", wraplength=700, justify="left"
         ).pack(anchor="w", padx=15, pady=(0, 12))
+        self.save_settings()
 
     def get_workspace_settings(self, workspace_name):
-        if workspace_name not in WORKSPACES:
+        if workspace_name not in self.settings.get("workspaces", {}):
             workspace_name = "Accounting"
-        all_settings = self.settings.setdefault("workspace_settings", {})
-        defaults = DEFAULT_SETTINGS["workspace_settings"][workspace_name]
-        current = all_settings.setdefault(workspace_name, copy.deepcopy(defaults))
-        for key, value in defaults.items():
-            current.setdefault(key, value)
-        return current
+        definition = self.settings["workspaces"][workspace_name]
+        desc = definition.get("field_overrides", {}).get("description", {})
+        return {
+            "default_description": desc.get("default", self.settings.get("custom_fields", {}).get("description", {}).get("default", "")),
+            "autofill_description": desc.get("autofill", self.settings.get("custom_fields", {}).get("description", {}).get("autofill", True)),
+            "filename_template": definition.get("filename_template", "{client}_{date}")
+        }
 
     def save_workspace_setting(self, workspace_name, key, value):
-        settings = self.get_workspace_settings(workspace_name)
-        settings[key] = value
+        if workspace_name not in self.settings.get("workspaces", {}):
+            workspace_name = "Accounting"
+        definition = self.settings["workspaces"][workspace_name]
 
-        # Keep legacy Accounting keys synchronized.
+        if key == "filename_template":
+            definition["filename_template"] = value
+        elif key in {"default_description", "autofill_description"}:
+            desc = definition.setdefault("field_overrides", {}).setdefault("description", {})
+            desc["default" if key == "default_description" else "autofill"] = value
+        else:
+            definition[key] = value
+
+        legacy = self.settings.setdefault("workspace_settings", {}).setdefault(workspace_name, {})
+        if key in {"filename_template", "default_description", "autofill_description"}:
+            legacy[key] = value
+
         if workspace_name == "Accounting":
-            if key in {"default_description", "autofill_description", "filename_template"}:
-                self.settings[key] = value
+            if key == "filename_template":
+                self.settings["filename_template"] = value
+            elif key == "default_description":
+                self.settings["default_description"] = value
+            elif key == "autofill_description":
+                self.settings["autofill_description"] = value
 
+        self.rebuild_runtime_workspaces()
         self.save_settings()
         debug(f"{workspace_name} workspace setting saved: {key}={value!r}", "saved")
 
     def save_workspace_filename_template(self, workspace_name, variable):
         value = variable.get().strip()
         if not value:
-            value = WORKSPACES[workspace_name]["default_filename_template"]
+            value = self.settings["workspaces"][workspace_name].get("filename_template", "{client}_{date}")
             variable.set(value)
         self.save_workspace_setting(workspace_name, "filename_template", value)
 
@@ -2554,12 +3005,35 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "workspace": workspace_name,
             "revoked": "Revoked",
             "agency": "IRS",
-            "description": "POA",
-            "agency_description": "IRS POA",
-            "date": "8-19-2026",
+            "description": "Invoice",
+            "agency_description": "IRS Invoice",
+            "date": "8-20-2026",
             "matter_number": "24-0152",
             "document_type": "Notice"
         }
+        profile = self.get_workspace_profile(workspace_name)
+        for field in profile.get("fields", []):
+            key = field.get("key")
+            if not key or key in values:
+                continue
+            field_type = field.get("type", "text")
+            if field_type == "currency":
+                sample = "$134.06"
+            elif field_type == "date":
+                try:
+                    sample = self.format_date_for_field("8-20-2026", field)
+                except Exception:
+                    sample = "8-20-2026"
+            elif field_type == "number":
+                sample = "123"
+            elif field_type in {"checkbox", "toggle", "bool"}:
+                sample = field.get("label", "Yes")
+            elif field_type == "choice":
+                options = [str(x) for x in field.get("options", [])]
+                sample = next((x for x in options if x.casefold() != "other"), "Sample")
+            else:
+                sample = "Sample"
+            values[key] = sample
         if workspace_name == "Legal":
             values["client"] = "Smith Matter"
             values["description"] = "Hearing"
@@ -2612,6 +3086,554 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.save_workspace_setting(workspace_name, "filename_template", template)
         self.update_filename_editor_preview(editor, workspace_name, preview_var)
         editor._filename_save_after_id = None
+
+    def _build_custom_fields_section(self, parent):
+        scroll = ctk.CTkScrollableFrame(parent)
+        scroll.pack(fill="both", expand=True, padx=8, pady=8)
+        self.custom_fields_scroll = scroll
+
+        bubble_color, border_color = self.get_log_bubble_colors()
+
+        library = ctk.CTkFrame(
+            scroll, fg_color=bubble_color, border_color=border_color,
+            border_width=2, corner_radius=10
+        )
+        library.pack(fill="x", padx=4, pady=(4, 10))
+
+        ctk.CTkLabel(
+            library, text="🧩 Custom Field Library",
+            font=(self.font_family, self.font_size + 2, "bold")
+        ).pack(anchor="w", padx=15, pady=(12, 4))
+        ctk.CTkLabel(
+            library,
+            text=(
+                "Fields are reusable across workspaces. Select a field to edit all of its settings, "
+                "or create a new one. Built-in fields can be edited but not deleted."
+            ),
+            text_color="#888888", wraplength=720, justify="left",
+            font=(self.font_family, max(10, self.font_size - 1))
+        ).pack(anchor="w", padx=15, pady=(0, 8))
+
+        row = ctk.CTkFrame(library, fg_color="transparent")
+        row.pack(fill="x", padx=15, pady=(0, 12))
+        self.custom_field_selector_var = ctk.StringVar()
+        self.custom_field_selector = ctk.CTkOptionMenu(
+            row, values=["Loading..."], variable=self.custom_field_selector_var,
+            command=self.show_custom_field_editor, width=260
+        )
+        self.custom_field_selector.pack(side="left", padx=(0, 8))
+        ctk.CTkButton(row, text="+ New Field", width=105, command=self.create_custom_field).pack(side="left", padx=4)
+        ctk.CTkButton(
+            row, text="Delete Field", width=105,
+            fg_color="#cc4b4b", hover_color="#aa2b2b",
+            command=self.delete_selected_custom_field
+        ).pack(side="left", padx=4)
+
+        self.custom_field_editor = ctk.CTkFrame(scroll, fg_color="transparent")
+        self.custom_field_editor.pack(fill="x", padx=4, pady=(0, 10))
+
+        assignment = ctk.CTkFrame(
+            scroll, fg_color=bubble_color, border_color=border_color,
+            border_width=2, corner_radius=10
+        )
+        assignment.pack(fill="both", expand=True, padx=4, pady=(0, 12))
+        self.custom_field_assignment_frame = assignment
+
+        ctk.CTkLabel(
+            assignment, text="🗂 Workspace Field Assignment",
+            font=(self.font_family, self.font_size + 2, "bold")
+        ).pack(anchor="w", padx=15, pady=(12, 4))
+        ctk.CTkLabel(
+            assignment,
+            text="Assign reusable fields here. Drag items in the Assigned list to change their order in the form.",
+            text_color="#888888", wraplength=720, justify="left",
+            font=(self.font_family, max(10, self.font_size - 1))
+        ).pack(anchor="w", padx=15, pady=(0, 8))
+
+        workspace_row = ctk.CTkFrame(assignment, fg_color="transparent")
+        workspace_row.pack(fill="x", padx=15, pady=(0, 8))
+        ctk.CTkLabel(workspace_row, text="Workspace:").pack(side="left", padx=(0, 8))
+        self.custom_assignment_workspace_var = ctk.StringVar(
+            value=self.settings.get("default_workspace", "Accounting")
+        )
+        self.custom_assignment_workspace_menu = ctk.CTkOptionMenu(
+            workspace_row, values=list(WORKSPACES.keys()),
+            variable=self.custom_assignment_workspace_var,
+            command=lambda _value: self.refresh_workspace_field_assignment(),
+            width=190
+        )
+        self.custom_assignment_workspace_menu.pack(side="left")
+
+        lists = ctk.CTkFrame(assignment, fg_color="transparent")
+        lists.pack(fill="both", expand=True, padx=15, pady=(0, 12))
+
+        left = ctk.CTkFrame(lists, fg_color="transparent")
+        left.pack(side="left", fill="both", expand=True)
+        ctk.CTkLabel(left, text="Available Fields", font=(self.font_family, self.font_size, "bold")).pack()
+        list_bg, list_fg, list_select_bg, list_select_fg = self._filename_editor_colors()
+        self.available_fields_list = tk.Listbox(
+            left,
+            height=9,
+            exportselection=False,
+            font=(self.font_family, max(10, self.font_size - 1)),
+            bg=list_bg,
+            fg=list_fg,
+            selectbackground=list_select_bg,
+            selectforeground=list_select_fg,
+            activestyle="none",
+            relief="solid",
+            borderwidth=1,
+            highlightthickness=0
+        )
+        self.available_fields_list.pack(fill="both", expand=True, pady=(4, 0))
+
+        middle = ctk.CTkFrame(lists, fg_color="transparent", width=96)
+        middle.pack(side="left", fill="y", padx=6)
+        middle.pack_propagate(False)
+        assignment_button_font = (self.font_family, 11)
+        ctk.CTkButton(
+            middle,
+            text="Add →",
+            width=88,
+            height=28,
+            font=assignment_button_font,
+            command=self.assign_selected_field
+        ).pack(pady=(38, 7))
+        ctk.CTkButton(
+            middle,
+            text="← Remove",
+            width=88,
+            height=28,
+            font=assignment_button_font,
+            command=self.unassign_selected_field
+        ).pack(pady=7)
+
+        right = ctk.CTkFrame(lists, fg_color="transparent")
+        right.pack(side="left", fill="both", expand=True)
+        ctk.CTkLabel(right, text="Assigned (drag to reorder)", font=(self.font_family, self.font_size, "bold")).pack()
+        self.assigned_fields_list = tk.Listbox(
+            right,
+            height=9,
+            exportselection=False,
+            font=(self.font_family, max(10, self.font_size - 1)),
+            bg=list_bg,
+            fg=list_fg,
+            selectbackground=list_select_bg,
+            selectforeground=list_select_fg,
+            activestyle="none",
+            relief="solid",
+            borderwidth=1,
+            highlightthickness=0
+        )
+        self.assigned_fields_list.pack(fill="both", expand=True, pady=(4, 0))
+        self.assigned_fields_list.bind("<Button-1>", self._assignment_drag_start)
+        self.assigned_fields_list.bind("<B1-Motion>", self._assignment_drag_motion)
+        self.assigned_fields_list.bind("<ButtonRelease-1>", self._assignment_drag_end)
+        self._assignment_drag_index = None
+
+        self.refresh_custom_field_selector()
+        self.refresh_workspace_field_assignment()
+
+    def _field_display_name(self, key):
+        field = self.settings.get("custom_fields", {}).get(key, {})
+        return f"{field.get('label', key)}  [{key}]"
+
+    def refresh_custom_field_selector(self, select_key=None):
+        fields = self.settings.get("custom_fields", {})
+        self.custom_field_display_to_key = {
+            self._field_display_name(key): key for key in fields
+        }
+        values = list(self.custom_field_display_to_key.keys()) or ["No fields"]
+        self.custom_field_selector.configure(values=values)
+
+        if select_key not in fields:
+            current = self.custom_field_display_to_key.get(self.custom_field_selector_var.get())
+            select_key = current if current in fields else (next(iter(fields), None))
+        if select_key:
+            display = self._field_display_name(select_key)
+            self.custom_field_selector_var.set(display)
+            self.show_custom_field_editor(display)
+
+    def create_custom_field(self):
+        label = simpledialog.askstring("New Custom Field", "Field name:", parent=self)
+        if not label:
+            return
+        label = label.strip()
+        if not label:
+            return
+
+        base_key = re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_") or "field"
+        key = base_key
+        counter = 2
+        fields = self.settings.setdefault("custom_fields", {})
+        while key in fields:
+            key = f"{base_key}_{counter}"
+            counter += 1
+
+        fields[key] = {
+            "key": key,
+            "label": label,
+            "type": "text",
+            "placeholder": "",
+            "default": "",
+            "required": False,
+            "autofill": True,
+            "title_case": False,
+            "date_format": "M-D-YYYY",
+            "options": ["Other"],
+            "condition": None,
+            "placement": "standard",
+            "system": False
+        }
+        self.save_settings()
+        self.rebuild_runtime_workspaces()
+        self.refresh_custom_field_selector(key)
+        self.refresh_workspace_field_assignment()
+
+    def delete_selected_custom_field(self):
+        key = self.custom_field_display_to_key.get(self.custom_field_selector_var.get())
+        if not key:
+            return
+        field = self.settings.get("custom_fields", {}).get(key, {})
+        if field.get("system"):
+            messagebox.showinfo("Built-in Field", "Built-in fields can be edited or unassigned, but not deleted.")
+            return
+        if not messagebox.askyesno("Delete Field", f"Delete the '{field.get('label', key)}' field?"):
+            return
+
+        self.settings["custom_fields"].pop(key, None)
+        for definition in self.settings.get("workspaces", {}).values():
+            definition["field_keys"] = [item for item in definition.get("field_keys", []) if item != key]
+            definition.get("field_overrides", {}).pop(key, None)
+
+        for other in self.settings.get("custom_fields", {}).values():
+            condition = other.get("condition")
+            if isinstance(condition, dict) and condition.get("field") == key:
+                other["condition"] = None
+
+        self.rebuild_runtime_workspaces()
+        self.save_settings()
+        self.refresh_custom_field_selector()
+        self.refresh_workspace_field_assignment()
+        self.refresh_open_sessions_for_workspace_fields()
+
+    def show_custom_field_editor(self, display_or_key):
+        key = self.custom_field_display_to_key.get(display_or_key, display_or_key)
+        fields = self.settings.get("custom_fields", {})
+        if key not in fields:
+            return
+        field = fields[key]
+
+        for child in self.custom_field_editor.winfo_children():
+            child.destroy()
+
+        bubble_color, border_color = self.get_log_bubble_colors()
+        bubble = ctk.CTkFrame(
+            self.custom_field_editor, fg_color=bubble_color,
+            border_color=border_color, border_width=2, corner_radius=10
+        )
+        bubble.pack(fill="x")
+
+        title = field.get("label", key)
+        system_text = " (Built-in)" if field.get("system") else ""
+        ctk.CTkLabel(
+            bubble, text=f"{title}{system_text}",
+            font=(self.font_family, self.font_size + 2, "bold")
+        ).pack(anchor="w", padx=15, pady=(12, 8))
+
+        grid = ctk.CTkFrame(bubble, fg_color="transparent")
+        grid.pack(fill="x", padx=15)
+        grid.grid_columnconfigure(1, weight=1)
+
+        label_var = ctk.StringVar(value=field.get("label", key))
+        type_reverse = {label: value for value, label in CUSTOM_FIELD_TYPE_LABELS.items()}
+        type_var = ctk.StringVar(value=CUSTOM_FIELD_TYPE_LABELS.get(field.get("type", "text"), "Text"))
+        placeholder_var = ctk.StringVar(value=field.get("placeholder", ""))
+        default_value = field.get("default", "")
+        if isinstance(default_value, bool):
+            default_value = "True" if default_value else "False"
+        default_var = ctk.StringVar(value=str(default_value))
+        required_var = ctk.BooleanVar(value=bool(field.get("required", False)))
+        autofill_var = ctk.BooleanVar(value=bool(field.get("autofill", True)))
+        title_case_var = ctk.BooleanVar(value=bool(field.get("title_case", False)))
+        date_format_var = ctk.StringVar(value=field.get("date_format", "M-D-YYYY"))
+        condition_enabled_var = ctk.BooleanVar(value=isinstance(field.get("condition"), dict))
+
+        row_index = 0
+        def add_label(text):
+            nonlocal row_index
+            ctk.CTkLabel(grid, text=text).grid(row=row_index, column=0, sticky="w", padx=(0, 10), pady=4)
+
+        add_label("Field label")
+        CTkEntry(grid, textvariable=label_var).grid(row=row_index, column=1, sticky="ew", pady=4)
+        row_index += 1
+
+        add_label("Data type")
+        type_menu = ctk.CTkOptionMenu(
+            grid,
+            values=list(CUSTOM_FIELD_TYPE_LABELS.values()),
+            variable=type_var
+        )
+        type_menu.grid(row=row_index, column=1, sticky="ew", pady=4)
+        row_index += 1
+
+        add_label("Placeholder")
+        CTkEntry(grid, textvariable=placeholder_var).grid(row=row_index, column=1, sticky="ew", pady=4)
+        row_index += 1
+
+        add_label("Default value")
+        CTkEntry(grid, textvariable=default_var).grid(row=row_index, column=1, sticky="ew", pady=4)
+        row_index += 1
+
+        toggles = ctk.CTkFrame(bubble, fg_color="transparent")
+        toggles.pack(fill="x", padx=15, pady=(8, 6))
+        ctk.CTkCheckBox(toggles, text="Required", variable=required_var).pack(side="left", padx=(0, 16))
+        ctk.CTkCheckBox(toggles, text="Autofill to following parts", variable=autofill_var).pack(side="left", padx=(0, 16))
+        ctk.CTkCheckBox(toggles, text="Smart title case", variable=title_case_var).pack(side="left")
+
+        # Only show settings that apply to the selected field type.
+        # This keeps, for example, Currency fields from displaying Date or
+        # Dropdown-specific controls that cannot affect them.
+        type_specific = ctk.CTkFrame(bubble, fg_color="transparent")
+        type_specific.pack(fill="x")
+
+        date_row = ctk.CTkFrame(type_specific, fg_color="transparent")
+        ctk.CTkLabel(date_row, text="Date output format:").pack(side="left", padx=(0, 8))
+        ctk.CTkOptionMenu(date_row, values=DATE_FORMATS, variable=date_format_var, width=180).pack(side="left")
+        ctk.CTkLabel(
+            date_row, text="(Today button follows this format)",
+            text_color="#888888", font=(self.font_family, max(10, self.font_size - 2))
+        ).pack(side="left", padx=8)
+
+        choices_section = ctk.CTkFrame(type_specific, fg_color="transparent")
+        ctk.CTkLabel(
+            choices_section, text="Dropdown choices (one per line)",
+            font=(self.font_family, self.font_size)
+        ).pack(anchor="w", pady=(4, 2))
+        # Use a standard Tk Text widget here instead of CTkTextbox.
+        # Existing CleanCutPDF custom theme JSON files (especially the Pink themes)
+        # may predate CTkTextbox and therefore do not contain a CTkTextbox theme key.
+        editor_bg, editor_fg, _token_bg, _token_fg = self._filename_editor_colors()
+        choices_box = tk.Text(
+            choices_section,
+            height=4,
+            wrap="none",
+            bg=editor_bg,
+            fg=editor_fg,
+            insertbackground=editor_fg,
+            selectbackground=_token_bg,
+            selectforeground=_token_fg,
+            relief="solid",
+            borderwidth=1,
+            highlightthickness=0,
+            padx=6,
+            pady=5,
+            font=(self.font_family, self.font_size)
+        )
+        choices_box.pack(fill="x", pady=(0, 8))
+        choices_box.insert("1.0", "\n".join(field.get("options", [])))
+        ctk.CTkLabel(
+            choices_section,
+            text="If a choice named Other is present, selecting it shows a free-text box.",
+            text_color="#888888", font=(self.font_family, max(10, self.font_size - 2))
+        ).pack(anchor="w", pady=(0, 8))
+
+        def update_type_specific_settings(selected_label=None):
+            selected_label = selected_label or type_var.get()
+            selected_type = type_reverse.get(selected_label, "text")
+
+            date_row.pack_forget()
+            choices_section.pack_forget()
+
+            if selected_type == "date":
+                date_row.pack(fill="x", padx=15, pady=(4, 8))
+            elif selected_type == "choice":
+                choices_section.pack(fill="x", padx=15, pady=(4, 0))
+
+        type_menu.configure(command=update_type_specific_settings)
+        update_type_specific_settings(type_var.get())
+
+        condition = field.get("condition") if isinstance(field.get("condition"), dict) else {}
+        condition_box = ctk.CTkFrame(bubble, fg_color="transparent")
+        condition_box.pack(fill="x", padx=15, pady=(4, 8))
+        ctk.CTkCheckBox(
+            condition_box, text="Conditional visibility", variable=condition_enabled_var
+        ).grid(row=0, column=0, columnspan=4, sticky="w", pady=(0, 6))
+
+        other_fields = [(other_key, self._field_display_name(other_key)) for other_key in fields if other_key != key]
+        condition_labels = [label for _key, label in other_fields] or ["No other fields"]
+        label_to_key = {label: other_key for other_key, label in other_fields}
+        current_condition_key = condition.get("field", "")
+        current_condition_label = next((label for other_key, label in other_fields if other_key == current_condition_key), condition_labels[0])
+        condition_field_var = ctk.StringVar(value=current_condition_label)
+        condition_value_var = ctk.StringVar(value=str(condition.get("equals", "")))
+
+        ctk.CTkLabel(condition_box, text="Show when").grid(row=1, column=0, sticky="w", padx=(0, 6))
+        ctk.CTkOptionMenu(condition_box, values=condition_labels, variable=condition_field_var, width=180).grid(
+            row=1, column=1, sticky="w", padx=(0, 6)
+        )
+        ctk.CTkLabel(condition_box, text="equals").grid(row=1, column=2, sticky="w", padx=(0, 6))
+        CTkEntry(condition_box, textvariable=condition_value_var, width=180).grid(row=1, column=3, sticky="ew")
+        condition_box.grid_columnconfigure(3, weight=1)
+
+        def save_field():
+            new_type = type_reverse.get(type_var.get(), "text")
+            field["label"] = label_var.get().strip() or key.replace("_", " ").title()
+            field["type"] = new_type
+            field["placeholder"] = placeholder_var.get()
+            field["required"] = bool(required_var.get())
+            field["autofill"] = bool(autofill_var.get())
+            field["title_case"] = bool(title_case_var.get())
+            field["date_format"] = date_format_var.get() if date_format_var.get() in DATE_FORMATS else "M-D-YYYY"
+
+            raw_default = default_var.get().strip()
+            if new_type in {"checkbox", "toggle"}:
+                field["default"] = raw_default.lower() in {"1", "true", "yes", "on", "checked"}
+            else:
+                field["default"] = raw_default
+
+            options = [line.strip() for line in choices_box.get("1.0", "end").splitlines() if line.strip()]
+            field["options"] = options
+
+            if condition_enabled_var.get() and other_fields:
+                controller = label_to_key.get(condition_field_var.get())
+                if controller:
+                    field["condition"] = {
+                        "field": controller,
+                        "equals": condition_value_var.get().strip()
+                    }
+                else:
+                    field["condition"] = None
+            else:
+                field["condition"] = None
+
+            self.rebuild_runtime_workspaces()
+            self.save_settings()
+            self.refresh_custom_field_selector(key)
+            self.refresh_workspace_field_assignment()
+            self.refresh_open_sessions_for_workspace_fields()
+
+            # The filename editor builds its Insert Field list when the workspace
+            # settings panel is rendered. If an assigned custom field is renamed
+            # or otherwise edited, rebuild the currently selected workspace editor
+            # so its filename token menu immediately reflects the field library.
+            if (
+                hasattr(self, "workspace_settings_selector_var")
+                and hasattr(self, "workspace_settings_editor")
+            ):
+                selected_workspace = self.workspace_settings_selector_var.get()
+                if selected_workspace in self.settings.get("workspaces", {}):
+                    self.refresh_workspace_settings_editor(selected_workspace)
+
+            messagebox.showinfo("Field Saved", f"Settings for '{field['label']}' were saved.")
+
+        ctk.CTkButton(bubble, text="Save Field Settings", command=save_field, width=170).pack(
+            anchor="w", padx=15, pady=(4, 14)
+        )
+
+    def refresh_workspace_field_assignment(self):
+        if not hasattr(self, "available_fields_list"):
+            return
+        workspace_name = self.custom_assignment_workspace_var.get()
+        if workspace_name not in self.settings.get("workspaces", {}):
+            workspace_name = "Accounting"
+            self.custom_assignment_workspace_var.set(workspace_name)
+
+        fields = self.settings.get("custom_fields", {})
+        assigned = list(self.settings["workspaces"][workspace_name].get("field_keys", []))
+        assigned = [key for key in assigned if key in fields]
+        available = [key for key in fields if key not in assigned]
+
+        self.assignment_assigned_keys = assigned
+        self.assignment_available_keys = available
+
+        self.available_fields_list.delete(0, "end")
+        for key in available:
+            self.available_fields_list.insert("end", self._field_display_name(key))
+
+        self.assigned_fields_list.delete(0, "end")
+        for key in assigned:
+            self.assigned_fields_list.insert("end", self._field_display_name(key))
+
+    def assign_selected_field(self):
+        selection = self.available_fields_list.curselection()
+        if not selection:
+            return
+        key = self.assignment_available_keys[selection[0]]
+        workspace_name = self.custom_assignment_workspace_var.get()
+        definition = self.settings["workspaces"][workspace_name]
+        if key not in definition.setdefault("field_keys", []):
+            definition["field_keys"].append(key)
+        self._save_field_assignment_change(workspace_name)
+
+    def unassign_selected_field(self):
+        selection = self.assigned_fields_list.curselection()
+        if not selection:
+            return
+        key = self.assignment_assigned_keys[selection[0]]
+        workspace_name = self.custom_assignment_workspace_var.get()
+        definition = self.settings["workspaces"][workspace_name]
+        definition["field_keys"] = [item for item in definition.get("field_keys", []) if item != key]
+        self._save_field_assignment_change(workspace_name)
+
+    def _assignment_drag_start(self, event):
+        if not self.assignment_assigned_keys:
+            self._assignment_drag_index = None
+            return
+        self._assignment_drag_index = self.assigned_fields_list.nearest(event.y)
+
+    def _assignment_drag_motion(self, event):
+        if self._assignment_drag_index is None or not self.assignment_assigned_keys:
+            return
+        new_index = self.assigned_fields_list.nearest(event.y)
+        old_index = self._assignment_drag_index
+        if new_index == old_index or new_index < 0 or new_index >= len(self.assignment_assigned_keys):
+            return
+
+        key = self.assignment_assigned_keys.pop(old_index)
+        self.assignment_assigned_keys.insert(new_index, key)
+        self.assigned_fields_list.delete(0, "end")
+        for item in self.assignment_assigned_keys:
+            self.assigned_fields_list.insert("end", self._field_display_name(item))
+        self.assigned_fields_list.selection_set(new_index)
+        self._assignment_drag_index = new_index
+
+    def _assignment_drag_end(self, _event):
+        if self._assignment_drag_index is None:
+            return
+        workspace_name = self.custom_assignment_workspace_var.get()
+        self.settings["workspaces"][workspace_name]["field_keys"] = list(self.assignment_assigned_keys)
+        self._assignment_drag_index = None
+        self._save_field_assignment_change(workspace_name)
+
+    def _save_field_assignment_change(self, workspace_name):
+        self.rebuild_runtime_workspaces()
+        self.save_settings()
+        self.refresh_workspace_field_assignment()
+        self.refresh_open_sessions_for_workspace_fields(workspace_name)
+
+        # build_visual_filename_editor() snapshots the available field tokens at
+        # render time. Rebuild the workspace editor after assignment/reordering so
+        # newly assigned custom fields appear in the filename Insert Field menu
+        # immediately instead of requiring a restart or workspace switch.
+        if (
+            hasattr(self, "workspace_settings_selector_var")
+            and hasattr(self, "workspace_settings_editor")
+            and self.workspace_settings_selector_var.get() == workspace_name
+        ):
+            self.refresh_workspace_settings_editor(workspace_name)
+
+        debug(f"Updated field assignment for {workspace_name}", "saved")
+
+    def refresh_open_sessions_for_workspace_fields(self, workspace_name=None):
+        for session in list(self.pdf_sessions.values()):
+            if workspace_name and session.get("workspace") != workspace_name:
+                continue
+            self.capture_workspace_data(session)
+            try:
+                self.render_splitter_tab(session["tab"], session)
+            except tk.TclError:
+                pass
 
     def _build_license_section(self, parent):
         font = (self.font_family, self.font_size)
@@ -2882,9 +3904,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
         return WORKSPACES.get(workspace_name, WORKSPACES["Accounting"])
 
     def get_workspace_field_default(self, workspace_name, field):
-        if field.get("key") == "description":
-            return self.get_workspace_settings(workspace_name).get("default_description", field.get("default", ""))
-        return field.get("default", False if field.get("type") == "bool" else "")
+        field_type = field.get("type", "text")
+        if field_type in {"checkbox", "toggle", "bool"}:
+            return bool(field.get("default", False))
+        return field.get("default", "")
 
     def capture_workspace_data(self, session):
         workspace_name = session.get("workspace", "Accounting")
@@ -2933,7 +3956,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def load_quick_split_pdf_from_path(self, path):
         try:
             reader = PdfReader(path)
-            ranges = self.detect_split_ranges_from_reader(reader)
+            ranges = self.detect_split_ranges_from_reader(reader, source_path=path)
+            self.warn_if_no_split_markers(reader, path)
 
             out_folder = Path(self.settings.get("export_folder", "")) or Path.home() / "Desktop"
             today_str = datetime.date.today().strftime("%Y-%m-%d")
@@ -3352,7 +4376,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         try:
             reader = PdfReader(path)
-            ranges = self.detect_split_ranges_from_reader(reader)
+            ranges = self.detect_split_ranges_from_reader(reader, source_path=path)
+            self.warn_if_no_split_markers(reader, path)
 
             pdf_name = Path(path).stem
             tab_label = f"{pdf_name} ✖"
@@ -3393,35 +4418,94 @@ class PDFSplitterApp(TkinterDnD.Tk):
         except Exception as e:
             messagebox.showerror("Error", str(e))
             debug(f"Error Loading PDF: {e}", "error")
-    def detect_split_ranges_from_reader(self, reader):
+    def _is_split_marker_text(self, text):
+        text = text or ""
+        upper = text.upper()
+        words = [w for w in re.findall(r"[A-Z0-9]+", upper) if w]
+        compact = re.sub(r"[^A-Z]", "", upper)
+
+        # Accept normal, spaced, hyphenated, or line-broken versions of SPLIT HERE.
+        if "SPLITHERE" in compact:
+            return True
+        return "SPLIT" in words and "HERE" in words
+
+    def detect_split_ranges_from_reader(self, reader, source_path=None):
         debug("Starting detect_split_ranges", "debug")
         split_pages = []
+        fitz_doc = None
 
-        for idx, page in enumerate(reader.pages):
-            text = page.extract_text() or ""
-            words = [w for w in re.findall(r"\S+", text) if w.strip()]
-            uppercase = [w.upper() for w in words]
-            debug(f"Page {idx+1}: {len(words)} words", "debug")
+        if source_path:
+            try:
+                fitz_doc = fitz.open(str(source_path))
+            except Exception as error:
+                debug(f"PyMuPDF fallback could not open PDF: {error}", "warning")
 
-            if any("SPLIT" in w for w in uppercase) and ("HERE" in uppercase or len(words) <= 3):
-                debug(f"→ SPLIT marker found on page {idx+1}", "debug")
-                split_pages.append(idx)
+        try:
+            for idx, page in enumerate(reader.pages):
+                text = ""
+                try:
+                    text = page.extract_text() or ""
+                except Exception as error:
+                    debug(f"PyPDF2 text extraction failed on page {idx + 1}: {error}", "warning")
+
+                marker_found = self._is_split_marker_text(text)
+                extraction_source = "PyPDF2"
+
+                if not marker_found and fitz_doc is not None and idx < fitz_doc.page_count:
+                    try:
+                        fitz_text = fitz_doc.load_page(idx).get_text("text") or ""
+                        if self._is_split_marker_text(fitz_text):
+                            marker_found = True
+                            text = fitz_text
+                            extraction_source = "PyMuPDF"
+                    except Exception as error:
+                        debug(f"PyMuPDF text extraction failed on page {idx + 1}: {error}", "warning")
+
+                word_count = len(re.findall(r"\S+", text))
+                debug(f"Page {idx + 1}: {word_count} words ({extraction_source})", "debug")
+
+                if marker_found:
+                    debug(f"→ SPLIT marker found on page {idx + 1} using {extraction_source}", "debug")
+                    split_pages.append(idx)
+        finally:
+            if fitz_doc is not None:
+                try:
+                    fitz_doc.close()
+                except Exception:
+                    pass
+
+        self._last_split_marker_count = len(split_pages)
 
         ranges = []
         start = 0
-        for sp in split_pages:
-            end = sp - 1
+        for split_page in split_pages:
+            end = split_page - 1
             if start <= end:
                 ranges.append({"start": start, "end": end})
-            start = sp + 1
+            start = split_page + 1
 
         if start < len(reader.pages):
             ranges.append({"start": start, "end": len(reader.pages) - 1})
         if not ranges:
             ranges = [{"start": 0, "end": len(reader.pages) - 1}]
 
-        debug(f"Detected split ranges: {ranges}", "debug")
+        debug(f"Detected {len(split_pages)} split marker(s); ranges: {ranges}", "debug")
         return ranges
+
+    def warn_if_no_split_markers(self, reader, path=None):
+        if getattr(self, "_last_split_marker_count", 0) != 0:
+            return
+        if len(reader.pages) <= 1:
+            return
+
+        file_name = Path(path).name if path else "this PDF"
+        messagebox.showwarning(
+            "No Split Markers Detected",
+            f"CleanCutPDF did not detect any SPLIT HERE pages in {file_name}.\n\n"
+            "The PDF was loaded as one part. If SPLIT HERE sheets are visible in the scan, "
+            "the scanner may not have created a readable text/OCR layer."
+        )
+
     def make_autofill_handler(self, field, var, index, entries_ref):
         prev_val = {"last": var.get()}
 
@@ -3462,104 +4546,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         return handler
 
-    def export_pdfs(self):
-        raw_client = self.client_name_var.get()
-        if not raw_client.strip():
-            messagebox.showerror("Missing Client Name", "Please enter a client name.")
-            return
-
-        client_name = self.title_case(raw_client.strip())
-
-
-        folder = self.settings.get("export_folder")
-        if not folder:
-            folder = filedialog.askdirectory(title="Select Export Folder")
-            if not folder:
-                return
-
-        out_dir = Path(folder) / client_name
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        log_lines = []
-        self.last_exported_files = []
-
-        for idx, entry in enumerate(self.entries, start=1):
-            date_input = entry["date"].get()
-            try:
-                formatted_date = self.format_date(date_input)
-            except ValueError as e:
-                messagebox.showerror(
-                    "Invalid Date",
-                    f"Error in Part {idx}:\n{e}\n\nYou entered: {date_input}"
-                )
-                return
-
-            writer = PdfWriter()
-            r = entry["range"]
-            skipped_pages = []
-
-            for p in range(r["start"], r["end"] + 1):
-                page = self.reader.pages[p]
-                if self.settings.get("remove_blank_pages", True) and self.is_blank_page(page):
-                    skipped_pages.append(p + 1)
-                    continue
-                writer.add_page(page)
-
-            parts = [client_name]
-            if entry["revoked"].get():
-                parts.append("Revoked")
-            agency = self.get_agency(entry["agency"].get())
-            desc = self.title_case(entry["description"].get())
-            parts.append(f"{agency} {desc}" if agency else desc)
-            parts.append(formatted_date)
-
-            base_name = "_".join(parts)
-            fname = base_name + ".pdf"
-            file_path = out_dir / fname
-
-            # Ensure uniqueness
-            counter = 1
-            while file_path.exists():
-                fname = f"{base_name}_{counter}.pdf"
-                file_path = out_dir / fname
-                counter += 1
-
-            with open(file_path, "wb") as f:
-                writer.write(f)
-
-            self.last_exported_files.append(file_path)
-
-            log_lines.append(
-                f"Client: {client_name} | File: {fname} | Pages: {r['start']+1}-{r['end']+1} | "
-                f"Skipped: {skipped_pages if skipped_pages else 'None'} | "
-                f"Agency: {agency} | Desc: {desc} | Date: {formatted_date} | Revoked: {entry['revoked'].get()}"
-            )
-
-        with open(LOG_FILE, "a", encoding="utf-8") as f:
-            for line in log_lines:
-                f.write(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {line}\n")
-
-        self.last_exported_files.append(file_path)
-        self.load_full_log()
-
-        summary = (
-            f"✅ Export Complete!\n\n"
-            f"• {len(self.last_exported_files) - 1} file(s) created\n"
-            f"• Client: {client_name}\n"
-            f"• Exported to: {out_dir}\n"
-        )
-
-        if any("Skipped: " in line for line in log_lines):
-            total_skipped = sum(
-                len(re.search(r"Skipped: (\[.*?\])", line).group(1).split(","))
-                for line in log_lines if "Skipped: [" in line
-            )
-            summary += f"• Blank pages skipped: {total_skipped}\n"
-
-        messagebox.showinfo("Export Summary", summary)
-
-        self.label_status.configure(text=f"Exported to: {out_dir}")
-        self.after(50, self.reset_ui)
     def handle_drop(self, event):
         # Match any group enclosed in braces or fallback to single file
         raw = event.data.strip()
@@ -3580,6 +4566,90 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.enable_tab_closing()
     def export_current_pdf(self):
         self.export_active_session()
+    def parse_flexible_date(self, raw_value):
+        raw = str(raw_value or "").strip()
+        if not raw:
+            raise ValueError("Date is blank")
+
+        formats = (
+            "%m%d%y", "%m%d%Y", "%m-%d-%Y", "%m/%d/%Y",
+            "%Y.%m.%d", "%Y-%m-%d", "%Y/%m/%d"
+        )
+        for fmt in formats:
+            try:
+                return datetime.datetime.strptime(raw, fmt).date()
+            except ValueError:
+                pass
+        raise ValueError(
+            "Date must be a valid date such as 082026, 08-20-2026, 8-20-2026, or 2026.08.20"
+        )
+
+    def format_date_for_field(self, raw_value, field):
+        date_obj = self.parse_flexible_date(raw_value)
+        fmt = field.get("date_format", "M-D-YYYY")
+        if fmt == "MM-DD-YYYY":
+            return f"{date_obj.month:02d}-{date_obj.day:02d}-{date_obj.year}"
+        if fmt == "YYYY.MM.DD":
+            return f"{date_obj.year}.{date_obj.month:02d}.{date_obj.day:02d}"
+        if fmt == "MMDDYY":
+            return date_obj.strftime("%m%d%y")
+        return f"{date_obj.month}-{date_obj.day:02d}-{date_obj.year}"
+
+    def today_value_for_field(self, field):
+        today = datetime.date.today()
+        fmt = field.get("date_format", "M-D-YYYY")
+        if fmt == "MM-DD-YYYY":
+            return f"{today.month:02d}-{today.day:02d}-{today.year}"
+        if fmt == "YYYY.MM.DD":
+            return f"{today.year}.{today.month:02d}.{today.day:02d}"
+        if fmt == "MMDDYY":
+            return today.strftime("%m%d%y")
+        return f"{today.month}-{today.day:02d}-{today.year}"
+
+    def format_currency_value(self, raw_value):
+        raw = str(raw_value or "").strip()
+        if not raw:
+            return ""
+        cleaned = raw.upper().replace("USD", "").replace("$", "").replace(",", "").strip()
+        try:
+            amount = Decimal(cleaned).quantize(Decimal("0.01"))
+        except (InvalidOperation, ValueError):
+            raise ValueError("Currency must be a number such as 134.06")
+        return f"${amount:,.2f}"
+
+    def field_is_visible(self, entry, field):
+        condition = field.get("condition")
+        if not isinstance(condition, dict):
+            return True
+        controller_key = condition.get("field")
+        expected = str(condition.get("equals", ""))
+        controller = entry.get("field_vars", {}).get(controller_key)
+        if controller is None:
+            return False
+        try:
+            actual = controller.get()
+        except Exception:
+            return False
+        if isinstance(actual, bool):
+            actual = "True" if actual else "False"
+        return str(actual).strip().casefold() == expected.strip().casefold()
+
+    def refresh_entry_conditional_fields(self, entry, profile):
+        for field in profile.get("fields", []):
+            key = field.get("key")
+            container = entry.get("field_containers", {}).get(key)
+            if container is None:
+                continue
+            visible = self.field_is_visible(entry, field)
+            entry.setdefault("field_visibility", {})[key] = visible
+            try:
+                if visible:
+                    container.grid()
+                else:
+                    container.grid_remove()
+            except tk.TclError:
+                pass
+
     def render_splitter_tab(self, tab_frame, session):
         for widget in tab_frame.winfo_children():
             widget.destroy()
@@ -3593,22 +4663,16 @@ class PDFSplitterApp(TkinterDnD.Tk):
             workspace_name = "Accounting"
         session["workspace"] = workspace_name
         profile = self.get_workspace_profile(workspace_name)
-        workspace_settings = self.get_workspace_settings(workspace_name)
 
         bubble_color, border_color = self.get_log_bubble_colors()
-
         bubble = ctk.CTkFrame(
-            tab_frame,
-            fg_color=bubble_color,
-            border_color=border_color,
-            border_width=3,
-            corner_radius=10
+            tab_frame, fg_color=bubble_color, border_color=border_color,
+            border_width=3, corner_radius=10
         )
         bubble.pack(fill="both", expand=True, padx=20, pady=20)
 
         ctk.CTkLabel(
-            bubble,
-            text="🧩 Split & Rename",
+            bubble, text="🧩 Split & Rename",
             font=(self.font_family, self.font_size + 4, "bold"),
             text_color="#3B8ED0"
         ).pack(pady=(10, 4))
@@ -3616,15 +4680,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
         workspace_row = ctk.CTkFrame(bubble, fg_color="transparent")
         workspace_row.pack(pady=(0, 4))
         workspace_label = ctk.CTkLabel(
-            workspace_row,
-            text="Workspace:",
+            workspace_row, text="Workspace:",
             font=(self.font_family, self.font_size, "bold")
         )
         workspace_label.pack(side="left", padx=(0, 8))
         session["workspace_var"] = ctk.StringVar(value=workspace_name)
         workspace_menu = ctk.CTkOptionMenu(
-            workspace_row,
-            values=list(WORKSPACES.keys()),
+            workspace_row, values=list(WORKSPACES.keys()),
             variable=session["workspace_var"],
             command=lambda selected, s=session: self.change_session_workspace(s, selected),
             width=170
@@ -3632,15 +4694,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
         workspace_menu.pack(side="left")
         session["widgets_to_scale"].extend([workspace_label, workspace_menu])
 
-        workspace_summary = ctk.CTkLabel(
-            bubble,
-            text=profile.get("summary", ""),
+        ctk.CTkLabel(
+            bubble, text=profile.get("summary", ""),
             font=(self.font_family, max(10, self.font_size - 2)),
-            text_color="#888888",
-            wraplength=820,
-            justify="center"
-        )
-        workspace_summary.pack(pady=(0, 6))
+            text_color="#888888", wraplength=820, justify="center"
+        ).pack(pady=(0, 6))
 
         content = ctk.CTkFrame(bubble)
         content.pack(fill="both", expand=True, padx=10, pady=10)
@@ -3651,17 +4709,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         client_box = ctk.CTkFrame(form_frame, fg_color="transparent")
         client_box.pack(pady=(10, 10), padx=10, anchor="w", fill="x")
-
         name_label = ctk.CTkLabel(client_box, text=f"{profile.get('client_label', 'Client Name')}:")
         name_label.pack(side="left")
         session["widgets_to_scale"].append(name_label)
 
         info_icon = ctk.CTkLabel(client_box, text="❓", text_color="#888888", cursor="question_arrow")
         info_icon.pack(side="left", padx=(5, 10))
-        self.add_tooltip(
-            info_icon,
-            "Names use smart title case. Mixed capitalization and common acronyms are preserved."
-        )
+        self.add_tooltip(info_icon, "Names use smart title case. Mixed capitalization and common acronyms are preserved.")
 
         name_entry = CTkEntry(client_box, textvariable=session["client_name_var"], width=300)
         name_entry.pack(side="left")
@@ -3675,7 +4729,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
             header = ctk.CTkFrame(part_card, fg_color="transparent")
             header.pack(fill="x", pady=(10, 0), padx=10)
-
             part_title = ctk.CTkLabel(
                 header,
                 text=f"Part {part_number} — Pages {r['start'] + 1} to {r['end'] + 1}",
@@ -3687,11 +4740,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
             entry = {
                 "range": r,
                 "field_vars": {},
-                "field_widgets": {}
+                "field_widgets": {},
+                "field_containers": {},
+                "field_visibility": {},
+                "choice_display_vars": {},
+                "choice_other_vars": {}
             }
             session["entries"].append(entry)
 
-            # Header controls (Accounting's Revoked switch, for example).
+            # Header toggles / checkboxes.
             for field in profile.get("fields", []):
                 if field.get("placement") != "header":
                     continue
@@ -3699,25 +4756,39 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 default = self.get_workspace_field_default(workspace_name, field)
                 saved = self.get_workspace_saved_value(session, workspace_name, part_index, key, default)
                 variable = ctk.BooleanVar(value=bool(saved))
-                widget = ctk.CTkSwitch(header, text=field["label"], variable=variable)
-                widget.pack(side="right")
+                if field.get("type") == "checkbox":
+                    widget = ctk.CTkCheckBox(header, text=field["label"], variable=variable)
+                else:
+                    widget = ctk.CTkSwitch(header, text=field["label"], variable=variable)
+                widget.pack(side="right", padx=(8, 0))
                 entry["field_vars"][key] = variable
                 entry["field_widgets"][key] = widget
                 entry[key] = variable
                 session["widgets_to_scale"].append(widget)
 
-            # Standard fields.
-            for field in profile.get("fields", []):
-                if field.get("placement") == "header":
-                    continue
+            fields_frame = ctk.CTkFrame(part_card, fg_color="transparent")
+            fields_frame.pack(fill="x", padx=0, pady=(4, 6))
+            fields_frame.grid_columnconfigure(0, weight=1)
 
+            standard_fields = [f for f in profile.get("fields", []) if f.get("placement") != "header"]
+            for field_row, field in enumerate(standard_fields):
                 key = field["key"]
+                field_type = field.get("type", "text")
                 default = self.get_workspace_field_default(workspace_name, field)
                 saved = self.get_workspace_saved_value(session, workspace_name, part_index, key, default)
 
-                label_row = ctk.CTkFrame(part_card, fg_color="transparent")
-                label_row.pack(anchor="w", padx=12, pady=(8, 0), fill="x")
-                label = ctk.CTkLabel(label_row, text=field["label"])
+                outer = ctk.CTkFrame(fields_frame, fg_color="transparent")
+                outer.grid(row=field_row, column=0, sticky="ew", padx=0, pady=0)
+                entry["field_containers"][key] = outer
+
+                label_row = ctk.CTkFrame(outer, fg_color="transparent")
+                label_row.pack(anchor="w", padx=12, pady=(6, 0), fill="x")
+                display_label = field.get("label", key.replace("_", " ").title())
+                if field_type == "date":
+                    display_label = f"{display_label} ({field.get('date_format', 'M-D-YYYY')})"
+                if field.get("required"):
+                    display_label += " *"
+                label = ctk.CTkLabel(label_row, text=display_label)
                 label.pack(side="left")
                 session["widgets_to_scale"].append(label)
 
@@ -3726,42 +4797,174 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     tip_icon = ctk.CTkLabel(label_row, text="❓", text_color="#888888", cursor="question_arrow")
                     tip_icon.pack(side="left", padx=(5, 0))
                     self.add_tooltip(tip_icon, tooltip)
-                    session["widgets_to_scale"].append(tip_icon)
 
-                variable = ctk.StringVar(value=str(saved) if saved is not None else "")
-                widget = CTkEntry(
-                    part_card,
-                    textvariable=variable,
-                    placeholder_text=field.get("placeholder", "")
-                )
-                widget.pack(anchor="w", padx=12, fill="x", pady=(0, 5 if key != "date" else 10))
+                if field_type in {"checkbox", "toggle", "bool"}:
+                    variable = ctk.BooleanVar(value=bool(saved))
+                    if field_type == "checkbox":
+                        widget = ctk.CTkCheckBox(outer, text="", variable=variable)
+                    else:
+                        widget = ctk.CTkSwitch(outer, text="", variable=variable)
+                    widget.pack(anchor="w", padx=12, pady=(2, 8))
+
+                elif field_type == "choice":
+                    options = [str(option) for option in field.get("options", []) if str(option).strip()]
+                    if not options:
+                        options = ["Other"]
+                    menu_options = ["Select..."] + options
+                    saved_text = str(saved or "")
+                    other_enabled = any(option.casefold() == "other" for option in options)
+                    other_option = next((option for option in options if option.casefold() == "other"), "Other")
+
+                    effective_var = ctk.StringVar(value=saved_text)
+                    if saved_text in options:
+                        initial_display = saved_text
+                        initial_other = ""
+                    elif saved_text and other_enabled:
+                        initial_display = other_option
+                        initial_other = saved_text
+                    else:
+                        initial_display = "Select..."
+                        initial_other = ""
+                        effective_var.set("")
+
+                    display_var = ctk.StringVar(value=initial_display)
+                    other_var = ctk.StringVar(value=initial_other)
+                    choice_row = ctk.CTkFrame(outer, fg_color="transparent")
+                    choice_row.pack(fill="x", padx=12, pady=(0, 5))
+                    choice_menu = ctk.CTkOptionMenu(choice_row, values=menu_options, variable=display_var)
+                    choice_menu.pack(side="left", fill="x", expand=True)
+                    other_entry = CTkEntry(choice_row, textvariable=other_var, placeholder_text="Other...")
+
+                    sync_guard = {"busy": False}
+                    def update_effective_from_display(selected=None, ev=effective_var, dv=display_var,
+                                                      ov=other_var, oe=other_entry, other_name=other_option,
+                                                      guard=sync_guard):
+                        if guard["busy"]:
+                            return
+                        guard["busy"] = True
+                        try:
+                            selected_value = selected if selected is not None else dv.get()
+                            if str(selected_value) == "Select...":
+                                if oe.winfo_manager():
+                                    oe.pack_forget()
+                                ev.set("")
+                            elif str(selected_value).casefold() == str(other_name).casefold():
+                                if not oe.winfo_manager():
+                                    oe.pack(side="left", fill="x", expand=True, padx=(8, 0))
+                                ev.set(ov.get())
+                            else:
+                                if oe.winfo_manager():
+                                    oe.pack_forget()
+                                ev.set(selected_value)
+                        finally:
+                            guard["busy"] = False
+
+                    choice_menu.configure(command=update_effective_from_display)
+                    other_var.trace_add("write", lambda *_a, ev=effective_var, dv=display_var, ov=other_var, other_name=other_option:
+                                        ev.set(ov.get()) if dv.get().casefold() == other_name.casefold() else None)
+
+                    def sync_display_from_effective(*_a, ev=effective_var, dv=display_var, ov=other_var,
+                                                    opts=options, other_name=other_option, oe=other_entry,
+                                                    other_is_enabled=other_enabled, guard=sync_guard):
+                        if guard["busy"]:
+                            return
+                        value = str(ev.get())
+                        guard["busy"] = True
+                        try:
+                            if not value:
+                                dv.set("Select...")
+                                if oe.winfo_manager():
+                                    oe.pack_forget()
+                            elif value in opts:
+                                dv.set(value)
+                                if oe.winfo_manager():
+                                    oe.pack_forget()
+                            elif other_is_enabled:
+                                dv.set(other_name)
+                                ov.set(value)
+                                if not oe.winfo_manager():
+                                    oe.pack(side="left", fill="x", expand=True, padx=(8, 0))
+                            else:
+                                dv.set(value)
+                        finally:
+                            guard["busy"] = False
+
+                    effective_var.trace_add("write", sync_display_from_effective)
+                    update_effective_from_display(display_var.get())
+                    variable = effective_var
+                    widget = choice_menu
+                    entry["choice_display_vars"][key] = display_var
+                    entry["choice_other_vars"][key] = other_var
+
+                else:
+                    variable = ctk.StringVar(value=str(saved) if saved is not None else "")
+                    input_row = ctk.CTkFrame(outer, fg_color="transparent")
+                    input_row.pack(fill="x", padx=12, pady=(0, 5 if field_type != "date" else 8))
+                    widget = CTkEntry(
+                        input_row, textvariable=variable,
+                        placeholder_text=field.get("placeholder", "")
+                    )
+                    widget.pack(side="left", fill="x", expand=True)
+
+                    if field_type == "date":
+                        ctk.CTkButton(
+                            input_row, text="Today", width=70,
+                            command=lambda v=variable, f=field: v.set(self.today_value_for_field(f))
+                        ).pack(side="left", padx=(8, 0))
+
+                    if field_type == "currency":
+                        def normalize_currency(_event=None, v=variable):
+                            raw = v.get().strip()
+                            if not raw:
+                                return
+                            try:
+                                v.set(self.format_currency_value(raw))
+                            except ValueError:
+                                # Leave the raw value in place so export can give a precise error.
+                                pass
+                        widget.bind("<FocusOut>", normalize_currency)
 
                 entry["field_vars"][key] = variable
                 entry["field_widgets"][key] = widget
                 entry[key] = variable
-                entry[f"{key}_entry"] = widget
                 session["widgets_to_scale"].append(widget)
 
-            # Attach autofill traces only after this part's variables exist.
+            # Autofill is attached only after every part has its variables.
+            # For the current part, delay until the whole session loop is finished.
+
+        # Attach traces now that every part contains every assigned field.
+        for part_index, entry in enumerate(session["entries"]):
             for field in profile.get("fields", []):
                 key = field["key"]
-                variable = entry["field_vars"].get(key)
-                if variable is None or not field.get("autofill", False):
+                variable = entry.get("field_vars", {}).get(key)
+                if variable is None:
                     continue
-                if key == "description" and not workspace_settings.get("autofill_description", True):
-                    continue
-                variable.trace_add(
-                    "write",
-                    self.make_autofill_handler(key, variable, part_index, session["entries"])
-                )
+                if field.get("autofill", False):
+                    variable.trace_add(
+                        "write",
+                        self.make_autofill_handler(key, variable, part_index, session["entries"])
+                    )
+
+            # Any controlling field can affect visibility of one or more fields.
+            controller_keys = {
+                field.get("condition", {}).get("field")
+                for field in profile.get("fields", [])
+                if isinstance(field.get("condition"), dict)
+            }
+            for controller_key in controller_keys:
+                controller = entry.get("field_vars", {}).get(controller_key)
+                if controller is not None:
+                    controller.trace_add(
+                        "write",
+                        lambda *_a, e=entry, p=profile: self.refresh_entry_conditional_fields(e, p)
+                    )
+            self.refresh_entry_conditional_fields(entry, profile)
 
         preview_frame = ctk.CTkFrame(content, width=520)
         preview_frame.pack_propagate(False)
         preview_frame.pack(side="left", fill="y", padx=10, pady=10)
-
         ctk.CTkLabel(
-            preview_frame,
-            text="Preview",
+            preview_frame, text="Preview",
             font=(self.font_family, self.font_size + 1, "bold")
         ).pack(pady=(10, 5))
         self.render_pdf_preview(session, preview_frame)
@@ -3772,18 +4975,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         button_row = ctk.CTkFrame(bubble, fg_color="transparent")
         button_row.pack(pady=10)
-
         ctk.CTkButton(button_row, text="Export PDFs", command=lambda: self.export_session(session)).pack(side="left", padx=10)
         ctk.CTkButton(
-            button_row,
-            text="Reset Form",
-            fg_color="#cc4b4b",
-            hover_color="#aa2b2b",
+            button_row, text="Reset Form", fg_color="#cc4b4b", hover_color="#aa2b2b",
             command=self.reset_ui
         ).pack(side="left", padx=10)
         ctk.CTkButton(button_row, text="Show Keybinds", command=self.open_keybind_overlay).pack(side="left", padx=10)
 
         self._apply_font_size()
+
     def render_pdf_preview(self, session, frame, page_index=0):
         try:
             doc = fitz.open(str(session["path"]))
@@ -3870,80 +5070,151 @@ class PDFSplitterApp(TkinterDnD.Tk):
             )
             return
 
-        missing_dates = []
-        for idx, entry in enumerate(session.get("entries", []), start=1):
-            date_var = entry.get("field_vars", {}).get("date")
-            if date_var is not None and not date_var.get().strip():
-                missing_dates.append(str(idx))
+        missing_required = []
+        missing_optional_dates = []
 
-        if missing_dates:
-            parts_text = ", ".join(missing_dates)
+        for part_number, entry in enumerate(session.get("entries", []), start=1):
+            for field in profile.get("fields", []):
+                key = field.get("key")
+                variable = entry.get("field_vars", {}).get(key)
+                if variable is None or not self.field_is_visible(entry, field):
+                    continue
+
+                try:
+                    value = variable.get()
+                except Exception:
+                    value = ""
+
+                is_blank = (not value) if isinstance(value, bool) else not str(value).strip()
+                if field.get("required") and is_blank:
+                    missing_required.append(f"Part {part_number}: {field.get('label', key)}")
+                    continue
+
+                if field.get("type") == "date" and is_blank and not field.get("required"):
+                    missing_optional_dates.append(f"Part {part_number}: {field.get('label', key)}")
+
+                if is_blank:
+                    continue
+
+                try:
+                    if field.get("type") == "date":
+                        self.format_date_for_field(value, field)
+                    elif field.get("type") == "currency":
+                        self.format_currency_value(value)
+                except ValueError as error:
+                    messagebox.showerror(
+                        "Invalid Field Value",
+                        f"Part {part_number} — {field.get('label', key)}:\n{error}\n\nYou entered: {value}"
+                    )
+                    return
+
+        if missing_required:
+            messagebox.showerror(
+                "Required Fields Missing",
+                "Please fill in the following required field(s) before exporting:\n\n" +
+                "\n".join(f"• {item}" for item in missing_required)
+            )
+            return
+
+        if missing_optional_dates:
             if not messagebox.askyesno(
                 "Missing Date",
-                f"Part(s) {parts_text} do not have a date.\n\n"
-                "You can still export them; the date will simply be omitted from those filenames.\n\n"
-                "Continue exporting?"
+                "The following date field(s) are blank:\n\n" +
+                "\n".join(f"• {item}" for item in missing_optional_dates) +
+                "\n\nYou can still export; blank dates will be omitted from filenames. Continue?"
             ):
                 return
 
-        for idx, entry in enumerate(session.get("entries", []), start=1):
-            date_var = entry.get("field_vars", {}).get("date")
-            if date_var is None:
-                continue
-            date_str = date_var.get().strip()
-            if not date_str or not re.fullmatch(r"\d{6}", date_str):
-                continue
-
-            try:
-                today = datetime.date.today()
-                normalized = self.format_date(date_str)
-                entered_date = datetime.datetime.strptime(normalized, "%m-%d-%Y").date()
-                if entered_date > today and not self.settings.get("suppressFutureDateWarning", False):
-                    debug(f"Future date found in part {idx}: {date_str}", "debug")
-                    self.check_future_date(
-                        date_str,
-                        callback_on_confirm=lambda: self._finalize_export(session)
-                    )
-                    return
-            except Exception:
-                continue
+        # Future-date warning remains a warning, not a blocker.  Check all visible
+        # Date fields and stop at the first one that needs confirmation.
+        if not self.settings.get("suppressFutureDateWarning", False):
+            today = datetime.date.today()
+            for part_number, entry in enumerate(session.get("entries", []), start=1):
+                for field in profile.get("fields", []):
+                    if field.get("type") != "date" or not self.field_is_visible(entry, field):
+                        continue
+                    variable = entry.get("field_vars", {}).get(field.get("key"))
+                    if variable is None or not str(variable.get()).strip():
+                        continue
+                    try:
+                        entered_date = self.parse_flexible_date(variable.get())
+                    except ValueError:
+                        continue
+                    if entered_date > today:
+                        debug(
+                            f"Future date found in part {part_number}, field {field.get('key')}: {variable.get()}",
+                            "debug"
+                        )
+                        self.check_future_date(
+                            variable.get(),
+                            callback_on_confirm=lambda: self._finalize_export(session)
+                        )
+                        return
 
         self._finalize_export(session)
-    def get_workspace_export_values(self, session, client_name, entry, formatted_date):
+
+    def get_workspace_export_values(self, session, client_name, entry):
         workspace_name = session.get("workspace", "Accounting")
         profile = self.get_workspace_profile(workspace_name)
-        raw = {}
-        for key, variable in entry.get("field_vars", {}).items():
-            try:
-                raw[key] = variable.get()
-            except Exception:
-                raw[key] = ""
-
-        agency = self.get_agency(str(raw.get("agency", ""))) if "agency" in raw else ""
-        description = str(raw.get("description", "")).strip()
-        document_type = str(raw.get("document_type", "")).strip()
-        matter_number = str(raw.get("matter_number", "")).strip()
-
-        field_map = {field["key"]: field for field in profile.get("fields", [])}
-        if field_map.get("description", {}).get("title_case"):
-            description = self.title_case(description)
-        if field_map.get("document_type", {}).get("title_case"):
-            document_type = self.title_case(document_type)
-
-        revoked = bool(raw.get("revoked", False))
-        agency_description = " ".join(part for part in (agency, description) if part).strip()
-
-        return {
+        values = {
             "client": client_name,
-            "workspace": workspace_name,
-            "revoked": "Revoked" if revoked else "",
-            "agency": agency,
-            "description": description,
-            "agency_description": agency_description,
-            "date": formatted_date,
-            "matter_number": matter_number,
-            "document_type": document_type
+            "workspace": workspace_name
         }
+
+        for field in profile.get("fields", []):
+            key = field.get("key")
+            if not key:
+                continue
+            variable = entry.get("field_vars", {}).get(key)
+            if variable is None or not self.field_is_visible(entry, field):
+                values[key] = ""
+                continue
+
+            try:
+                raw = variable.get()
+            except Exception:
+                raw = ""
+
+            field_type = field.get("type", "text")
+
+            if field_type in {"checkbox", "toggle", "bool"}:
+                if key == "revoked":
+                    processed = "Revoked" if bool(raw) else ""
+                else:
+                    processed = field.get("label", key.replace("_", " ").title()) if bool(raw) else ""
+            else:
+                processed = str(raw or "").strip()
+
+                if key == "agency":
+                    processed = self.get_agency(processed)
+
+                # This shortcut is intentionally hardcoded as requested.  It only
+                # replaces INV when it is a standalone word, never in "Inventory".
+                if key == "description" and processed:
+                    processed = re.sub(r"\binv\b", "Invoice", processed, flags=re.IGNORECASE)
+
+                if field_type == "currency" and processed:
+                    processed = self.format_currency_value(processed)
+                elif field_type == "date" and processed:
+                    processed = self.format_date_for_field(processed, field)
+
+                if field.get("title_case") and processed:
+                    processed = self.title_case(processed)
+
+            values[key] = processed
+
+        # Backward-compatible special tokens used by the permanent Accounting
+        # workspace and old saved filename templates.
+        values.setdefault("revoked", "")
+        values.setdefault("agency", "")
+        values.setdefault("description", "")
+        values.setdefault("date", "")
+        values.setdefault("matter_number", "")
+        values.setdefault("document_type", "")
+        values["agency_description"] = " ".join(
+            part for part in (values.get("agency", ""), values.get("description", "")) if part
+        ).strip()
+        return values
 
     def build_filename(self, client_name, revoked=False, agency="", desc="", formatted_date="", workspace_name="Accounting", extra_values=None):
         # Backward-compatible helper; workspace-aware exports use the same token system.
@@ -3970,22 +5241,28 @@ class PDFSplitterApp(TkinterDnD.Tk):
         return self._format_workspace_filename(template, values, workspace_name)
 
     def _format_workspace_filename(self, template, values, workspace_name):
-        try:
-            base_name = template.format(**values)
-        except (KeyError, ValueError) as error:
-            fallback = WORKSPACES[workspace_name]["default_filename_template"]
-            debug(f"Invalid {workspace_name} filename template '{template}': {error}; using default", "warning")
-            base_name = fallback.format(**values)
+        class SafeValues(dict):
+            def __missing__(self, key):
+                return ""
 
-        # Final Windows filename safety pass. The visual editor blocks these
-        # characters, but field values can still contain them.
+        try:
+            base_name = template.format_map(SafeValues(values))
+        except (ValueError, AttributeError) as error:
+            fallback = self.settings.get("workspaces", {}).get(workspace_name, {}).get(
+                "filename_template", "{client}_{date}"
+            )
+            debug(f"Invalid {workspace_name} filename template '{template}': {error}; using default", "warning")
+            try:
+                base_name = fallback.format_map(SafeValues(values))
+            except Exception:
+                base_name = values.get("client", "Document")
+
         base_name = re.sub(r'[<>:"/\\|?*\x00-\x1F]', "_", base_name)
         base_name = re.sub(r"_{2,}", "_", base_name)
         base_name = re.sub(r"\s{2,}", " ", base_name)
         base_name = base_name.strip(" _-")
         base_name = base_name.rstrip(". ")
 
-        # Windows reserves these names even when a file extension is present.
         reserved_names = {
             "CON", "PRN", "AUX", "NUL",
             *(f"COM{i}" for i in range(1, 10)),
@@ -3993,8 +5270,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
         }
         if base_name.upper() in reserved_names:
             base_name = "_" + base_name
-
         return base_name or "Document"
+
     def _finalize_export(self, session):
         debug("Finalizing export...", "debug")
 
@@ -4007,44 +5284,33 @@ class PDFSplitterApp(TkinterDnD.Tk):
             if not folder:
                 return
 
-        if self.make_client_folder_var.get():
-            out_dir = Path(folder) / client_name
-        else:
-            out_dir = Path(folder)
+        out_dir = Path(folder) / client_name if self.make_client_folder_var.get() else Path(folder)
         out_dir.mkdir(parents=True, exist_ok=True)
 
         log_lines = []
         session["last_exported_files"] = []
-        workspace_settings = self.get_workspace_settings(workspace_name)
-        filename_template = workspace_settings.get(
-            "filename_template",
-            WORKSPACES[workspace_name]["default_filename_template"]
+        filename_template = self.settings.get("workspaces", {}).get(workspace_name, {}).get(
+            "filename_template", "{client}_{date}"
         )
 
         for idx, entry in enumerate(session.get("entries", []), start=1):
-            date_var = entry.get("field_vars", {}).get("date")
-            raw_date = date_var.get().strip() if date_var is not None else ""
-            if raw_date:
-                try:
-                    formatted_date = self.format_date(raw_date)
-                except ValueError as e:
-                    messagebox.showerror("Invalid Date", f"Error in Part {idx}:\n{e}")
-                    return
-            else:
-                formatted_date = ""
-
             writer = PdfWriter()
             r = entry["range"]
             skipped = []
 
-            for p in range(r["start"], r["end"] + 1):
-                page = session["reader"].pages[p]
+            for page_index in range(r["start"], r["end"] + 1):
+                page = session["reader"].pages[page_index]
                 if self.settings.get("remove_blank_pages", True) and self.is_blank_page(page):
-                    skipped.append(p + 1)
+                    skipped.append(page_index + 1)
                     continue
                 writer.add_page(page)
 
-            values = self.get_workspace_export_values(session, client_name, entry, formatted_date)
+            try:
+                values = self.get_workspace_export_values(session, client_name, entry)
+            except ValueError as error:
+                messagebox.showerror("Invalid Field Value", f"Error in Part {idx}:\n{error}")
+                return
+
             base_name = self._format_workspace_filename(filename_template, values, workspace_name)
             fname = f"{base_name}.pdf"
             file_path = out_dir / fname
@@ -4057,15 +5323,26 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
             with open(file_path, "wb") as f:
                 writer.write(f)
-
             session["last_exported_files"].append(file_path)
+
+            profile = self.get_workspace_profile(workspace_name)
+            field_pairs = []
+            for field in profile.get("fields", []):
+                key = field.get("key")
+                if not key or not self.field_is_visible(entry, field):
+                    continue
+                value = values.get(key, "")
+                if value != "":
+                    field_pairs.append(f"{field.get('label', key)}={value}")
+            field_summary = "; ".join(field_pairs) if field_pairs else "None"
 
             log_lines.append(
                 f"Workspace: {workspace_name} | Client: {client_name} | File: {fname} | "
                 f"Pages: {r['start']+1}-{r['end']+1} | Skipped: {skipped if skipped else 'None'} | "
-                f"Agency: {values['agency']} | Desc: {values['description']} | "
-                f"Date: {formatted_date or 'None'} | Revoked: {values['revoked'] == 'Revoked'} | "
-                f"Matter: {values['matter_number']} | Document Type: {values['document_type']}"
+                f"Agency: {values.get('agency', '')} | Desc: {values.get('description', '')} | "
+                f"Date: {values.get('date', '') or 'None'} | Revoked: {values.get('revoked', '') == 'Revoked'} | "
+                f"Matter: {values.get('matter_number', '')} | Document Type: {values.get('document_type', '')} | "
+                f"Fields: {field_summary}"
             )
 
         self.last_exported_files = list(session["last_exported_files"])
@@ -4083,12 +5360,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
         )
         debug(f"Exported {workspace_name} files to: {out_dir}", "debug")
 
-        tab_name = next((name for name, s in self.pdf_sessions.items() if s is session), None)
+        tab_name = next((name for name, current in self.pdf_sessions.items() if current is session), None)
         if tab_name:
             tab_label = session.get("tab_label", tab_name)
             self.pdf_tabview.delete(tab_label)
             self.pdf_sessions.pop(tab_name, None)
             self.save_sessions()
+
     def split_paths(self, data):
         # Example: '{C:/file1.pdf} {C:/file2.pdf}'
         return [p.strip("{}") for p in data.strip().split() if p.strip()]
@@ -4934,11 +6212,17 @@ class PDFSplitterApp(TkinterDnD.Tk):
              "Change theme, font size, and font family here.",
              "Settings", lambda: self._show_settings_section("Appearance")),
             ("Export Settings",
-             "Choose the export folder, logging, and filename/title template here.",
+             "Choose the default export folder and export logging here.",
              "Settings", lambda: self._show_settings_section("Export")),
             ("Behavior Settings",
-             "Control blank-page removal, description autofill, date warnings, session restore, and updates here.",
+             "Control blank-page removal, date warnings, session restore, and update behavior here.",
              "Settings", lambda: self._show_settings_section("Behavior")),
+            ("Workspaces Settings",
+             "Create, rename, or delete workspaces here. Accounting is permanent. Filename formats are also configured per workspace.",
+             "Settings", lambda: self._show_settings_section("Workspaces")),
+            ("Custom Fields Settings",
+             "Create reusable fields, edit their types and rules, assign them to workspaces, and drag them into the order you want.",
+             "Settings", lambda: self._show_settings_section("Custom Fields")),
             ("License Settings",
              "View or clear license information here.",
              "Settings", lambda: self._show_settings_section("License")),

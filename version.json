@@ -1,6 +1,28 @@
 {
-  "version": "1.8.0",
+  "version": "1.9.0",
   "changelog": {
+    "1.9.0": [
+      "Added customizable workspaces",
+      "Added reusable custom fields",
+      "Added Text, Number, Currency, Date, Dropdown, Checkbox, and Toggle field types",
+      "Added pre-loaded Amount, Payment Method, Check Number, and Company fields",
+      "Added conditional field visibility, including Check Number when Payment Method is CK",
+      "Added Other text entry support for dropdown fields",
+      "Added customizable date formats and Today buttons",
+      "Added custom fields to workspace filename formats",
+      "Added workspace field assignment and drag-to-reorder",
+      "Added required-field settings",
+      "Added settings reset protected by CAPTCHA",
+      "Improved SPLIT HERE detection",
+      "Improved restored-session split detection",
+      "Added a warning when no split markers are detected",
+      "Improved workspace and custom-field settings layouts",
+      "Made workspace settings scrollable",
+      "Improved theme-aware field lists",
+      "Fixed tutorial cancellation behavior",
+      "Fixed loading indicator alignment",
+      "Fixed filename and export behavior"
+    ],
     "1.8.0": [
       "Added visual filename and title format builder",
       "Filename fields can now be inserted and rearranged visually",
@@ -114,6 +136,6 @@
       "🗑️ Tab close ('✖') now works immediately after adding a PDF"
     ]
   },
-  "download_url": "https://github.com/shhmethan/CleanCutPDF/releases/download/v1.8.0/CleanCutPDF.exe",
-  "sha256": "E68CEC87EE7E77B0473AD851ED00C1C90AF3AC77CC7909694399138C31C29C45"
+  "download_url": "https://github.com/shhmethan/CleanCutPDF/blob/master1/dist/CleanCutPDF.exe",
+  "sha256": "1B5D656648AEA0EFEF7A6565222C77A24150C54C3A6EC1DBFAD460EDE52EBD11"
 }
