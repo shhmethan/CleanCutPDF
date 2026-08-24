@@ -1,6 +1,17 @@
 {
-  "version": "1.9.0",
+  "version": "1.9.18",
   "changelog": {
+    "1.9.18": [
+      "Added customizable workspace field layouts with drag-and-drop resizing.",
+      "Added optional Snap to Grid with saved workspace preference.",
+      "Added custom field color selection.",
+      "Added workspace notes and reminders between fields.",
+      "Added clickable Part headings that jump the PDF preview to the first page of that Part.",
+      "Added manual page-number navigation in the PDF preview.",
+      "Added the option to suppress the No SPLIT HERE warning.",
+      "Improved Check Number filename spacing when the field is blank.",
+      "Improved custom workspace field sizing and layout behavior."
+    ],
     "1.9.0": [
       "Added customizable workspaces",
       "Added reusable custom fields",
@@ -137,5 +148,5 @@
     ]
   },
   "download_url": "https://github.com/shhmethan/CleanCutPDF/blob/master1/dist/CleanCutPDF.exe",
-  "sha256": "1B5D656648AEA0EFEF7A6565222C77A24150C54C3A6EC1DBFAD460EDE52EBD11"
+  "sha256": "A8DE685D21E5F5BD68A1924F1A3E73B3CD13DDDFEECABE512069D93E577C1A99"
 }

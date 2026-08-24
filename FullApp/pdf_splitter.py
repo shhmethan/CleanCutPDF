@@ -27,13 +27,13 @@ from PyPDF2 import PdfReader, PdfWriter
 # ─── GUI: Tkinter & CustomTkinter ────────────────────────────────────
 import tkinter as tk
 import tkinter.scrolledtext as st
-from tkinter import filedialog, messagebox, simpledialog
+from tkinter import filedialog, messagebox, simpledialog, colorchooser
 from tkinterdnd2 import DND_FILES, TkinterDnD
 import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.9.0"
+CURRENT_VERSION = "1.9.18"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -134,6 +134,8 @@ DEFAULT_WORKSPACE_DEFINITIONS = {
         "field_overrides": {
             "description": {"default": "POA", "autofill": True}
         },
+        "notes": [],
+        "custom_layout": None,
         "permanent": True
     },
     "Legal": {
@@ -144,6 +146,8 @@ DEFAULT_WORKSPACE_DEFINITIONS = {
         "field_overrides": {
             "description": {"default": "", "autofill": True}
         },
+        "notes": [],
+        "custom_layout": None,
         "permanent": False
     }
 }
@@ -175,6 +179,7 @@ DEFAULT_SETTINGS = {
     "auto_restore_session": True,
     "tutorial_shown": False,
     "suppressFutureDateWarning": False,
+    "suppressNoSplitWarning": False,
     "check_updates_on_startup": True,
     "autofill_description": True,
     "default_description": "POA",
@@ -593,10 +598,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
         super().__init__()
         self.start_time = time.perf_counter()
 
-        try:
-            self.iconbitmap(str(APP_ICON))
-        except Exception as e:
-            debug(f"Could not load app icon: {e}", "warning")
+        if APP_ICON.exists():
+            try:
+                self.iconbitmap(str(APP_ICON))
+            except Exception as e:
+                debug(f"Could not load app icon: {e}", "warning")
 
         self.pdf_sessions = {}
         self.settings = {}
@@ -1228,6 +1234,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 existing.update(copy.deepcopy(config))
                 existing["key"] = key
                 fields[key] = existing
+        for field in fields.values():
+            if isinstance(field, dict):
+                field.setdefault("color", "")
+
         self.settings["custom_fields"] = fields
 
         # Workspace definitions. Accounting is permanent; every other workspace
@@ -1292,6 +1302,93 @@ class PDFSplitterApp(TkinterDnD.Tk):
             if not isinstance(field_keys, list):
                 field_keys = []
             definition["field_keys"] = [key for key in field_keys if key in fields]
+
+            raw_notes = definition.get("notes", [])
+            if not isinstance(raw_notes, list):
+                raw_notes = []
+            valid_note_positions = set(definition["field_keys"]) | {"__top__", "__end__"}
+            normalized_notes = []
+            for note in raw_notes:
+                if not isinstance(note, dict):
+                    continue
+                text = str(note.get("text", "")).strip()
+                if not text:
+                    continue
+                before_field = note.get("before_field", "__end__")
+                if before_field not in valid_note_positions:
+                    before_field = "__end__"
+                normalized_notes.append({
+                    "id": str(note.get("id") or secrets.token_hex(4)),
+                    "text": text,
+                    "before_field": before_field
+                })
+            definition["notes"] = normalized_notes
+
+            # Optional visual layout. None means the normal automatic layout is used.
+            # v2 stores true freeform rectangles (x/y/width/height). Older 3-column
+            # layouts are migrated forward so existing test layouts keep working.
+            layout = definition.get("custom_layout")
+            if not isinstance(layout, dict) or not layout.get("enabled"):
+                definition["custom_layout"] = None
+            else:
+                surface = layout.get("surface", {}) if isinstance(layout.get("surface"), dict) else {}
+                try:
+                    surface_w = max(640, int(surface.get("width", 920)))
+                    surface_h = max(420, int(surface.get("height", 620)))
+                except Exception:
+                    surface_w, surface_h = 920, 620
+
+                clean_elements = {}
+                raw_elements = layout.get("elements", {})
+                if isinstance(raw_elements, dict):
+                    for key, box in raw_elements.items():
+                        if key not in fields:
+                            continue
+                        if not isinstance(box, dict):
+                            continue
+                        try:
+                            x = max(0, int(box.get("x", 0)))
+                            y = max(0, int(box.get("y", 0)))
+                            width = max(90, int(box.get("width", 240)))
+                            height = max(84, int(box.get("height", 84)))
+                        except Exception:
+                            continue
+                        clean_elements[key] = {"x": x, "y": y, "width": width, "height": height}
+
+                # Migrate the earlier row/column/span format to approximate
+                # freeform rectangles. This is only used for layouts saved by the
+                # first Workspace Designer build.
+                if not clean_elements:
+                    positions = layout.get("field_positions", {})
+                    if not isinstance(positions, dict):
+                        positions = {}
+                    cell_w = 190
+                    cell_h = 86
+                    for index, key in enumerate(definition["field_keys"]):
+                        if key not in fields:
+                            continue
+                        pos = positions.get(key, {}) if isinstance(positions.get(key), dict) else {}
+                        try:
+                            row = max(0, int(pos.get("row", index)))
+                            col = max(0, min(2, int(pos.get("col", 0))))
+                            span = max(1, min(3 - col, int(pos.get("span", 3))))
+                        except Exception:
+                            row, col, span = index, 0, 3
+                        clean_elements[key] = {
+                            "x": 30 + col * cell_w,
+                            "y": 55 + row * cell_h,
+                            "width": max(150, span * cell_w - 14),
+                            "height": 68
+                        }
+
+                definition["custom_layout"] = {
+                    "enabled": True,
+                    "version": 3,
+                    "snap_to_grid": bool(layout.get("snap_to_grid", True)),
+                    "grid_size": max(8, min(64, int(layout.get("grid_size", 24) or 24))),
+                    "surface": {"width": surface_w, "height": surface_h},
+                    "elements": clean_elements
+                }
 
         self.settings["workspaces"] = workspaces
 
@@ -1363,7 +1460,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 "default_filename_template": definition.get("filename_template", "{client}_{date}"),
                 "filename_template": definition.get("filename_template", "{client}_{date}"),
                 "permanent": bool(definition.get("permanent", workspace_name == "Accounting")),
-                "fields": fields
+                "fields": fields,
+                "notes": copy.deepcopy(definition.get("notes", [])),
+                "custom_layout": copy.deepcopy(definition.get("custom_layout"))
             }
 
         if "Accounting" not in runtime:
@@ -1379,7 +1478,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 "default_filename_template": definition["filename_template"],
                 "filename_template": definition["filename_template"],
                 "permanent": True,
-                "fields": fields
+                "fields": fields,
+                "notes": copy.deepcopy(definition.get("notes", [])),
+                "custom_layout": copy.deepcopy(definition.get("custom_layout"))
             }
 
         WORKSPACES.clear()
@@ -2115,6 +2216,28 @@ class PDFSplitterApp(TkinterDnD.Tk):
         future_checkbox.pack(anchor="w", padx=20, pady=(0, 10))
         self.settings_widgets_to_scale.append(future_checkbox)
 
+        # ─── Split Detection Warning ───
+        split_warning_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        split_warning_bubble.pack(padx=10, pady=(0, 10), fill="x")
+
+        ctk.CTkLabel(
+            split_warning_bubble,
+            text="✂ Split Detection Warnings",
+            font=(self.font_family, self.font_size + 2, "bold")
+        ).pack(anchor="w", padx=15, pady=(10, 5))
+
+        self.no_split_warning_var = ctk.BooleanVar(
+            value=not self.settings.get("suppressNoSplitWarning", False)
+        )
+        no_split_checkbox = ctk.CTkCheckBox(
+            split_warning_bubble,
+            text="Warn me when no SPLIT HERE pages are detected",
+            variable=self.no_split_warning_var,
+            command=self.update_no_split_warning_setting
+        )
+        no_split_checkbox.pack(anchor="w", padx=20, pady=(0, 10))
+        self.settings_widgets_to_scale.append(no_split_checkbox)
+
         # ─── Tools ───
         tools_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
         tools_bubble.pack(padx=10, pady=(0, 20), fill="x")
@@ -2372,6 +2495,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "filename_template": "{client}_{date}",
             "field_keys": [],
             "field_overrides": {},
+            "notes": [],
+            "custom_layout": None,
             "permanent": False
         }
         self.settings["default_workspace"] = name
@@ -2503,6 +2628,28 @@ class PDFSplitterApp(TkinterDnD.Tk):
             definition.get("filename_template", profile["default_filename_template"])
         )
 
+        self.build_workspace_notes_editor(profile_bubble, workspace_name, definition)
+
+        layout_row = ctk.CTkFrame(profile_bubble, fg_color="transparent")
+        layout_row.pack(fill="x", padx=15, pady=(2, 10))
+        custom_layout = definition.get("custom_layout")
+        layout_status = "Custom layout active" if isinstance(custom_layout, dict) and custom_layout.get("enabled") else "Automatic layout"
+        ctk.CTkLabel(
+            layout_row, text=f"Layout: {layout_status}",
+            font=(self.font_family, max(10, self.font_size - 1)),
+            text_color="#888888"
+        ).pack(side="left")
+        ctk.CTkButton(
+            layout_row, text="Customize Layout", width=135,
+            command=lambda wn=workspace_name: self.open_workspace_layout_designer(wn)
+        ).pack(side="right", padx=(8, 0))
+        if isinstance(custom_layout, dict) and custom_layout.get("enabled"):
+            ctk.CTkButton(
+                layout_row, text="Reset to Automatic", width=135,
+                fg_color="#cc4b4b", hover_color="#aa2b2b",
+                command=lambda wn=workspace_name: self.reset_workspace_layout(wn)
+            ).pack(side="right")
+
         field_names = ", ".join(field["label"] for field in profile.get("fields", [])) or "No fields assigned"
         ctk.CTkLabel(
             profile_bubble,
@@ -2511,6 +2658,543 @@ class PDFSplitterApp(TkinterDnD.Tk):
             text_color="#888888", wraplength=700, justify="left"
         ).pack(anchor="w", padx=15, pady=(0, 12))
         self.save_settings()
+
+    def build_workspace_notes_editor(self, parent, workspace_name, definition):
+        """Let a workspace place reusable reminder text between its fields."""
+        profile = self.get_workspace_profile(workspace_name)
+        notes = definition.setdefault("notes", [])
+
+        separator = ctk.CTkFrame(parent, height=1, fg_color="#777777")
+        separator.pack(fill="x", padx=15, pady=(6, 10))
+
+        heading_row = ctk.CTkFrame(parent, fg_color="transparent")
+        heading_row.pack(fill="x", padx=15, pady=(0, 4))
+        ctk.CTkLabel(
+            heading_row,
+            text="Workspace Notes / Reminders",
+            font=(self.font_family, self.font_size, "bold")
+        ).pack(side="left")
+
+        ctk.CTkButton(
+            heading_row,
+            text="+ Add Note",
+            width=95,
+            command=lambda: self.add_workspace_note(workspace_name)
+        ).pack(side="right")
+
+        ctk.CTkLabel(
+            parent,
+            text=(
+                "Add italic reminders that appear inside every part. Choose whether each note "
+                "appears at the top, before a specific field, or at the end."
+            ),
+            font=(self.font_family, max(10, self.font_size - 2)),
+            text_color="#888888",
+            wraplength=700,
+            justify="left"
+        ).pack(anchor="w", padx=15, pady=(0, 7))
+
+        standard_fields = [
+            field for field in profile.get("fields", [])
+            if field.get("placement") != "header"
+        ]
+        position_pairs = [("Top of each part", "__top__")]
+        position_pairs.extend(
+            (f"Before: {field.get('label', field.get('key', 'Field'))}", field.get("key"))
+            for field in standard_fields
+            if field.get("key")
+        )
+        position_pairs.append(("End of each part", "__end__"))
+        label_to_position = {label: value for label, value in position_pairs}
+        position_to_label = {value: label for label, value in position_pairs}
+        position_labels = [label for label, _value in position_pairs]
+
+        if not notes:
+            ctk.CTkLabel(
+                parent,
+                text="No workspace notes yet.",
+                text_color="#888888",
+                font=(self.font_family, max(10, self.font_size - 2))
+            ).pack(anchor="w", padx=15, pady=(0, 8))
+            return
+
+        editor_bg, editor_fg, _token_bg, _token_fg = self._filename_editor_colors()
+        row_states = []
+
+        for note in notes:
+            note_id = str(note.get("id") or secrets.token_hex(4))
+            note["id"] = note_id
+
+            card = ctk.CTkFrame(parent, fg_color="transparent")
+            card.pack(fill="x", padx=15, pady=(0, 8))
+
+            controls = ctk.CTkFrame(card, fg_color="transparent")
+            controls.pack(fill="x", pady=(0, 4))
+
+            position = note.get("before_field", "__end__")
+            position_var = ctk.StringVar(
+                value=position_to_label.get(position, "End of each part")
+            )
+            ctk.CTkOptionMenu(
+                controls,
+                values=position_labels,
+                variable=position_var,
+                width=225
+            ).pack(side="left")
+
+            ctk.CTkButton(
+                controls,
+                text="Delete",
+                width=75,
+                fg_color="#cc4b4b",
+                hover_color="#aa2b2b",
+                command=lambda nid=note_id: self.delete_workspace_note(workspace_name, nid)
+            ).pack(side="right")
+
+            text_box = tk.Text(
+                card,
+                height=3,
+                wrap="word",
+                bg=editor_bg,
+                fg=editor_fg,
+                insertbackground=editor_fg,
+                relief="solid",
+                borderwidth=1,
+                padx=7,
+                pady=6,
+                font=(self.font_family, self.font_size)
+            )
+            text_box.pack(fill="x")
+            text_box.insert("1.0", note.get("text", ""))
+            row_states.append((note_id, position_var, text_box))
+
+        def save_notes():
+            saved_notes = []
+            for note_id, position_var, text_box in row_states:
+                text = text_box.get("1.0", "end-1c").strip()
+                if not text:
+                    continue
+                saved_notes.append({
+                    "id": note_id,
+                    "text": text,
+                    "before_field": label_to_position.get(position_var.get(), "__end__")
+                })
+
+            definition["notes"] = saved_notes
+            self.rebuild_runtime_workspaces()
+            self.save_settings()
+            self.refresh_open_sessions_for_workspace_fields(workspace_name)
+            debug(f"Saved {len(saved_notes)} workspace note(s) for {workspace_name}", "saved")
+            messagebox.showinfo("Workspace Notes Saved", f"Saved notes for the {workspace_name} workspace.")
+
+        ctk.CTkButton(
+            parent,
+            text="Save Workspace Notes",
+            width=165,
+            command=save_notes
+        ).pack(anchor="w", padx=15, pady=(0, 10))
+
+    def add_workspace_note(self, workspace_name):
+        definition = self.settings.get("workspaces", {}).get(workspace_name)
+        if not definition:
+            return
+        definition.setdefault("notes", []).append({
+            "id": secrets.token_hex(4),
+            "text": "Reminder",
+            "before_field": "__end__"
+        })
+        self.rebuild_runtime_workspaces()
+        self.save_settings()
+        self.refresh_workspace_settings_editor(workspace_name)
+
+    def delete_workspace_note(self, workspace_name, note_id):
+        definition = self.settings.get("workspaces", {}).get(workspace_name)
+        if not definition:
+            return
+        definition["notes"] = [
+            note for note in definition.get("notes", [])
+            if str(note.get("id")) != str(note_id)
+        ]
+        self.rebuild_runtime_workspaces()
+        self.save_settings()
+        self.refresh_workspace_settings_editor(workspace_name)
+        self.refresh_open_sessions_for_workspace_fields(workspace_name)
+
+    def reset_workspace_layout(self, workspace_name):
+        definition = self.settings.get("workspaces", {}).get(workspace_name)
+        if not definition:
+            return
+        definition["custom_layout"] = None
+        self.rebuild_runtime_workspaces()
+        self.save_settings()
+        self.refresh_open_sessions_for_workspace_fields(workspace_name)
+        self.refresh_workspace_settings_editor(workspace_name)
+
+    def open_workspace_layout_designer(self, workspace_name):
+        """Freeform workspace designer with optional square-grid snapping."""
+        if workspace_name not in self.settings.get("workspaces", {}):
+            return
+
+        definition = self.settings["workspaces"][workspace_name]
+        profile = self.get_workspace_profile(workspace_name)
+        fields = [field for field in profile.get("fields", []) if field.get("key")]
+
+        win = tk.Toplevel(self)
+        window_bg = "#1e1e1e" if ctk.get_appearance_mode() == "Dark" else "#f4f4f4"
+        canvas_bg = "#202020" if ctk.get_appearance_mode() == "Dark" else "#f8f8f8"
+        grid_color = "#383838" if ctk.get_appearance_mode() == "Dark" else "#dedede"
+        win.configure(bg=window_bg)
+        win.title(f"{workspace_name} Layout Designer")
+        win.geometry("1120x800")
+        win.minsize(920, 680)
+        win.transient(self)
+        win.grab_set()
+
+        ctk.CTkLabel(
+            win,
+            text=f"{workspace_name} Workspace Designer",
+            font=(self.font_family, self.font_size + 5, "bold")
+        ).pack(pady=(14, 2))
+        ctk.CTkLabel(
+            win,
+            text=(
+                "Drag field tiles anywhere and resize from an edge or corner. The square grid is only a guide "
+                "unless Snap to Grid is checked. The PDF viewer stays fixed in Split & Rename."
+            ),
+            text_color="#888888",
+            wraplength=940,
+            justify="center",
+            font=(self.font_family, max(10, self.font_size - 1))
+        ).pack(padx=20, pady=(0, 8))
+
+        toolbar = ctk.CTkFrame(win, fg_color="transparent")
+        toolbar.pack(fill="x", padx=18, pady=(0, 5))
+        # Snap is ON by default. Keep the preference separate from the layout
+        # itself so closing/cancelling the designer still remembers the user's
+        # most recent choice without activating a custom layout.
+        current = definition.get("custom_layout") if isinstance(definition.get("custom_layout"), dict) else {}
+        saved_snap = definition.get(
+            "layout_snap_to_grid",
+            current.get("snap_to_grid", True) if isinstance(current, dict) else True
+        )
+        snap_var = ctk.BooleanVar(value=bool(saved_snap))
+
+        def remember_snap_preference():
+            definition["layout_snap_to_grid"] = bool(snap_var.get())
+            if isinstance(definition.get("custom_layout"), dict):
+                definition["custom_layout"]["snap_to_grid"] = bool(snap_var.get())
+            self.save_settings()
+
+        ctk.CTkCheckBox(
+            toolbar,
+            text="Snap to Grid",
+            variable=snap_var,
+            command=remember_snap_preference
+        ).pack(side="left")
+        ctk.CTkLabel(
+            toolbar,
+            text="Drag field tiles and grab their border/corner to resize. The PDF viewer is not part of the tile layout.",
+            text_color="#888888",
+            font=(self.font_family, max(10, self.font_size - 2))
+        ).pack(side="left", padx=(18, 0))
+
+        canvas = tk.Canvas(win, bg=canvas_bg, highlightthickness=1, highlightbackground="#777777")
+        canvas.pack(fill="both", expand=True, padx=18, pady=(0, 8))
+        win.update_idletasks()
+
+        # `current` is initialized above with the snap preference so the
+        # checkbox can remember its state even when the designer is cancelled.
+        grid_size = max(12, min(48, int(current.get("grid_size", 24) or 24)))
+        raw_elements = copy.deepcopy(current.get("elements", {})) if isinstance(current.get("elements"), dict) else {}
+        saved_surface = current.get("surface", {}) if isinstance(current.get("surface"), dict) else {}
+        saved_w = max(640, int(saved_surface.get("width", 920) or 920))
+        saved_h = max(420, int(saved_surface.get("height", 620) or 620))
+
+        state = {
+            "items": {},
+            "drag": None,
+            "selected": None,
+            "mode": None,
+            "start_x": 0,
+            "start_y": 0,
+            "start_box": None,
+            "elements": {},
+            "surface_w": saved_w,
+            "surface_h": saved_h,
+        }
+
+        def clamp(value, low, high):
+            return max(low, min(high, value))
+
+        def snap(value):
+            if not snap_var.get():
+                return int(round(value))
+            return int(round(value / grid_size) * grid_size)
+
+        def canvas_size():
+            return max(640, canvas.winfo_width()), max(420, canvas.winfo_height())
+
+        def scale_saved_box(box, field=None):
+            cw, ch = canvas_size()
+            sx = cw / max(1, state["surface_w"])
+            sy = ch / max(1, state["surface_h"])
+            minimum_height = self.get_freeform_tile_min_height(field)
+            return {
+                "x": int(box.get("x", 0) * sx),
+                "y": int(box.get("y", 0) * sy),
+                "width": int(box.get("width", 240) * sx),
+                "height": max(minimum_height, int(box.get("height", 70) * sy)),
+            }
+
+        def default_elements():
+            cw, ch = canvas_size()
+            result = {}
+            x = 34
+            y = 40
+            width = max(290, int(cw * 0.72))
+            for field in fields:
+                key = field["key"]
+                tile_height = self.get_freeform_tile_min_height(field)
+                result[key] = {"x": x, "y": y, "width": width, "height": tile_height}
+                y += tile_height + 14
+            return result
+
+        # Load v2 freeform rectangles. If there is no custom layout yet, generate
+        # a visual version of the normal stacked layout without activating it.
+        if raw_elements:
+            for key, box in raw_elements.items():
+                field = next((item for item in fields if item.get("key") == key), None)
+                if field is not None and isinstance(box, dict):
+                    state["elements"][key] = scale_saved_box(box, field)
+        if not state["elements"]:
+            state["elements"] = default_elements()
+        else:
+            defaults = default_elements()
+            for field in fields:
+                state["elements"].setdefault(field["key"], defaults[field["key"]])
+
+        handle_size = 8
+        resize_cursors = {
+            "nw": "top_left_corner", "n": "sb_v_double_arrow", "ne": "top_right_corner",
+            "e": "sb_h_double_arrow", "se": "bottom_right_corner", "s": "sb_v_double_arrow",
+            "sw": "bottom_left_corner", "w": "sb_h_double_arrow"
+        }
+
+        def draw_grid():
+            canvas.delete("grid")
+            w, h = canvas_size()
+            for x in range(0, w + grid_size, grid_size):
+                canvas.create_line(x, 0, x, h, fill=grid_color, width=1, tags="grid")
+            for y in range(0, h + grid_size, grid_size):
+                canvas.create_line(0, y, w, y, fill=grid_color, width=1, tags="grid")
+            canvas.tag_lower("grid")
+
+        def item_fill(item_id):
+            if item_id == "__preview__":
+                return "#8255a5"
+            field = next((f for f in fields if f.get("key") == item_id), {})
+            return self.get_field_color(field) or "#3B8ED0"
+
+        def label_for(item_id):
+            if item_id == "__preview__":
+                return "PDF Preview"
+            field = next((f for f in fields if f.get("key") == item_id), {})
+            return field.get("label", item_id)
+
+        def handle_boxes(box):
+            x, y, w, h = box["x"], box["y"], box["width"], box["height"]
+            pts = {
+                "nw": (x, y), "n": (x + w/2, y), "ne": (x + w, y),
+                "e": (x + w, y + h/2), "se": (x + w, y + h),
+                "s": (x + w/2, y + h), "sw": (x, y + h), "w": (x, y + h/2)
+            }
+            out = {}
+            for name, (cx, cy) in pts.items():
+                out[name] = (cx-handle_size, cy-handle_size, cx+handle_size, cy+handle_size)
+            return out
+
+        def redraw():
+            canvas.delete("all")
+            state["items"].clear()
+            draw_grid()
+            for item_id, box in state["elements"].items():
+                fill = item_fill(item_id)
+                outline = "#ffffff" if state.get("selected") == item_id else "#a8a8a8"
+                rect = canvas.create_rectangle(
+                    box["x"], box["y"], box["x"] + box["width"], box["y"] + box["height"],
+                    fill=fill, outline=outline, width=2,
+                    tags=("element", f"item:{item_id}")
+                )
+                text = canvas.create_text(
+                    box["x"] + box["width"] / 2,
+                    box["y"] + box["height"] / 2,
+                    text=label_for(item_id), fill="white",
+                    font=(self.font_family, max(10, self.font_size - 1), "bold"),
+                    width=max(60, box["width"] - 18),
+                    tags=("element", f"item:{item_id}")
+                )
+                state["items"][item_id] = {"rect": rect, "text": text}
+
+                if state.get("selected") == item_id:
+                    for handle, hb in handle_boxes(box).items():
+                        canvas.create_rectangle(
+                            *hb, fill="#ffffff", outline="#333333", width=1,
+                            tags=("resize_handle", f"item:{item_id}", f"handle:{handle}")
+                        )
+            canvas.tag_lower("grid")
+
+        def parse_tags(canvas_id):
+            tags = canvas.gettags(canvas_id)
+            item_id = next((t.split(":",1)[1] for t in tags if t.startswith("item:")), None)
+            handle = next((t.split(":",1)[1] for t in tags if t.startswith("handle:")), None)
+            return item_id, handle
+
+        def press(event):
+            found = canvas.find_overlapping(event.x, event.y, event.x, event.y)
+            if not found:
+                state["selected"] = None
+                redraw()
+                return
+            target = found[-1]
+            item_id, handle = parse_tags(target)
+            if not item_id:
+                return
+            state["selected"] = item_id
+            state["drag"] = item_id
+            state["mode"] = handle or "move"
+            state["start_x"] = event.x
+            state["start_y"] = event.y
+            state["start_box"] = dict(state["elements"][item_id])
+            redraw()
+
+        def motion(event):
+            item_id = state.get("drag")
+            if not item_id:
+                return
+            box = dict(state["start_box"])
+            dx = event.x - state["start_x"]
+            dy = event.y - state["start_y"]
+            mode = state.get("mode") or "move"
+            min_w = 180 if item_id == "__preview__" else 120
+            selected_field = next((item for item in fields if item.get("key") == item_id), None)
+            min_h = 140 if item_id == "__preview__" else self.get_freeform_tile_min_height(selected_field)
+            cw, ch = canvas_size()
+
+            if mode == "move":
+                nx = snap(box["x"] + dx)
+                ny = snap(box["y"] + dy)
+                box["x"] = clamp(nx, 0, max(0, cw - box["width"]))
+                box["y"] = clamp(ny, 0, max(0, ch - box["height"]))
+            else:
+                left = box["x"]
+                top = box["y"]
+                right = box["x"] + box["width"]
+                bottom = box["y"] + box["height"]
+
+                if "w" in mode:
+                    left = snap(box["x"] + dx)
+                    left = clamp(left, 0, right - min_w)
+                if "e" in mode:
+                    right = snap(box["x"] + box["width"] + dx)
+                    right = clamp(right, left + min_w, cw)
+                if "n" in mode:
+                    top = snap(box["y"] + dy)
+                    top = clamp(top, 0, bottom - min_h)
+                if "s" in mode:
+                    bottom = snap(box["y"] + box["height"] + dy)
+                    bottom = clamp(bottom, top + min_h, ch)
+
+                box["x"] = left
+                box["y"] = top
+                box["width"] = right - left
+                box["height"] = bottom - top
+
+            state["elements"][item_id] = box
+            redraw()
+
+        def release(_event):
+            state["drag"] = None
+            state["mode"] = None
+            state["start_box"] = None
+
+        def on_motion_cursor(event):
+            found = canvas.find_overlapping(event.x, event.y, event.x, event.y)
+            cursor = ""
+            if found:
+                item_id, handle = parse_tags(found[-1])
+                if handle:
+                    cursor = resize_cursors.get(handle, "crosshair")
+                elif item_id:
+                    cursor = "fleur"
+            try:
+                canvas.configure(cursor=cursor)
+            except tk.TclError:
+                pass
+
+        def on_configure(_event=None):
+            # Keep existing positions stable while resizing the designer window.
+            redraw()
+
+        canvas.bind("<ButtonPress-1>", press)
+        canvas.bind("<B1-Motion>", motion)
+        canvas.bind("<ButtonRelease-1>", release)
+        canvas.bind("<Motion>", on_motion_cursor)
+        canvas.bind("<Configure>", on_configure)
+
+        footer = ctk.CTkFrame(win, fg_color="transparent")
+        footer.pack(fill="x", padx=18, pady=(0, 14))
+
+        def save_layout():
+            # Save the field rectangles themselves, but make the logical surface
+            # describe the USED tile area instead of the entire designer window.
+            # This makes the designer WYSIWYG even when the window is maximized or
+            # contains lots of unused grid below/right of the fields.
+            elements = {}
+            for item_id, box in state["elements"].items():
+                elements[item_id] = {
+                    "x": int(round(box["x"])),
+                    "y": int(round(box["y"])),
+                    "width": int(round(box["width"])),
+                    "height": int(round(box["height"]))
+                }
+
+            used = list(elements.values())
+            if used:
+                min_x = min(box["x"] for box in used)
+                min_y = min(box["y"] for box in used)
+                max_right = max(box["x"] + box["width"] for box in used)
+                max_bottom = max(box["y"] + box["height"] for box in used)
+                pad = 24
+                logical_w = max(320, max_right - min_x + pad * 2)
+                logical_h = max(120, max_bottom - min_y + pad * 2)
+            else:
+                logical_w, logical_h = 640, 420
+
+            definition["layout_snap_to_grid"] = bool(snap_var.get())
+            definition["custom_layout"] = {
+                "enabled": True,
+                "version": 4,
+                "snap_to_grid": bool(snap_var.get()),
+                "grid_size": grid_size,
+                "surface": {"width": logical_w, "height": logical_h},
+                "elements": elements
+            }
+            self.rebuild_runtime_workspaces()
+            self.save_settings()
+            self.refresh_open_sessions_for_workspace_fields(workspace_name)
+            self.refresh_workspace_settings_editor(workspace_name)
+            win.destroy()
+
+        ctk.CTkLabel(
+            footer,
+            text="Tip: this designer controls the field tiles only. The PDF viewer remains fixed on the right.",
+            text_color="#888888",
+            font=(self.font_family, max(10, self.font_size - 2))
+        ).pack(side="left")
+        ctk.CTkButton(footer, text="Cancel", width=95, command=win.destroy).pack(side="right", padx=(6,0))
+        ctk.CTkButton(footer, text="Save Layout", width=120, command=save_layout).pack(side="right")
+
+        win.after(50, redraw)
 
     def get_workspace_settings(self, workspace_name):
         if workspace_name not in self.settings.get("workspaces", {}):
@@ -2812,6 +3496,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
         try:
             editor_bg, _editor_fg, token_bg, token_fg = self._filename_editor_colors()
             label_text = self.get_filename_token_label(workspace_name, token)
+            field_color = self.get_field_color(token)
+            if field_color:
+                token_bg = field_color
+                token_fg = self.contrast_text_for_hex(field_color, token_fg)
 
             token_frame = tk.Frame(editor, bg=editor_bg, bd=0, highlightthickness=0)
             token_label = tk.Label(
@@ -3283,6 +3971,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "options": ["Other"],
             "condition": None,
             "placement": "standard",
+            "color": "",
             "system": False
         }
         self.save_settings()
@@ -3316,6 +4005,41 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.refresh_custom_field_selector()
         self.refresh_workspace_field_assignment()
         self.refresh_open_sessions_for_workspace_fields()
+
+    def normalize_field_color(self, value):
+        raw = str(value or "").strip()
+        if not raw:
+            return ""
+        if re.fullmatch(r"[0-9A-Fa-f]{6}", raw):
+            raw = "#" + raw
+        if re.fullmatch(r"#[0-9A-Fa-f]{3}", raw):
+            raw = "#" + "".join(char * 2 for char in raw[1:])
+        if not re.fullmatch(r"#[0-9A-Fa-f]{6}", raw):
+            raise ValueError("Field color must be a hex color such as #3B8ED0.")
+        return raw.upper()
+
+    def get_field_color(self, field_or_key):
+        if isinstance(field_or_key, dict):
+            raw = field_or_key.get("color", "")
+        else:
+            raw = self.settings.get("custom_fields", {}).get(str(field_or_key), {}).get("color", "")
+        try:
+            return self.normalize_field_color(raw)
+        except ValueError:
+            return ""
+
+    def contrast_text_for_hex(self, color, fallback="#FFFFFF"):
+        try:
+            normalized = self.normalize_field_color(color)
+            if not normalized:
+                return fallback
+            red = int(normalized[1:3], 16)
+            green = int(normalized[3:5], 16)
+            blue = int(normalized[5:7], 16)
+            luminance = (0.299 * red) + (0.587 * green) + (0.114 * blue)
+            return "#000000" if luminance > 165 else "#FFFFFF"
+        except Exception:
+            return fallback
 
     def show_custom_field_editor(self, display_or_key):
         key = self.custom_field_display_to_key.get(display_or_key, display_or_key)
@@ -3357,6 +4081,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         autofill_var = ctk.BooleanVar(value=bool(field.get("autofill", True)))
         title_case_var = ctk.BooleanVar(value=bool(field.get("title_case", False)))
         date_format_var = ctk.StringVar(value=field.get("date_format", "M-D-YYYY"))
+        color_var = ctk.StringVar(value=field.get("color", ""))
         condition_enabled_var = ctk.BooleanVar(value=isinstance(field.get("condition"), dict))
 
         row_index = 0
@@ -3383,6 +4108,34 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         add_label("Default value")
         CTkEntry(grid, textvariable=default_var).grid(row=row_index, column=1, sticky="ew", pady=4)
+        row_index += 1
+
+        add_label("Field color (hex)")
+        color_row = ctk.CTkFrame(grid, fg_color="transparent")
+        color_row.grid(row=row_index, column=1, sticky="ew", pady=4)
+        color_row.grid_columnconfigure(0, weight=1)
+        color_entry = CTkEntry(color_row, textvariable=color_var, placeholder_text="#3B8ED0")
+        color_entry.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+        color_swatch = ctk.CTkLabel(color_row, text="■", width=28, font=(self.font_family, self.font_size + 6))
+        color_swatch.grid(row=0, column=1, padx=(0, 6))
+
+        def refresh_color_swatch(*_args):
+            try:
+                swatch_color = self.normalize_field_color(color_var.get()) or "#888888"
+            except ValueError:
+                swatch_color = "#888888"
+            color_swatch.configure(text_color=swatch_color)
+
+        def choose_field_color():
+            initial = self.get_field_color({"color": color_var.get()}) or "#3B8ED0"
+            chosen = colorchooser.askcolor(color=initial, parent=self)[1]
+            if chosen:
+                color_var.set(chosen.upper())
+
+        ctk.CTkButton(color_row, text="Pick...", width=70, command=choose_field_color).grid(row=0, column=2, padx=(0, 4))
+        ctk.CTkButton(color_row, text="Clear", width=60, command=lambda: color_var.set("")).grid(row=0, column=3)
+        color_var.trace_add("write", refresh_color_swatch)
+        refresh_color_swatch()
         row_index += 1
 
         toggles = ctk.CTkFrame(bubble, fg_color="transparent")
@@ -3485,6 +4238,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
             field["autofill"] = bool(autofill_var.get())
             field["title_case"] = bool(title_case_var.get())
             field["date_format"] = date_format_var.get() if date_format_var.get() in DATE_FORMATS else "M-D-YYYY"
+            try:
+                field["color"] = self.normalize_field_color(color_var.get())
+            except ValueError as error:
+                messagebox.showerror("Invalid Field Color", str(error))
+                return
 
             raw_default = default_var.get().strip()
             if new_type in {"checkbox", "toggle"}:
@@ -3550,10 +4308,22 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.available_fields_list.delete(0, "end")
         for key in available:
             self.available_fields_list.insert("end", self._field_display_name(key))
+            color = self.get_field_color(key)
+            if color:
+                try:
+                    self.available_fields_list.itemconfig(self.available_fields_list.size() - 1, foreground=color)
+                except tk.TclError:
+                    pass
 
         self.assigned_fields_list.delete(0, "end")
         for key in assigned:
             self.assigned_fields_list.insert("end", self._field_display_name(key))
+            color = self.get_field_color(key)
+            if color:
+                try:
+                    self.assigned_fields_list.itemconfig(self.assigned_fields_list.size() - 1, foreground=color)
+                except tk.TclError:
+                    pass
 
     def assign_selected_field(self):
         selection = self.available_fields_list.curselection()
@@ -3595,6 +4365,12 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.assigned_fields_list.delete(0, "end")
         for item in self.assignment_assigned_keys:
             self.assigned_fields_list.insert("end", self._field_display_name(item))
+            color = self.get_field_color(item)
+            if color:
+                try:
+                    self.assigned_fields_list.itemconfig(self.assigned_fields_list.size() - 1, foreground=color)
+                except tk.TclError:
+                    pass
         self.assigned_fields_list.selection_set(new_index)
         self._assignment_drag_index = new_index
 
@@ -3694,7 +4470,14 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 return
 
             try:
-                widget.configure(font=font)
+                if getattr(widget, "_cleancut_note_label", False):
+                    widget.configure(font=ctk.CTkFont(
+                        family=self.font_family,
+                        size=max(10, self.font_size - 1),
+                        slant="italic"
+                    ))
+                else:
+                    widget.configure(font=font)
             except Exception:
                 pass
 
@@ -3909,6 +4692,31 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return bool(field.get("default", False))
         return field.get("default", "")
 
+    def get_freeform_tile_min_height(self, field=None):
+        """Return the minimum on-screen height needed by a tiled field.
+
+        A tiled field contains a label band and a control band.  Earlier builds
+        made the child control taller without guaranteeing that the tile itself
+        was tall enough, so the bottom border was clipped and the next tile
+        painted over it.  This value is shared by the designer and renderer and
+        grows with the user's font size.
+        """
+        try:
+            font_size = max(10, int(self.font_size))
+        except Exception:
+            font_size = 12
+
+        label_band = max(30, font_size + 12)
+        control_band = max(46, font_size + 24)
+        padding_and_gap = 16
+        minimum = label_band + control_band + padding_and_gap
+
+        field_type = (field or {}).get("type", "text")
+        if field_type in {"checkbox", "toggle", "bool"}:
+            minimum = max(minimum, 88)
+
+        return max(96, minimum)
+
     def capture_workspace_data(self, session):
         workspace_name = session.get("workspace", "Accounting")
         entries = session.get("entries", [])
@@ -4010,6 +4818,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def update_future_date_setting(self):
         suppress = not self.future_date_popup_var.get()
         self.settings["suppressFutureDateWarning"] = suppress
+        self.save_settings()
+
+    def update_no_split_warning_setting(self):
+        suppress = not self.no_split_warning_var.get()
+        self.settings["suppressNoSplitWarning"] = suppress
         self.save_settings()
 
     def save_setting(self, key, value):
@@ -4497,14 +5310,73 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return
         if len(reader.pages) <= 1:
             return
+        if self.settings.get("suppressNoSplitWarning", False):
+            return
 
         file_name = Path(path).name if path else "this PDF"
-        messagebox.showwarning(
-            "No Split Markers Detected",
-            f"CleanCutPDF did not detect any SPLIT HERE pages in {file_name}.\n\n"
-            "The PDF was loaded as one part. If SPLIT HERE sheets are visible in the scan, "
-            "the scanner may not have created a readable text/OCR layer."
+        popup = tk.Toplevel(self)
+        popup.title("No Split Markers Detected")
+        popup.transient(self)
+        popup.grab_set()
+        popup.resizable(False, False)
+        popup.attributes("-topmost", True)
+
+        width = 520
+        height = 245
+        self.update_idletasks()
+        x = self.winfo_rootx() + max(0, (self.winfo_width() - width) // 2)
+        y = self.winfo_rooty() + max(0, (self.winfo_height() - height) // 2)
+        popup.geometry(f"{width}x{height}+{x}+{y}")
+
+        bubble_color, border_color = self.get_log_bubble_colors()
+        frame = ctk.CTkFrame(
+            popup, fg_color=bubble_color, border_color=border_color,
+            border_width=2, corner_radius=10
         )
+        frame.pack(fill="both", expand=True, padx=14, pady=14)
+
+        ctk.CTkLabel(
+            frame,
+            text="No SPLIT HERE pages were detected",
+            font=(self.font_family, self.font_size + 2, "bold")
+        ).pack(pady=(18, 8))
+
+        ctk.CTkLabel(
+            frame,
+            text=(
+                f"CleanCutPDF did not detect any SPLIT HERE pages in {file_name}.\n\n"
+                "The PDF will be loaded as one part. If SPLIT HERE sheets are visible in the scan, "
+                "the scanner may not have created a readable text/OCR layer."
+            ),
+            wraplength=455,
+            justify="center",
+            font=(self.font_family, self.font_size)
+        ).pack(padx=18, pady=(0, 10))
+
+        suppress_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            frame,
+            text="Do not display this warning again",
+            variable=suppress_var
+        ).pack(pady=(0, 12))
+
+        def close_warning():
+            if suppress_var.get():
+                self.settings["suppressNoSplitWarning"] = True
+                self.save_settings()
+                if hasattr(self, "no_split_warning_var"):
+                    self.no_split_warning_var.set(False)
+                debug("No-split warning suppressed by user", "saved")
+            try:
+                popup.grab_release()
+            except tk.TclError:
+                pass
+            popup.destroy()
+
+        ctk.CTkButton(frame, text="Continue", width=110, command=close_warning).pack(pady=(0, 14))
+        popup.protocol("WM_DELETE_WINDOW", close_warning)
+        popup.after(60, popup.focus_force)
+        self.wait_window(popup)
 
     def make_autofill_handler(self, field, var, index, entries_ref):
         prev_val = {"last": var.get()}
@@ -4635,20 +5507,66 @@ class PDFSplitterApp(TkinterDnD.Tk):
         return str(actual).strip().casefold() == expected.strip().casefold()
 
     def refresh_entry_conditional_fields(self, entry, profile):
+        """Show/hide conditional fields without changing their layout manager.
+
+        Automatic/legacy layouts use grid(), while the visual Workspace Designer
+        uses place(). Calling grid() on a placed tile destroys its saved freeform
+        geometry, so remember the manager for each field and restore it using the
+        matching geometry system.
+        """
+        managers = entry.get("field_layout_managers", {})
+        place_info = entry.get("field_place_info", {})
+
         for field in profile.get("fields", []):
             key = field.get("key")
             container = entry.get("field_containers", {}).get(key)
             if container is None:
                 continue
+
             visible = self.field_is_visible(entry, field)
             entry.setdefault("field_visibility", {})[key] = visible
+            manager = managers.get(key, "grid")
+
             try:
-                if visible:
-                    container.grid()
+                if manager == "place":
+                    if visible:
+                        geometry = place_info.get(key)
+                        if geometry:
+                            container.place(**geometry)
+                    else:
+                        container.place_forget()
                 else:
-                    container.grid_remove()
+                    if visible:
+                        container.grid()
+                    else:
+                        container.grid_remove()
             except tk.TclError:
                 pass
+
+    def render_workspace_note(self, parent, note, row):
+        text = str(note.get("text", "")).strip()
+        if not text:
+            return row
+
+        note_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        note_frame.grid(row=row, column=0, sticky="ew", padx=12, pady=(4, 3))
+        note_font = ctk.CTkFont(
+            family=self.font_family,
+            size=max(10, self.font_size - 1),
+            slant="italic"
+        )
+        note_label = ctk.CTkLabel(
+            note_frame,
+            text=text,
+            font=note_font,
+            text_color="#888888",
+            wraplength=455,
+            justify="left",
+            anchor="w"
+        )
+        note_label._cleancut_note_label = True
+        note_label.pack(fill="x")
+        return row + 1
 
     def render_splitter_tab(self, tab_frame, session):
         for widget in tab_frame.winfo_children():
@@ -4703,8 +5621,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
         content = ctk.CTkFrame(bubble)
         content.pack(fill="both", expand=True, padx=10, pady=10)
 
-        form_frame = ctk.CTkScrollableFrame(content, width=520)
-        form_frame.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        custom_layout = profile.get("custom_layout") if isinstance(profile.get("custom_layout"), dict) else None
+        freeform_workspace = bool(
+            custom_layout and custom_layout.get("enabled") and int(custom_layout.get("version", 1)) >= 2
+        )
+
+        # The PDF viewer is intentionally static and singular. Custom workspace
+        # layouts control only the field tiles on the left.
+        form_frame = ctk.CTkScrollableFrame(content, width=620)
+        form_frame.pack(side="left", fill="both", expand=True, padx=(0, 10), pady=6)
         session["parts_frame"] = form_frame
 
         client_box = ctk.CTkFrame(form_frame, fg_color="transparent")
@@ -4732,9 +5657,16 @@ class PDFSplitterApp(TkinterDnD.Tk):
             part_title = ctk.CTkLabel(
                 header,
                 text=f"Part {part_number} — Pages {r['start'] + 1} to {r['end'] + 1}",
-                font=(self.font_family, self.font_size + 1, "bold")
+                font=(self.font_family, self.font_size + 1, "bold"),
+                text_color="#3B8ED0",
+                cursor="hand2"
             )
             part_title.pack(side="left")
+            part_title.bind(
+                "<Button-1>",
+                lambda _event, s=session, page=r["start"], pi=part_index: self.jump_pdf_preview_to_page(s, page, pi)
+            )
+            self.add_tooltip(part_title, f"Click to preview page {r['start'] + 1}")
             session["widgets_to_scale"].append(part_title)
 
             entry = {
@@ -4743,23 +5675,34 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 "field_widgets": {},
                 "field_containers": {},
                 "field_visibility": {},
+                "field_layout_managers": {},
+                "field_place_info": {},
                 "choice_display_vars": {},
                 "choice_other_vars": {}
             }
             session["entries"].append(entry)
 
-            # Header toggles / checkboxes.
+            # Header toggles / checkboxes remain in the legacy header only while
+            # the workspace is using the automatic layout. In a custom layout,
+            # every assigned field (including Revoked/toggles) becomes movable.
             for field in profile.get("fields", []):
+                if custom_layout and custom_layout.get("enabled"):
+                    continue
                 if field.get("placement") != "header":
                     continue
                 key = field["key"]
                 default = self.get_workspace_field_default(workspace_name, field)
                 saved = self.get_workspace_saved_value(session, workspace_name, part_index, key, default)
                 variable = ctk.BooleanVar(value=bool(saved))
+                field_color = self.get_field_color(field)
                 if field.get("type") == "checkbox":
                     widget = ctk.CTkCheckBox(header, text=field["label"], variable=variable)
+                    if field_color:
+                        widget.configure(text_color=field_color, border_color=field_color, fg_color=field_color)
                 else:
                     widget = ctk.CTkSwitch(header, text=field["label"], variable=variable)
+                    if field_color:
+                        widget.configure(text_color=field_color, progress_color=field_color)
                 widget.pack(side="right", padx=(8, 0))
                 entry["field_vars"][key] = variable
                 entry["field_widgets"][key] = widget
@@ -4768,27 +5711,178 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
             fields_frame = ctk.CTkFrame(part_card, fg_color="transparent")
             fields_frame.pack(fill="x", padx=0, pady=(4, 6))
-            fields_frame.grid_columnconfigure(0, weight=1)
+            freeform_layout = bool(custom_layout and custom_layout.get("enabled") and int(custom_layout.get("version", 1)) >= 2)
+            if freeform_layout:
+                # A freeform workspace should be sized from the tiles that are actually
+                # being used, NOT from the whole designer window. Earlier builds saved
+                # the entire large canvas as the surface, so a small cluster of fields
+                # in the upper-left got dramatically shrunk at runtime.
+                raw_elements = custom_layout.get("elements", {}) if isinstance(custom_layout.get("elements"), dict) else {}
+                active_keys = {field.get("key") for field in profile.get("fields", []) if field.get("key")}
+                active_boxes = [
+                    box for key, box in raw_elements.items()
+                    if key in active_keys and isinstance(box, dict)
+                ]
 
-            standard_fields = [f for f in profile.get("fields", []) if f.get("placement") != "header"]
-            for field_row, field in enumerate(standard_fields):
+                layout_pad = 24
+                if active_boxes:
+                    try:
+                        min_x = min(max(0, int(box.get("x", 0))) for box in active_boxes)
+                        min_y = min(max(0, int(box.get("y", 0))) for box in active_boxes)
+                        max_right = max(
+                            max(0, int(box.get("x", 0))) + max(120, int(box.get("width", 240)))
+                            for box in active_boxes
+                        )
+                        max_bottom = max(
+                            max(0, int(box.get("y", 0))) + max(84, int(box.get("height", 84)))
+                            for box in active_boxes
+                        )
+                    except Exception:
+                        min_x, min_y, max_right, max_bottom = 0, 0, 640, 420
+                else:
+                    min_x, min_y, max_right, max_bottom = 0, 0, 640, 420
+
+                layout_origin_x = min_x - layout_pad
+                layout_origin_y = min_y - layout_pad
+                layout_surface_w = max(320, (max_right - min_x) + layout_pad * 2)
+                layout_surface_h = max(120, (max_bottom - min_y) + layout_pad * 2)
+                surface_ratio = layout_surface_h / max(1, layout_surface_w)
+
+                # The runtime may have much less vertical room than the designer.
+                # Guarantee that every placed tile still receives enough physical
+                # pixels for its label and input. Expanding the whole surface also
+                # expands the spacing between rows, so tiles never paint over one
+                # another.
+                field_by_key = {
+                    field.get("key"): field
+                    for field in profile.get("fields", [])
+                    if field.get("key")
+                }
+                minimum_runtime_surface_h = 150
+                for field_key, box in raw_elements.items():
+                    if field_key not in active_keys or not isinstance(box, dict):
+                        continue
+                    try:
+                        saved_height = max(1, int(box.get("height", 84)))
+                    except Exception:
+                        saved_height = 84
+                    tile_minimum = self.get_freeform_tile_min_height(field_by_key.get(field_key))
+                    required_surface = int((tile_minimum * layout_surface_h) / saved_height) + 1
+                    minimum_runtime_surface_h = max(minimum_runtime_surface_h, required_surface)
+
+                # Store the normalized bounds on the frame so every tile uses the
+                # exact same coordinate system below.
+                fields_frame._layout_origin_x = layout_origin_x
+                fields_frame._layout_origin_y = layout_origin_y
+                fields_frame._layout_surface_w = layout_surface_w
+                fields_frame._layout_surface_h = layout_surface_h
+                fields_frame._layout_min_runtime_height = minimum_runtime_surface_h
+
+                initial_surface_h = max(
+                    150,
+                    minimum_runtime_surface_h,
+                    int(620 * surface_ratio)
+                )
+                fields_frame.configure(height=min(2400, initial_surface_h))
+                fields_frame.pack_propagate(False)
+
+                def _keep_custom_surface_aspect(
+                    event,
+                    frame=fields_frame,
+                    ratio=surface_ratio,
+                    minimum_height=minimum_runtime_surface_h
+                ):
+                    try:
+                        if event.width <= 1:
+                            return
+                        desired = max(minimum_height, int(round(event.width * ratio)))
+                        desired = max(150, min(2400, desired))
+                        if abs(frame.winfo_height() - desired) > 2:
+                            frame.configure(height=desired)
+                    except tk.TclError:
+                        pass
+
+                fields_frame.bind("<Configure>", _keep_custom_surface_aspect, add="+")
+            else:
+                for grid_col in range(3):
+                    fields_frame.grid_columnconfigure(grid_col, weight=1)
+
+            standard_fields = (list(profile.get("fields", [])) if custom_layout and custom_layout.get("enabled") else [f for f in profile.get("fields", []) if f.get("placement") != "header"])
+            workspace_notes = profile.get("notes", [])
+            field_row = 0
+            if not (custom_layout and custom_layout.get("enabled")):
+                for note in workspace_notes:
+                    if note.get("before_field") == "__top__":
+                        field_row = self.render_workspace_note(fields_frame, note, field_row)
+
+            for field in standard_fields:
                 key = field["key"]
+                if not (custom_layout and custom_layout.get("enabled")):
+                    for note in workspace_notes:
+                        if note.get("before_field") == key:
+                            field_row = self.render_workspace_note(fields_frame, note, field_row)
                 field_type = field.get("type", "text")
                 default = self.get_workspace_field_default(workspace_name, field)
                 saved = self.get_workspace_saved_value(session, workspace_name, part_index, key, default)
 
                 outer = ctk.CTkFrame(fields_frame, fg_color="transparent")
-                outer.grid(row=field_row, column=0, sticky="ew", padx=0, pady=0)
+                if freeform_layout:
+                    box = custom_layout.get("elements", {}).get(key, {}) if isinstance(custom_layout.get("elements"), dict) else {}
+                    try:
+                        x = max(0, int(box.get("x", 20)))
+                        y = max(0, int(box.get("y", field_row * 82 + 30)))
+                        width = max(120, int(box.get("width", 420)))
+                        height = max(72, int(box.get("height", 84)))
+                    except Exception:
+                        x, y, width, height = 20, field_row * 92 + 30, 420, 84
+
+                    origin_x = getattr(fields_frame, "_layout_origin_x", 0)
+                    origin_y = getattr(fields_frame, "_layout_origin_y", 0)
+                    runtime_surface_w = max(1, getattr(fields_frame, "_layout_surface_w", 640))
+                    runtime_surface_h = max(1, getattr(fields_frame, "_layout_surface_h", 420))
+
+                    # Map only the USED designer area into the Part card. This keeps
+                    # the visual proportions the user actually arranged instead of
+                    # shrinking them to account for unused empty canvas space.
+                    geometry = {
+                        "relx": (x - origin_x) / runtime_surface_w,
+                        "rely": (y - origin_y) / runtime_surface_h,
+                        "relwidth": min(1.0, width / runtime_surface_w),
+                        "relheight": min(1.0, height / runtime_surface_h)
+                    }
+                    outer.place(**geometry)
+                    entry["field_layout_managers"][key] = "place"
+                    entry["field_place_info"][key] = geometry
+                elif custom_layout and custom_layout.get("enabled"):
+                    position = custom_layout.get("field_positions", {}).get(key, {})
+                    grid_row = int(position.get("row", field_row))
+                    grid_col = max(0, min(2, int(position.get("col", 0))))
+                    grid_span = max(1, min(3 - grid_col, int(position.get("span", 3))))
+                    outer.grid(row=grid_row, column=grid_col, columnspan=grid_span, sticky="ew", padx=3, pady=2)
+                    entry["field_layout_managers"][key] = "grid"
+                else:
+                    outer.grid(row=field_row, column=0, columnspan=3, sticky="ew", padx=0, pady=0)
+                    entry["field_layout_managers"][key] = "grid"
                 entry["field_containers"][key] = outer
 
                 label_row = ctk.CTkFrame(outer, fg_color="transparent")
-                label_row.pack(anchor="w", padx=12, pady=(6, 0), fill="x")
+                if freeform_layout:
+                    # Give labels their own fixed band at the top of the tile so
+                    # they can never overlap the input control below.
+                    label_row.place(relx=0.02, rely=0.03, relwidth=0.96, relheight=0.31)
+                    label_row.pack_propagate(False)
+                else:
+                    label_row.pack(anchor="w", padx=12, pady=(6, 0), fill="x")
                 display_label = field.get("label", key.replace("_", " ").title())
                 if field_type == "date":
                     display_label = f"{display_label} ({field.get('date_format', 'M-D-YYYY')})"
                 if field.get("required"):
                     display_label += " *"
-                label = ctk.CTkLabel(label_row, text=display_label)
+                field_color = self.get_field_color(field)
+                label_kwargs = {"text": display_label}
+                if field_color:
+                    label_kwargs["text_color"] = field_color
+                label = ctk.CTkLabel(label_row, **label_kwargs)
                 label.pack(side="left")
                 session["widgets_to_scale"].append(label)
 
@@ -4800,11 +5894,23 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
                 if field_type in {"checkbox", "toggle", "bool"}:
                     variable = ctk.BooleanVar(value=bool(saved))
+                    control_parent = outer
+                    if freeform_layout:
+                        control_parent = ctk.CTkFrame(outer, fg_color="transparent")
+                        control_parent.place(relx=0.02, rely=0.40, relwidth=0.96, relheight=0.56)
+                        control_parent.pack_propagate(False)
                     if field_type == "checkbox":
-                        widget = ctk.CTkCheckBox(outer, text="", variable=variable)
+                        widget = ctk.CTkCheckBox(control_parent, text="", variable=variable)
+                        if field_color:
+                            widget.configure(border_color=field_color, fg_color=field_color)
                     else:
-                        widget = ctk.CTkSwitch(outer, text="", variable=variable)
-                    widget.pack(anchor="w", padx=12, pady=(2, 8))
+                        widget = ctk.CTkSwitch(control_parent, text="", variable=variable)
+                        if field_color:
+                            widget.configure(progress_color=field_color)
+                    if freeform_layout:
+                        widget.pack(anchor="w", padx=4, pady=4)
+                    else:
+                        widget.pack(anchor="w", padx=12, pady=(2, 8))
 
                 elif field_type == "choice":
                     options = [str(option) for option in field.get("options", []) if str(option).strip()]
@@ -4830,10 +5936,37 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     display_var = ctk.StringVar(value=initial_display)
                     other_var = ctk.StringVar(value=initial_other)
                     choice_row = ctk.CTkFrame(outer, fg_color="transparent")
-                    choice_row.pack(fill="x", padx=12, pady=(0, 5))
-                    choice_menu = ctk.CTkOptionMenu(choice_row, values=menu_options, variable=display_var)
-                    choice_menu.pack(side="left", fill="x", expand=True)
-                    other_entry = CTkEntry(choice_row, textvariable=other_var, placeholder_text="Other...")
+                    if freeform_layout:
+                        # Reserve the lower half of the tile for the actual input.
+                        # Using place here prevents the pack manager from shrinking
+                        # the row back down to the control's minimum requested size.
+                        choice_row.place(relx=0.02, rely=0.40, relwidth=0.96, relheight=0.56)
+                        choice_row.pack_propagate(False)
+                    else:
+                        choice_row.pack(fill="x", padx=12, pady=(0, 5))
+                    choice_menu_kwargs = {
+                        "values": menu_options,
+                        "variable": display_var
+                    }
+                    choice_menu = ctk.CTkOptionMenu(choice_row, **choice_menu_kwargs)
+                    if field_color:
+                        choice_menu.configure(button_color=field_color)
+                    choice_menu.pack(side="left", fill="both", expand=True)
+                    other_entry_kwargs = {
+                        "textvariable": other_var,
+                        "placeholder_text": "Other..."
+                    }
+                    other_entry = CTkEntry(choice_row, **other_entry_kwargs)
+
+                    if freeform_layout:
+                        def _fit_choice_controls(event, controls=(choice_menu, other_entry)):
+                            height = max(28, int(event.height))
+                            for control in controls:
+                                try:
+                                    control.configure(height=height)
+                                except (tk.TclError, ValueError):
+                                    pass
+                        choice_row.bind("<Configure>", _fit_choice_controls, add="+")
 
                     sync_guard = {"busy": False}
                     def update_effective_from_display(selected=None, ev=effective_var, dv=display_var,
@@ -4850,7 +5983,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                                 ev.set("")
                             elif str(selected_value).casefold() == str(other_name).casefold():
                                 if not oe.winfo_manager():
-                                    oe.pack(side="left", fill="x", expand=True, padx=(8, 0))
+                                    oe.pack(side="left", fill="both", expand=True, padx=(8, 0))
                                 ev.set(ov.get())
                             else:
                                 if oe.winfo_manager():
@@ -4883,7 +6016,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                                 dv.set(other_name)
                                 ov.set(value)
                                 if not oe.winfo_manager():
-                                    oe.pack(side="left", fill="x", expand=True, padx=(8, 0))
+                                    oe.pack(side="left", fill="both", expand=True, padx=(8, 0))
                             else:
                                 dv.set(value)
                         finally:
@@ -4899,18 +6032,47 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 else:
                     variable = ctk.StringVar(value=str(saved) if saved is not None else "")
                     input_row = ctk.CTkFrame(outer, fg_color="transparent")
-                    input_row.pack(fill="x", padx=12, pady=(0, 5 if field_type != "date" else 8))
-                    widget = CTkEntry(
-                        input_row, textvariable=variable,
-                        placeholder_text=field.get("placeholder", "")
-                    )
-                    widget.pack(side="left", fill="x", expand=True)
+                    if freeform_layout:
+                        # In a tiled workspace the tile owns the height. Place a
+                        # dedicated input row in the lower portion and make its
+                        # children fill that row. This fixes the skinny one-line
+                        # controls that remained even when CTkEntry(height=...) was set.
+                        input_row.place(relx=0.02, rely=0.40, relwidth=0.96, relheight=0.56)
+                        input_row.pack_propagate(False)
+                    else:
+                        input_row.pack(fill="x", padx=12, pady=(0, 5 if field_type != "date" else 8))
+                    entry_kwargs = {
+                        "textvariable": variable,
+                        "placeholder_text": field.get("placeholder", "")
+                    }
+                    if field_color:
+                        entry_kwargs["border_color"] = field_color
+                    widget = CTkEntry(input_row, **entry_kwargs)
+                    widget.pack(side="left", fill="both", expand=True)
 
+                    row_controls = [widget]
                     if field_type == "date":
-                        ctk.CTkButton(
-                            input_row, text="Today", width=70,
-                            command=lambda v=variable, f=field: v.set(self.today_value_for_field(f))
-                        ).pack(side="left", padx=(8, 0))
+                        today_kwargs = {
+                            "text": "Today",
+                            "width": 70,
+                            "command": lambda v=variable, f=field: v.set(self.today_value_for_field(f))
+                        }
+                        if field_color:
+                            today_kwargs["fg_color"] = field_color
+                            today_kwargs["text_color"] = self.contrast_text_for_hex(field_color)
+                        today_button = ctk.CTkButton(input_row, **today_kwargs)
+                        today_button.pack(side="left", fill="y", padx=(8, 0))
+                        row_controls.append(today_button)
+
+                    if freeform_layout:
+                        def _fit_input_controls(event, controls=tuple(row_controls)):
+                            height = max(28, int(event.height))
+                            for control in controls:
+                                try:
+                                    control.configure(height=height)
+                                except (tk.TclError, ValueError):
+                                    pass
+                        input_row.bind("<Configure>", _fit_input_controls, add="+")
 
                     if field_type == "currency":
                         def normalize_currency(_event=None, v=variable):
@@ -4928,6 +6090,29 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 entry["field_widgets"][key] = widget
                 entry[key] = variable
                 session["widgets_to_scale"].append(widget)
+                field_row += 1
+
+            if freeform_layout:
+                # Keep reminder notes visible below the freeform field surface. Notes
+                # are still managed by the Workspace Notes editor and can be made
+                # draggable in a later designer pass without losing today's behavior.
+                if workspace_notes:
+                    notes_below = ctk.CTkFrame(part_card, fg_color="transparent")
+                    notes_below.pack(fill="x", padx=0, pady=(0, 6))
+                    notes_below.grid_columnconfigure(0, weight=1)
+                    note_row = 0
+                    for note in workspace_notes:
+                        note_row = self.render_workspace_note(notes_below, note, note_row)
+            elif custom_layout and custom_layout.get("enabled"):
+                positions = custom_layout.get("field_positions", {})
+                max_row = max([int(pos.get("row", 0)) for pos in positions.values() if isinstance(pos, dict)] + [0]) + 1
+                note_row = max_row
+                for note in workspace_notes:
+                    note_row = self.render_workspace_note(fields_frame, note, note_row)
+            else:
+                for note in workspace_notes:
+                    if note.get("before_field") == "__end__":
+                        field_row = self.render_workspace_note(fields_frame, note, field_row)
 
             # Autofill is attached only after every part has its variables.
             # For the current part, delay until the whole session loop is finished.
@@ -4960,14 +6145,12 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     )
             self.refresh_entry_conditional_fields(entry, profile)
 
+        # One static PDF viewer for the entire session. It does not repeat per
+        # Part and is not controlled by the Workspace Designer.
         preview_frame = ctk.CTkFrame(content, width=520)
         preview_frame.pack_propagate(False)
-        preview_frame.pack(side="left", fill="y", padx=10, pady=10)
-        ctk.CTkLabel(
-            preview_frame, text="Preview",
-            font=(self.font_family, self.font_size + 1, "bold")
-        ).pack(pady=(10, 5))
-        self.render_pdf_preview(session, preview_frame)
+        preview_frame.pack(side="right", fill="y", padx=(10, 0), pady=10)
+        self.render_pdf_preview(session, preview_frame, page_index=session.get("preview_page_index", 0))
 
         make_folder = ctk.CTkCheckBox(bubble, text="Make Client Folder", variable=self.make_client_folder_var)
         make_folder.pack(pady=(5, 0))
@@ -4984,6 +6167,66 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self._apply_font_size()
 
+        # Rendering/rebuilding a workspace can leave CustomTkinter's internal
+        # scroll canvas at its previous position. That makes the first Part look
+        # clipped even when the tile geometry is correct. Always start a newly
+        # rendered Parts pane at the top.
+        def _scroll_parts_to_top(frame=form_frame):
+            try:
+                canvas = getattr(frame, "_parent_canvas", None)
+                if canvas is not None and canvas.winfo_exists():
+                    canvas.yview_moveto(0.0)
+                    canvas.xview_moveto(0.0)
+            except (tk.TclError, AttributeError):
+                pass
+
+        self.after_idle(_scroll_parts_to_top)
+        self.after(75, _scroll_parts_to_top)
+
+    def jump_pdf_preview_to_page(self, session, page_index, part_index=None):
+        # part_index is accepted for backward compatibility, but there is only one
+        # static preview for the whole PDF session.
+        frame = session.get("preview_frame")
+        if frame is None:
+            return
+        try:
+            if not frame.winfo_exists():
+                return
+            page_count = int(session.get("preview_page_count", len(session.get("reader", {}).pages) if session.get("reader") else 0))
+            if page_count:
+                page_index = max(0, min(int(page_index), page_count - 1))
+            for widget in frame.winfo_children():
+                widget.destroy()
+            self.render_pdf_preview(session, frame, page_index=page_index)
+            debug(f"Preview jumped to page {page_index + 1}", "debug")
+        except (tk.TclError, ValueError, TypeError):
+            return
+
+    def jump_pdf_preview_to_entered_page(self, session, raw_value):
+        try:
+            page_number = int(str(raw_value).strip())
+        except (TypeError, ValueError):
+            messagebox.showwarning("Invalid Page", "Enter a valid page number.")
+            return
+
+        page_count = int(session.get("preview_page_count", 0) or 0)
+        if page_count <= 0:
+            return
+        if page_number < 1 or page_number > page_count:
+            messagebox.showwarning(
+                "Invalid Page",
+                f"Enter a page number from 1 to {page_count}."
+            )
+            return
+        self.jump_pdf_preview_to_page(session, page_number - 1)
+
+    def update_pdf_preview_page_in_frame(self, session, frame, offset):
+        try:
+            current = int(session.get("preview_page_index", getattr(frame, "_preview_page_index", 0)))
+            self.jump_pdf_preview_to_page(session, current + offset)
+        except Exception as error:
+            debug(f"Failed to update preview page: {error}", "error")
+
     def render_pdf_preview(self, session, frame, page_index=0):
         try:
             doc = fitz.open(str(session["path"]))
@@ -4999,9 +6242,16 @@ class PDFSplitterApp(TkinterDnD.Tk):
             pix = page.get_pixmap(matrix=mat)
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-            # Resize to fit preview panel
-            max_width = 365
-            max_height = 650
+            # Resize to fit the actual preview element. Freeform previews can be
+            # much smaller or larger than the legacy docked panel.
+            try:
+                frame.update_idletasks()
+                frame_width = frame.winfo_width()
+                frame_height = frame.winfo_height()
+            except tk.TclError:
+                frame_width, frame_height = 0, 0
+            max_width = max(120, (frame_width - 24) if frame_width > 40 else 365)
+            max_height = max(100, (frame_height - 175) if frame_height > 200 else 650)
             aspect_ratio = pix.height / pix.width
             target_width = max_width
             target_height = int(target_width * aspect_ratio)
@@ -5019,15 +6269,21 @@ class PDFSplitterApp(TkinterDnD.Tk):
             session["preview_page_index"] = page_index
             session["preview_frame"] = frame
             session["preview_page_count"] = page_count
+            frame._preview_page_index = page_index
 
             # === Controls ===
+            ctk.CTkLabel(
+                frame, text="Preview",
+                font=(self.font_family, self.font_size + 1, "bold")
+            ).pack(pady=(10, 2))
+
             control_frame = ctk.CTkFrame(frame, fg_color="transparent")
             control_frame.pack(pady=(10, 0))
 
             if page_index > 0:
                 prev_btn = ctk.CTkButton(
                     control_frame, text="← Prev", width=80,
-                    command=lambda: self.update_pdf_preview_page(session, -1)
+                    command=lambda f=frame: self.update_pdf_preview_page_in_frame(session, f, -1)
                 )
                 prev_btn.pack(side="left", padx=5)
 
@@ -5040,9 +6296,26 @@ class PDFSplitterApp(TkinterDnD.Tk):
             if page_index < page_count - 1:
                 next_btn = ctk.CTkButton(
                     control_frame, text="Next →", width=80,
-                    command=lambda: self.update_pdf_preview_page(session, 1)
+                    command=lambda f=frame: self.update_pdf_preview_page_in_frame(session, f, 1)
                 )
                 next_btn.pack(side="left", padx=5)
+
+            # === Direct page jump ===
+            jump_row = ctk.CTkFrame(frame, fg_color="transparent")
+            jump_row.pack(pady=(7, 0))
+            ctk.CTkLabel(jump_row, text="Page").pack(side="left", padx=(0, 5))
+            page_jump_var = ctk.StringVar(value=str(page_index + 1))
+            page_jump_entry = CTkEntry(jump_row, textvariable=page_jump_var, width=62, justify="center")
+            page_jump_entry.pack(side="left")
+            ctk.CTkLabel(jump_row, text=f"of {page_count}").pack(side="left", padx=5)
+            ctk.CTkButton(
+                jump_row, text="Go", width=48,
+                command=lambda v=page_jump_var: self.jump_pdf_preview_to_entered_page(session, v.get())
+            ).pack(side="left", padx=(3, 0))
+            page_jump_entry.bind(
+                "<Return>",
+                lambda _e, v=page_jump_var: self.jump_pdf_preview_to_entered_page(session, v.get())
+            )
 
             # === Image Preview ===
             img_label = ctk.CTkLabel(frame, image=ctk_image, text="")
@@ -5245,19 +6518,28 @@ class PDFSplitterApp(TkinterDnD.Tk):
             def __missing__(self, key):
                 return ""
 
+        format_values = SafeValues(values)
+        check_number = str(format_values.get("check_number", "") or "").strip()
+        if check_number:
+            format_values["check_number"] = " " + check_number
+
         try:
-            base_name = template.format_map(SafeValues(values))
+            base_name = template.format_map(format_values)
         except (ValueError, AttributeError) as error:
             fallback = self.settings.get("workspaces", {}).get(workspace_name, {}).get(
                 "filename_template", "{client}_{date}"
             )
             debug(f"Invalid {workspace_name} filename template '{template}': {error}; using default", "warning")
             try:
-                base_name = fallback.format_map(SafeValues(values))
+                base_name = fallback.format_map(format_values)
             except Exception:
                 base_name = values.get("client", "Document")
 
         base_name = re.sub(r'[<>:"/\\|?*\x00-\x1F]', "_", base_name)
+        # Optional fields such as Check Number may be surrounded by literal spaces
+        # in a visual filename template. If the field is blank, remove the orphaned
+        # space immediately before an underscore separator ("ACH _Client" -> "ACH_Client").
+        base_name = re.sub(r"\s+_", "_", base_name)
         base_name = re.sub(r"_{2,}", "_", base_name)
         base_name = re.sub(r"\s{2,}", " ", base_name)
         base_name = base_name.strip(" _-")

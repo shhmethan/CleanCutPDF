@@ -1,0 +1,10 @@
+cd "C:\Users\Ethan\IdeaProjects\CleanCutPDF"
+C:\Users\Ethan\AppData\Local\Programs\Python\Python313\python.exe -m PyInstaller --noconfirm --clean --onefile --windowed --name CleanCutPDF --icon "FullApp\resources\favicon.ico" --add-data "FullApp\resources;resources" --collect-all customtkinter --collect-all tkinterdnd2 --distpath "dist" --workpath "build\CleanCutPDF" "FullApp\pdf_splitter.py"
+C:\Users\Ethan\AppData\Local\Programs\Python\Python313\python.exe -m PyInstaller --noconfirm --clean --onefile --windowed --name CleanCutPDFUpdater --icon "FullApp\resources\favicon.ico" --collect-all customtkinter --distpath "dist" --workpath "build\CleanCutPDFUpdater" "FullApp\update.py"
+Get-FileHash ".\dist\CleanCutPDF.exe" -Algorithm SHA256
+& "C:\Program Files (x86)\NSIS\makensis.exe" ".\CleanCutPDFInstaller.nsi"
+
+git status
+git add -A
+git commit -m "Release CleanCutPDF v1.9.18"
+git push origin master1
