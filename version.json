@@ -1,6 +1,21 @@
 {
   "version": "1.9.19",
   "changelog": {
+    "1.9.19": [
+    "Added support for exporting files without a client name.",
+    "Added an option to automatically fill date fields with today's date.",
+    "Moved the Today button to the left side of date fields.",
+    "Improved field ordering with drag-and-drop reordering.",
+    "Fixed drag-and-drop when opening multiple PDFs in Split & Rename.",
+    "Fixed blank-page removal so blank pages between document pages are also removed.",
+    "Improved blank-page detection for scanned and image-based PDFs.",
+    "Moved field notes and reminders below their associated field titles.",
+    "Fixed notes and reminders not displaying in italics.",
+    "Added configurable Quick Split filename ordering.",
+    "Added collision protection to Quick Split filenames to prevent accidental overwrites.",
+    "Improved the Behavior settings page with vertical scrolling.",
+    "Added the current version number to the application window title."
+    ],
     "1.9.18": [
       "Added customizable workspace field layouts with drag-and-drop resizing.",
       "Added optional Snap to Grid with saved workspace preference.",
