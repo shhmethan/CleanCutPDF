@@ -33,7 +33,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.9.18"
+CURRENT_VERSION = "1.9.19"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -162,6 +162,12 @@ CUSTOM_FIELD_TYPE_LABELS = {
     "toggle": "Toggle"
 }
 DATE_FORMATS = ["M-D-YYYY", "MM-DD-YYYY", "YYYY.MM.DD", "MMDDYY"]
+QUICK_SPLIT_FILENAME_ORDERS = [
+    "Original Name - Part Number",
+    "Part Number - Original Name",
+    "Original Name Only",
+    "Part Number Only"
+]
 
 # Runtime-materialized workspace profiles.  These are rebuilt from settings so
 # the rest of the app can continue using the existing WORKSPACES interface.
@@ -175,6 +181,8 @@ DEFAULT_SETTINGS = {
     "export_folder": "",
     "retain_client_name": False,
     "remove_blank_pages": True,
+    "autofill_todays_date": False,
+    "quick_split_filename_order": "Original Name - Part Number",
     "export_log_enabled": True,
     "auto_restore_session": True,
     "tutorial_shown": False,
@@ -594,6 +602,14 @@ CTkEntry = CTkUndoEntry
 
 class PDFSplitterApp(TkinterDnD.Tk):
     # ─── INITIALIZATION ───
+    def _set_main_window_title(self):
+        """Keep the app version visible in the main window title."""
+        company = getattr(self, "licensed_company", "Unlicensed") or "Unlicensed"
+        if company != "Unlicensed":
+            self.title(f"CleanCutPDF v{CURRENT_VERSION} – Licensed to {company}")
+        else:
+            self.title(f"CleanCutPDF v{CURRENT_VERSION}")
+
     def __init__(self):
         super().__init__()
         self.start_time = time.perf_counter()
@@ -612,10 +628,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
             with open(LICENSE_FILE, "r") as f:
                 license_data = json.load(f)
             self.licensed_company = license_data.get("company", "Unknown")
-            self.title(f"CleanCutPDF – Licensed to {self.licensed_company}")
+            self._set_main_window_title()
         else:
             self.licensed_company = "Unlicensed"
-            self.title("CleanCutPDF")
+            self._set_main_window_title()
         self.geometry("900x600")
         self.update_idletasks()
         self.state("zoomed")
@@ -1702,7 +1718,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "• Use when each client has only one document",
             "• Place SPLIT HERE sheets between each client’s file",
             "• Scan everything in one pass",
-            "• Files will be auto-split and named 'Part 01', 'Part 02', etc.",
+            "• Files are auto-split and named using your Quick Split filename-order setting",
             "• Saved to: Quick Split Files/YYYY-MM-DD"
         ]
 
@@ -1773,7 +1789,19 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.settings_stack.pack(side="left", fill="both", expand=True)
 
         for section in ["Appearance", "Export", "Behavior", "Workspaces", "Custom Fields", "License"]:
-            frame = ctk.CTkFrame(self.settings_stack)
+            # Behavior contains more controls than can fit vertically at larger
+            # font sizes, so make the SECTION ITSELF scrollable. This is more
+            # reliable than placing a second canvas inside a hidden settings
+            # frame because CTkScrollableFrame owns the viewport and scrollbar.
+            if section == "Behavior":
+                frame = ctk.CTkScrollableFrame(
+                    self.settings_stack,
+                    fg_color="transparent",
+                    corner_radius=0
+                )
+                self.behavior_settings_frame = frame
+            else:
+                frame = ctk.CTkFrame(self.settings_stack)
             frame.pack(fill="both", expand=True)
             frame.pack_forget()  # Hide initially
             self.settings_sections[section] = frame
@@ -1977,7 +2005,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         ]:
             ctk.CTkLabel(bubble2, text=action, font=font_body, anchor="w", wraplength=wrap_factor, justify="left", padx=20).pack(anchor="w", padx=label_padx)
 
-        ctk.CTkLabel(bubble2, text="[Original Filename] – Part 01, Part 02, etc.", font=font_code).pack(anchor="w", padx=label_padx + 25)
+        ctk.CTkLabel(bubble2, text="Filename order is configurable in Settings > Behavior > Quick Split.", font=font_code).pack(anchor="w", padx=label_padx + 25)
         ctk.CTkLabel(bubble2, text="○ Save them to a designated folder", font=font_body).pack(anchor="w", padx=label_padx + 20, pady=(0, 8))
 
         ctk.CTkLabel(bubble2, text="📥 Optional:", font=font_section).pack(anchor="w", padx=label_padx)
@@ -2166,11 +2194,17 @@ class PDFSplitterApp(TkinterDnD.Tk):
             justify="left"
         ).pack(anchor="w", padx=20, pady=(8, 12))
     def _build_behavior_section(self, parent):
+        """Build Behavior settings directly inside its scrollable section."""
         font = (self.font_family, self.font_size)
         bubble_color, border_color = self.get_log_bubble_colors()
 
+        # `parent` is a CTkScrollableFrame created by build_settings_tab().
+        # All Behavior cards must be children of this frame so its native
+        # scrollbar scrolls the ITEMS themselves.
+        scroll = parent
+
         # ─── File Processing ───
-        file_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        file_bubble = ctk.CTkFrame(scroll, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
         file_bubble.pack(padx=10, pady=(15, 10), fill="x")
 
         ctk.CTkLabel(file_bubble, text="🗂 File Processing", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
@@ -2179,6 +2213,14 @@ class PDFSplitterApp(TkinterDnD.Tk):
         blank_checkbox = ctk.CTkCheckBox(file_bubble, text="Remove Blank Pages Automatically", variable=self.remove_blank_var, command=self.update_remove_blank_setting)
         blank_checkbox.pack(anchor="w", padx=20, pady=5)
         self.settings_widgets_to_scale.append(blank_checkbox)
+        ctk.CTkLabel(
+            file_bubble,
+            text="Checks every exported page, including blank pages between non-blank pages.",
+            font=(self.font_family, max(10, self.font_size - 2)),
+            text_color="#888888",
+            wraplength=700,
+            justify="left"
+        ).pack(anchor="w", padx=40, pady=(0, 4))
 
         ctk.CTkLabel(
             file_bubble,
@@ -2190,7 +2232,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         ).pack(anchor="w", padx=20, pady=(6, 10))
 
         # ─── Startup Behavior ───
-        startup_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        startup_bubble = ctk.CTkFrame(scroll, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
         startup_bubble.pack(padx=10, pady=(0, 10), fill="x")
 
         ctk.CTkLabel(startup_bubble, text="🚀 Startup Behavior", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
@@ -2206,18 +2248,55 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.settings_widgets_to_scale.append(updates_checkbox)
 
         # ─── Date Warning ───
-        date_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        date_bubble = ctk.CTkFrame(scroll, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
         date_bubble.pack(padx=10, pady=(0, 10), fill="x")
 
-        ctk.CTkLabel(date_bubble, text="📅 Date Warnings", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
+        ctk.CTkLabel(date_bubble, text="📅 Date Options", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
+
+        self.autofill_today_var = ctk.BooleanVar(value=self.settings.get("autofill_todays_date", False))
+        autofill_today_checkbox = ctk.CTkCheckBox(
+            date_bubble,
+            text="Autofill date fields with today's date",
+            variable=self.autofill_today_var,
+            command=self.update_autofill_today_setting
+        )
+        autofill_today_checkbox.pack(anchor="w", padx=20, pady=(0, 5))
+        self.settings_widgets_to_scale.append(autofill_today_checkbox)
 
         self.future_date_popup_var = ctk.BooleanVar(value=not self.settings.get("suppressFutureDateWarning", False))
         future_checkbox = ctk.CTkCheckBox(date_bubble, text="Warn me when I enter a future date", variable=self.future_date_popup_var, command=self.update_future_date_setting)
         future_checkbox.pack(anchor="w", padx=20, pady=(0, 10))
         self.settings_widgets_to_scale.append(future_checkbox)
 
+        # ─── Quick Split ───
+        quick_split_bubble = ctk.CTkFrame(scroll, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        quick_split_bubble.pack(padx=10, pady=(0, 10), fill="x")
+
+        ctk.CTkLabel(
+            quick_split_bubble, text="⚡ Quick Split",
+            font=(self.font_family, self.font_size + 2, "bold")
+        ).pack(anchor="w", padx=15, pady=(10, 5))
+
+        ctk.CTkLabel(
+            quick_split_bubble, text="Filename order:",
+            font=(self.font_family, self.font_size)
+        ).pack(anchor="w", padx=20, pady=(0, 4))
+
+        saved_quick_order = self.settings.get("quick_split_filename_order", QUICK_SPLIT_FILENAME_ORDERS[0])
+        if saved_quick_order not in QUICK_SPLIT_FILENAME_ORDERS:
+            saved_quick_order = QUICK_SPLIT_FILENAME_ORDERS[0]
+        self.quick_split_filename_order_var = ctk.StringVar(value=saved_quick_order)
+        quick_order_menu = ctk.CTkOptionMenu(
+            quick_split_bubble,
+            values=QUICK_SPLIT_FILENAME_ORDERS,
+            variable=self.quick_split_filename_order_var,
+            command=self.update_quick_split_filename_order
+        )
+        quick_order_menu.pack(anchor="w", padx=20, pady=(0, 10))
+        self.settings_widgets_to_scale.append(quick_order_menu)
+
         # ─── Split Detection Warning ───
-        split_warning_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        split_warning_bubble = ctk.CTkFrame(scroll, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
         split_warning_bubble.pack(padx=10, pady=(0, 10), fill="x")
 
         ctk.CTkLabel(
@@ -2239,7 +2318,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.settings_widgets_to_scale.append(no_split_checkbox)
 
         # ─── Tools ───
-        tools_bubble = ctk.CTkFrame(parent, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
+        tools_bubble = ctk.CTkFrame(scroll, fg_color=bubble_color, border_color=border_color, border_width=2, corner_radius=10)
         tools_bubble.pack(padx=10, pady=(0, 20), fill="x")
 
         ctk.CTkLabel(tools_bubble, text="🛠 Tools", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
@@ -2266,6 +2345,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         )
         reset_btn.pack(anchor="w", padx=15, pady=(0, 10))
         self.settings_widgets_to_scale.append(reset_btn)
+
     def open_settings_reset_captcha(self):
         """Require a short CAPTCHA before resetting application settings."""
         alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -2446,7 +2526,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
             selector_bubble,
             text=(
                 "Accounting is permanent. Other workspaces can be created, renamed, or deleted. "
-                "Assign and reorder fields from the Custom Fields section."
+                "For normal field ordering, use the drag-and-drop Assigned list in Custom Fields. "
+                "Use Advanced Layout only when you need custom sizing or positioning."
             ),
             font=(self.font_family, max(10, self.font_size - 1)),
             text_color="#888888", wraplength=720, justify="left"
@@ -2635,12 +2716,12 @@ class PDFSplitterApp(TkinterDnD.Tk):
         custom_layout = definition.get("custom_layout")
         layout_status = "Custom layout active" if isinstance(custom_layout, dict) and custom_layout.get("enabled") else "Automatic layout"
         ctk.CTkLabel(
-            layout_row, text=f"Layout: {layout_status}",
+            layout_row, text=f"Advanced layout: {layout_status}",
             font=(self.font_family, max(10, self.font_size - 1)),
             text_color="#888888"
         ).pack(side="left")
         ctk.CTkButton(
-            layout_row, text="Customize Layout", width=135,
+            layout_row, text="Advanced Layout...", width=135,
             command=lambda wn=workspace_name: self.open_workspace_layout_designer(wn)
         ).pack(side="right", padx=(8, 0))
         if isinstance(custom_layout, dict) and custom_layout.get("enabled"):
@@ -2686,7 +2767,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             parent,
             text=(
                 "Add italic reminders that appear inside every part. Choose whether each note "
-                "appears at the top, before a specific field, or at the end."
+                "appears at the top, directly below a specific field title, or at the end."
             ),
             font=(self.font_family, max(10, self.font_size - 2)),
             text_color="#888888",
@@ -2700,7 +2781,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         ]
         position_pairs = [("Top of each part", "__top__")]
         position_pairs.extend(
-            (f"Before: {field.get('label', field.get('key', 'Field'))}", field.get("key"))
+            (f"Below title: {field.get('label', field.get('key', 'Field'))}", field.get("key"))
             for field in standard_fields
             if field.get("key")
         )
@@ -4761,7 +4842,30 @@ class PDFSplitterApp(TkinterDnD.Tk):
         for path in paths:
             if path.lower().endswith(".pdf"):
                 self.load_quick_split_pdf_from_path(path)
+    def build_quick_split_filename(self, original_name, part_number):
+        original_name = re.sub(r'[\\/*?:"<>|]', "_", str(original_name)).strip(" .") or "Document"
+        part_name = f"Part {part_number:02d}"
+        order = self.settings.get("quick_split_filename_order", QUICK_SPLIT_FILENAME_ORDERS[0])
+
+        if order == "Part Number - Original Name":
+            return f"{part_name} – {original_name}"
+        if order == "Original Name Only":
+            return original_name
+        if order == "Part Number Only":
+            return part_name
+        return f"{original_name} – {part_name}"
+
+    def get_unique_output_path(self, folder, base_name, extension=".pdf"):
+        folder = Path(folder)
+        candidate = folder / f"{base_name}{extension}"
+        counter = 2
+        while candidate.exists():
+            candidate = folder / f"{base_name}_{counter}{extension}"
+            counter += 1
+        return candidate
+
     def load_quick_split_pdf_from_path(self, path):
+        fitz_doc = None
         try:
             reader = PdfReader(path)
             ranges = self.detect_split_ranges_from_reader(reader, source_path=path)
@@ -4772,36 +4876,75 @@ class PDFSplitterApp(TkinterDnD.Tk):
             export_dir = out_folder / "Quick Split Files" / today_str
             export_dir.mkdir(parents=True, exist_ok=True)
 
+            remove_blanks = self.settings.get("remove_blank_pages", True)
+            if remove_blanks:
+                try:
+                    fitz_doc = fitz.open(str(path))
+                except Exception as error:
+                    debug(f"Could not open visual blank-page checker for Quick Split: {error}", "warning")
+
             skipped_pages = []
+            created_files = []
+            original_name = Path(path).stem
 
             for i, r in enumerate(ranges, start=1):
                 writer = PdfWriter()
                 for p in range(r["start"], r["end"] + 1):
                     page = reader.pages[p]
-                    if self.settings.get("remove_blank_pages", True) and self.is_blank_page(page):
+                    fitz_page = None
+                    if fitz_doc is not None and p < fitz_doc.page_count:
+                        try:
+                            fitz_page = fitz_doc.load_page(p)
+                        except Exception:
+                            fitz_page = None
+
+                    if remove_blanks and self.is_blank_page(page, fitz_page=fitz_page):
                         skipped_pages.append(p + 1)
                         continue
                     writer.add_page(page)
 
-                original_name = re.sub(r'[\\/*?:"<>|]', "_", Path(path).stem)
-                fname = f"{original_name} – Part {i:02d}.pdf"
-                with open(export_dir / fname, "wb") as f:
+                base_name = self.build_quick_split_filename(original_name, i)
+                file_path = self.get_unique_output_path(export_dir, base_name)
+                with open(file_path, "wb") as f:
                     writer.write(f)
+                created_files.append(file_path)
 
-            debug(f"{len(ranges)} files saved to: {export_dir}", "saved")
-            messagebox.showinfo("Quick Split Complete", f"{len(ranges)} files saved to:\n{export_dir}")
+            debug(
+                f"{len(created_files)} Quick Split file(s) saved to: {export_dir}; "
+                f"blank pages removed: {skipped_pages if skipped_pages else 'None'}",
+                "saved"
+            )
+            messagebox.showinfo(
+                "Quick Split Complete",
+                f"{len(created_files)} files saved to:\n{export_dir}" +
+                (f"\n\nBlank pages removed: {', '.join(map(str, skipped_pages))}" if skipped_pages else "")
+            )
 
         except Exception as e:
             debug(f"Failed to quick split: \n{e}", "error")
             messagebox.showerror("Error", f"Failed to quick split:\n{e}")
+        finally:
+            if fitz_doc is not None:
+                try:
+                    fitz_doc.close()
+                except Exception:
+                    pass
+
+    def parse_dropped_paths(self, raw_data):
+        """Parse a TkDND file-list payload without breaking paths that contain spaces."""
+        raw = str(raw_data or "").strip()
+        if not raw:
+            return []
+        try:
+            return [str(item) for item in self.tk.splitlist(raw)]
+        except tk.TclError:
+            # Fallback for malformed/older drag payloads.
+            braced = re.findall(r"\{(.*?)\}", raw)
+            return braced or [raw]
+
     def handle_quick_drop(self, event):
-        raw = event.data.strip()
-        paths = re.findall(r"\{(.*?)\}", raw)
-
-        if not paths and raw.lower().endswith(".pdf"):
-            paths = [raw]
-
-        valid_pdfs = [p for p in paths if p.lower().endswith(".pdf")]
+        paths = self.parse_dropped_paths(event.data)
+        valid_pdfs = [p for p in paths if Path(p).suffix.lower() == ".pdf"]
 
         if not valid_pdfs:
             messagebox.showerror("Invalid Drop", "Only PDF files are supported.")
@@ -4818,6 +4961,24 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def update_future_date_setting(self):
         suppress = not self.future_date_popup_var.get()
         self.settings["suppressFutureDateWarning"] = suppress
+        self.save_settings()
+
+    def update_autofill_today_setting(self):
+        enabled = bool(self.autofill_today_var.get()) if hasattr(self, "autofill_today_var") else False
+        self.settings["autofill_todays_date"] = enabled
+        self.save_settings()
+        # Refresh open forms so blank Date fields immediately reflect the setting.
+        self.refresh_open_sessions_for_workspace_fields()
+
+    def update_quick_split_filename_order(self, selected=None):
+        value = selected or (
+            self.quick_split_filename_order_var.get()
+            if hasattr(self, "quick_split_filename_order_var")
+            else QUICK_SPLIT_FILENAME_ORDERS[0]
+        )
+        if value not in QUICK_SPLIT_FILENAME_ORDERS:
+            value = QUICK_SPLIT_FILENAME_ORDERS[0]
+        self.settings["quick_split_filename_order"] = value
         self.save_settings()
 
     def update_no_split_warning_setting(self):
@@ -5419,15 +5580,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
         return handler
 
     def handle_drop(self, event):
-        # Match any group enclosed in braces or fallback to single file
-        raw = event.data.strip()
-        paths = re.findall(r"\{(.*?)\}", raw)
-
-        # If no curly braces found, assume it's a single path
-        if not paths and raw.lower().endswith(".pdf"):
-            paths = [raw]
-
-        valid_files = [p for p in paths if p.lower().endswith(".pdf")]
+        paths = self.parse_dropped_paths(event.data)
+        valid_files = [p for p in paths if Path(p).suffix.lower() == ".pdf"]
         if not valid_files:
             messagebox.showerror("Invalid File(s)", "Only PDF files are supported.")
             return
@@ -5568,6 +5722,28 @@ class PDFSplitterApp(TkinterDnD.Tk):
         note_label.pack(fill="x")
         return row + 1
 
+    def render_inline_workspace_note(self, parent, note):
+        """Render a field-specific reminder directly below that field's title."""
+        text = str(note.get("text", "")).strip()
+        if not text:
+            return
+        note_font = ctk.CTkFont(
+            family=self.font_family,
+            size=max(10, self.font_size - 1),
+            slant="italic"
+        )
+        note_label = ctk.CTkLabel(
+            parent,
+            text=text,
+            font=note_font,
+            text_color="#888888",
+            wraplength=455,
+            justify="left",
+            anchor="w"
+        )
+        note_label._cleancut_note_label = True
+        note_label.pack(anchor="w", fill="x", padx=12, pady=(0, 2))
+
     def render_splitter_tab(self, tab_frame, session):
         for widget in tab_frame.winfo_children():
             widget.destroy()
@@ -5634,7 +5810,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         client_box = ctk.CTkFrame(form_frame, fg_color="transparent")
         client_box.pack(pady=(10, 10), padx=10, anchor="w", fill="x")
-        name_label = ctk.CTkLabel(client_box, text=f"{profile.get('client_label', 'Client Name')}:")
+        name_label = ctk.CTkLabel(client_box, text=f"{profile.get('client_label', 'Client Name')} (optional):")
         name_label.pack(side="left")
         session["widgets_to_scale"].append(name_label)
 
@@ -5817,13 +5993,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
             for field in standard_fields:
                 key = field["key"]
-                if not (custom_layout and custom_layout.get("enabled")):
-                    for note in workspace_notes:
-                        if note.get("before_field") == key:
-                            field_row = self.render_workspace_note(fields_frame, note, field_row)
                 field_type = field.get("type", "text")
                 default = self.get_workspace_field_default(workspace_name, field)
                 saved = self.get_workspace_saved_value(session, workspace_name, part_index, key, default)
+                if (
+                    field.get("type") == "date"
+                    and self.settings.get("autofill_todays_date", False)
+                    and not str(saved or "").strip()
+                ):
+                    saved = self.today_value_for_field(field)
 
                 outer = ctk.CTkFrame(fields_frame, fg_color="transparent")
                 if freeform_layout:
@@ -5892,12 +6070,36 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     tip_icon.pack(side="left", padx=(5, 0))
                     self.add_tooltip(tip_icon, tooltip)
 
+                # Field-targeted reminders belong directly below the field title.
+                field_notes = [note for note in workspace_notes if note.get("before_field") == key]
+                has_field_notes = bool(field_notes)
+                if freeform_layout and has_field_notes:
+                    note_text = "\n".join(str(note.get("text", "")).strip() for note in field_notes if str(note.get("text", "")).strip())
+                    if note_text:
+                        note_font = ctk.CTkFont(
+                            family=self.font_family,
+                            size=max(10, self.font_size - 1),
+                            slant="italic"
+                        )
+                        inline_note = ctk.CTkLabel(
+                            outer, text=note_text, font=note_font, text_color="#888888",
+                            justify="left", anchor="w", wraplength=max(100, int(width * 0.90))
+                        )
+                        inline_note._cleancut_note_label = True
+                        inline_note.place(relx=0.02, rely=0.30, relwidth=0.96, relheight=0.20)
+                elif has_field_notes:
+                    for note in field_notes:
+                        self.render_inline_workspace_note(outer, note)
+
+                control_rely = 0.52 if freeform_layout and has_field_notes else 0.40
+                control_relheight = 0.45 if freeform_layout and has_field_notes else 0.56
+
                 if field_type in {"checkbox", "toggle", "bool"}:
                     variable = ctk.BooleanVar(value=bool(saved))
                     control_parent = outer
                     if freeform_layout:
                         control_parent = ctk.CTkFrame(outer, fg_color="transparent")
-                        control_parent.place(relx=0.02, rely=0.40, relwidth=0.96, relheight=0.56)
+                        control_parent.place(relx=0.02, rely=control_rely, relwidth=0.96, relheight=control_relheight)
                         control_parent.pack_propagate(False)
                     if field_type == "checkbox":
                         widget = ctk.CTkCheckBox(control_parent, text="", variable=variable)
@@ -5940,7 +6142,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                         # Reserve the lower half of the tile for the actual input.
                         # Using place here prevents the pack manager from shrinking
                         # the row back down to the control's minimum requested size.
-                        choice_row.place(relx=0.02, rely=0.40, relwidth=0.96, relheight=0.56)
+                        choice_row.place(relx=0.02, rely=control_rely, relwidth=0.96, relheight=control_relheight)
                         choice_row.pack_propagate(False)
                     else:
                         choice_row.pack(fill="x", padx=12, pady=(0, 5))
@@ -6037,7 +6239,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                         # dedicated input row in the lower portion and make its
                         # children fill that row. This fixes the skinny one-line
                         # controls that remained even when CTkEntry(height=...) was set.
-                        input_row.place(relx=0.02, rely=0.40, relwidth=0.96, relheight=0.56)
+                        input_row.place(relx=0.02, rely=control_rely, relwidth=0.96, relheight=control_relheight)
                         input_row.pack_propagate(False)
                     else:
                         input_row.pack(fill="x", padx=12, pady=(0, 5 if field_type != "date" else 8))
@@ -6048,9 +6250,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     if field_color:
                         entry_kwargs["border_color"] = field_color
                     widget = CTkEntry(input_row, **entry_kwargs)
-                    widget.pack(side="left", fill="both", expand=True)
 
-                    row_controls = [widget]
+                    row_controls = []
                     if field_type == "date":
                         today_kwargs = {
                             "text": "Today",
@@ -6061,8 +6262,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
                             today_kwargs["fg_color"] = field_color
                             today_kwargs["text_color"] = self.contrast_text_for_hex(field_color)
                         today_button = ctk.CTkButton(input_row, **today_kwargs)
-                        today_button.pack(side="left", fill="y", padx=(8, 0))
+                        today_button.pack(side="left", fill="y", padx=(0, 8))
                         row_controls.append(today_button)
+
+                    widget.pack(side="left", fill="both", expand=True)
+                    row_controls.append(widget)
 
                     if freeform_layout:
                         def _fit_input_controls(event, controls=tuple(row_controls)):
@@ -6102,13 +6306,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     notes_below.grid_columnconfigure(0, weight=1)
                     note_row = 0
                     for note in workspace_notes:
-                        note_row = self.render_workspace_note(notes_below, note, note_row)
+                        if note.get("before_field") in {"__top__", "__end__"}:
+                            note_row = self.render_workspace_note(notes_below, note, note_row)
             elif custom_layout and custom_layout.get("enabled"):
                 positions = custom_layout.get("field_positions", {})
                 max_row = max([int(pos.get("row", 0)) for pos in positions.values() if isinstance(pos, dict)] + [0]) + 1
                 note_row = max_row
                 for note in workspace_notes:
-                    note_row = self.render_workspace_note(fields_frame, note, note_row)
+                    if note.get("before_field") in {"__top__", "__end__"}:
+                        note_row = self.render_workspace_note(fields_frame, note, note_row)
             else:
                 for note in workspace_notes:
                     if note.get("before_field") == "__end__":
@@ -6336,12 +6542,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
         workspace_name = session.get("workspace", "Accounting")
         profile = self.get_workspace_profile(workspace_name)
         client_name = self.title_case(session["client_name_var"].get().strip())
-        if not client_name:
-            messagebox.showerror(
-                f"Missing {profile.get('client_label', 'Client Name')}",
-                f"Please enter {profile.get('client_label', 'Client Name').lower()}."
-            )
-            return
 
         missing_required = []
         missing_optional_dates = []
@@ -6566,7 +6766,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
             if not folder:
                 return
 
-        out_dir = Path(folder) / client_name if self.make_client_folder_var.get() else Path(folder)
+        out_dir = (
+            Path(folder) / client_name
+            if self.make_client_folder_var.get() and client_name
+            else Path(folder)
+        )
         out_dir.mkdir(parents=True, exist_ok=True)
 
         log_lines = []
@@ -6575,6 +6779,14 @@ class PDFSplitterApp(TkinterDnD.Tk):
             "filename_template", "{client}_{date}"
         )
 
+        remove_blanks = self.settings.get("remove_blank_pages", True)
+        fitz_doc = None
+        if remove_blanks:
+            try:
+                fitz_doc = fitz.open(str(session["path"]))
+            except Exception as error:
+                debug(f"Could not open visual blank-page checker: {error}", "warning")
+
         for idx, entry in enumerate(session.get("entries", []), start=1):
             writer = PdfWriter()
             r = entry["range"]
@@ -6582,7 +6794,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
             for page_index in range(r["start"], r["end"] + 1):
                 page = session["reader"].pages[page_index]
-                if self.settings.get("remove_blank_pages", True) and self.is_blank_page(page):
+                fitz_page = None
+                if fitz_doc is not None and page_index < fitz_doc.page_count:
+                    try:
+                        fitz_page = fitz_doc.load_page(page_index)
+                    except Exception:
+                        fitz_page = None
+                if remove_blanks and self.is_blank_page(page, fitz_page=fitz_page):
                     skipped.append(page_index + 1)
                     continue
                 writer.add_page(page)
@@ -6626,6 +6844,12 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 f"Matter: {values.get('matter_number', '')} | Document Type: {values.get('document_type', '')} | "
                 f"Fields: {field_summary}"
             )
+
+        if fitz_doc is not None:
+            try:
+                fitz_doc.close()
+            except Exception:
+                pass
 
         self.last_exported_files = list(session["last_exported_files"])
 
@@ -6896,12 +7120,101 @@ class PDFSplitterApp(TkinterDnD.Tk):
         win.after(50, set_initial_zoom)  # Wait for layout before rendering
 
     # ─── Text Utilities ───
-    def is_blank_page(self, page):
-        text = page.extract_text()
-        if not text:
-            return True
-        stripped = "".join(text.split())
-        return len(stripped) == 0
+    def is_blank_page(self, page, fitz_page=None):
+        """Return True only when a page is confidently blank.
+
+        Text is checked first. For scanner-produced PDFs, a low-resolution
+        grayscale render is inspected so image-only documents are never treated
+        as blank merely because they have no OCR/text layer. The thresholds are
+        intentionally conservative: uncertain pages are kept.
+        """
+        try:
+            text = page.extract_text() or ""
+        except Exception:
+            text = ""
+
+        compact_text = "".join(text.split())
+        alphanumeric_count = len(re.findall(r"[A-Za-z0-9]", compact_text))
+        if alphanumeric_count >= 4:
+            return False
+
+        # Preserve pages with annotations even if they have no extractable text.
+        try:
+            if page.get("/Annots"):
+                return False
+        except Exception:
+            pass
+
+        if fitz_page is None:
+            # Without a visual rendering, only remove a page whose content stream
+            # is genuinely empty. Anything uncertain is safer to preserve.
+            try:
+                contents = page.get_contents()
+                if contents is None:
+                    return True
+                if isinstance(contents, list):
+                    data = b"".join(item.get_data() for item in contents if item is not None)
+                else:
+                    data = contents.get_data()
+                compact = re.sub(rb"\s+", b"", data or b"")
+                return compact in {b"", b"qQ", b"qqQQ"}
+            except Exception:
+                return False
+
+        try:
+            # A small grayscale render is enough to detect ink while keeping
+            # blank-page checking fast even for large batch scans.
+            pix = fitz_page.get_pixmap(
+                matrix=fitz.Matrix(0.35, 0.35),
+                colorspace=fitz.csGRAY,
+                alpha=False
+            )
+            image = Image.frombytes("L", (pix.width, pix.height), pix.samples)
+
+            # Scanner shadows and feeder edges are common. Ignore a small margin
+            # so those artifacts alone do not make an otherwise blank page nonblank.
+            if image.width > 20 and image.height > 20:
+                mx = max(2, int(image.width * 0.025))
+                my = max(2, int(image.height * 0.025))
+                image = image.crop((mx, my, image.width - mx, image.height - my))
+
+            image.thumbnail((240, 320))
+            histogram = image.histogram()
+            total = max(1, sum(histogram))
+            mean_gray = sum(level * count for level, count in enumerate(histogram)) / total
+
+            cumulative = 0
+            background_level = 255
+            target = total * 0.90
+            for level, count in enumerate(histogram):
+                cumulative += count
+                if cumulative >= target:
+                    background_level = level
+                    break
+
+            light_cutoff = max(0, background_level - 12)
+            dark_cutoff = max(0, background_level - 35)
+            very_dark_cutoff = max(0, background_level - 70)
+            light_ink = sum(histogram[:light_cutoff]) / total if light_cutoff else 0.0
+            dark_ink = sum(histogram[:dark_cutoff]) / total if dark_cutoff else 0.0
+            very_dark_ink = sum(histogram[:very_dark_cutoff]) / total if very_dark_cutoff else 0.0
+
+            blank = (
+                background_level >= 225
+                and light_ink <= 0.012
+                and dark_ink <= 0.003
+                and very_dark_ink <= 0.001
+            )
+            debug(
+                f"Blank-page visual check: mean={mean_gray:.2f}, background={background_level}, "
+                f"light-ink={light_ink:.4%}, dark-ink={dark_ink:.4%}, "
+                f"very-dark={very_dark_ink:.4%} -> {'blank' if blank else 'keep'}",
+                "debug"
+            )
+            return blank
+        except Exception as error:
+            debug(f"Visual blank-page check failed; preserving page: {error}", "warning")
+            return False
     def format_date(self, digits):
         if not re.fullmatch(r"\d{6}", digits):
             raise ValueError("Date must be exactly 6 digits in MMDDYY format (e.g. 032524)")
@@ -7725,7 +8038,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             debug("License saved locally.", "debug")
 
             self.licensed_company = company
-            self.title(f"CleanCutPDF – Licensed to {company}")
+            self._set_main_window_title()
             return True
         else:
             messagebox.showerror("Invalid License", "The entered license key is not valid.")

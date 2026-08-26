@@ -1,5 +1,5 @@
 {
-  "version": "1.9.18",
+  "version": "1.9.19",
   "changelog": {
     "1.9.18": [
       "Added customizable workspace field layouts with drag-and-drop resizing.",
@@ -148,5 +148,5 @@
     ]
   },
   "download_url": "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/master1/dist/CleanCutPDF.exe",
-  "sha256": "A8DE685D21E5F5BD68A1924F1A3E73B3CD13DDDFEECABE512069D93E577C1A99"
+  "sha256": "339E85B2A2B5E0BCD1F4308EC5EF15E743D216AED3678506D889CE6F578E6F9A"
 }

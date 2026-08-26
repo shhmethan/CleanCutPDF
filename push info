@@ -6,5 +6,5 @@ Get-FileHash ".\dist\CleanCutPDF.exe" -Algorithm SHA256
 
 git status
 git add -A
-git commit -m "Release CleanCutPDF v1.9.18"
+git commit -m "Working v1.9.19"
 git push origin master1
