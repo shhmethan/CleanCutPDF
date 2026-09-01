@@ -1,6 +1,15 @@
 {
-  "version": "1.9.19",
+  "version": "1.9.20",
   "changelog": {
+    "1.9.20": [
+        "Added an Aa button beside the Client Name field to convert pasted names to title case.",
+        "Added client-name suggestions based on previously exported log entries.",
+        "Added per-field automatic Today date autofill for custom Date fields.",
+        "Added an Open Output Folder shortcut in Split & Rename.",
+        "Added customizable folder shortcuts for frequently used folders.",
+        "Added log filtering by workspace and export date range.",
+        "Improved migration of previous date-autofill preferences into custom Date field settings."
+    ],
     "1.9.19": [
     "Added support for exporting files without a client name.",
     "Added an option to automatically fill date fields with today's date.",
@@ -163,5 +172,5 @@
     ]
   },
   "download_url": "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/master1/dist/CleanCutPDF.exe",
-  "sha256": "339E85B2A2B5E0BCD1F4308EC5EF15E743D216AED3678506D889CE6F578E6F9A"
+  "sha256": "E8F74FE5FC6875542F4EF399A5BA755485F7ACBAB34A9849E77AA79EE00E1CF9"
 }

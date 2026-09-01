@@ -33,7 +33,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.9.19"
+CURRENT_VERSION = "1.9.20"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -85,7 +85,8 @@ DEFAULT_CUSTOM_FIELDS = {
     },
     "date": {
         "key": "date", "label": "Date", "type": "date", "placeholder": "e.g. 8-20-2026",
-        "default": "", "required": False, "autofill": True, "date_format": "M-D-YYYY", "system": True
+        "default": "", "required": False, "autofill": True, "auto_today": False,
+        "date_format": "M-D-YYYY", "system": True
     },
     "matter_number": {
         "key": "matter_number", "label": "Matter / Case #", "type": "text",
@@ -181,7 +182,7 @@ DEFAULT_SETTINGS = {
     "export_folder": "",
     "retain_client_name": False,
     "remove_blank_pages": True,
-    "autofill_todays_date": False,
+    "folder_shortcuts": [],
     "quick_split_filename_order": "Original Name - Part Number",
     "export_log_enabled": True,
     "auto_restore_session": True,
@@ -1253,6 +1254,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
         for field in fields.values():
             if isinstance(field, dict):
                 field.setdefault("color", "")
+                field.setdefault("auto_today", False)
+
+        # v1.9.18 offered a global date-autofill setting.  Preserve its effect
+        # on upgrade, but make it an explicit property of each Date field now.
+        if user_settings.get("autofill_todays_date", False):
+            for field in fields.values():
+                if isinstance(field, dict) and field.get("type") == "date":
+                    field["auto_today"] = True
+        self.settings.pop("autofill_todays_date", None)
 
         self.settings["custom_fields"] = fields
 
@@ -1685,12 +1695,126 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.drop_target_register(DND_FILES)
         self.dnd_bind('<<Drop>>', self.handle_drop)
 
+        # Folder shortcuts stay available while processing a document, without
+        # taking space away from the individual PDF tabs.
+        self.folder_shortcut_bar = ctk.CTkFrame(wrapper, fg_color="transparent")
+        self.folder_shortcut_bar.pack(fill="x", padx=10, pady=(8, 0))
+        self.refresh_folder_shortcut_bar()
+
         self.pdf_tabview = ctk.CTkTabview(wrapper)
         self.pdf_tabview.pack(fill="both", expand=True)
 
         self.add_plus_tab()
         self.enable_tab_closing()
         self._apply_tab_font_size()
+
+    def open_folder_path(self, folder, label="Folder"):
+        path = Path(str(folder or "")).expanduser()
+        if not str(folder or "").strip():
+            messagebox.showinfo("No Folder Set", f"Set the {label.lower()} first.")
+            return
+        if not path.is_dir():
+            messagebox.showwarning("Folder Not Found", f"{label} no longer exists:\n\n{path}")
+            return
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(str(path))
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(path)])
+            else:
+                subprocess.Popen(["xdg-open", str(path)])
+        except Exception as error:
+            messagebox.showerror("Open Folder Failed", f"Could not open this folder:\n\n{error}")
+
+    def refresh_folder_shortcut_bar(self):
+        if not hasattr(self, "folder_shortcut_bar"):
+            return
+        for child in self.folder_shortcut_bar.winfo_children():
+            child.destroy()
+
+        ctk.CTkButton(
+            self.folder_shortcut_bar, text="📁 Open Output Folder", width=165,
+            command=lambda: self.open_folder_path(self.settings.get("export_folder", ""), "Default Export Folder")
+        ).pack(side="left", padx=(0, 6))
+
+        shortcuts = self.settings.get("folder_shortcuts", [])
+        if not isinstance(shortcuts, list):
+            shortcuts = []
+        for shortcut in shortcuts:
+            if not isinstance(shortcut, dict) or not shortcut.get("path"):
+                continue
+            label = str(shortcut.get("label") or Path(shortcut["path"]).name or "Folder")
+            ctk.CTkButton(
+                self.folder_shortcut_bar, text=f"📁 {label}", width=130,
+                command=lambda item=shortcut: self.open_folder_path(item.get("path"), item.get("label", "Folder"))
+            ).pack(side="left", padx=3)
+
+        ctk.CTkButton(
+            self.folder_shortcut_bar, text="Manage Folders…", width=125,
+            command=self.manage_folder_shortcuts
+        ).pack(side="right")
+
+    def manage_folder_shortcuts(self):
+        popup = tk.Toplevel(self)
+        popup.title("Manage Folder Shortcuts")
+        popup.transient(self)
+        popup.geometry("600x420")
+        popup.minsize(500, 300)
+
+        ctk.CTkLabel(
+            popup, text="Folder Shortcuts", font=(self.font_family, self.font_size + 3, "bold")
+        ).pack(anchor="w", padx=16, pady=(16, 3))
+        ctk.CTkLabel(
+            popup, text="Add folders you open often, such as Files to be Processed or a mail log folder.",
+            text_color="#888888", wraplength=550, justify="left"
+        ).pack(anchor="w", padx=16, pady=(0, 10))
+
+        listing = ctk.CTkScrollableFrame(popup)
+        listing.pack(fill="both", expand=True, padx=16, pady=(0, 10))
+
+        def redraw():
+            for child in listing.winfo_children():
+                child.destroy()
+            items = self.settings.get("folder_shortcuts", [])
+            for index, item in enumerate(items):
+                if not isinstance(item, dict):
+                    continue
+                row = ctk.CTkFrame(listing)
+                row.pack(fill="x", pady=4)
+                label = item.get("label") or Path(item.get("path", "")).name or "Folder"
+                ctk.CTkLabel(row, text=f"{label}\n{item.get('path', '')}", justify="left", anchor="w").pack(
+                    side="left", fill="x", expand=True, padx=10, pady=7
+                )
+                ctk.CTkButton(row, text="Open", width=62, command=lambda value=item: self.open_folder_path(value.get("path"), value.get("label", "Folder"))).pack(side="right", padx=4)
+                ctk.CTkButton(row, text="Remove", width=75, fg_color="#B33A3A", hover_color="#8D2D2D",
+                              command=lambda i=index: remove(i)).pack(side="right", padx=(4, 8))
+
+        def remove(index):
+            items = self.settings.get("folder_shortcuts", [])
+            if 0 <= index < len(items):
+                items.pop(index)
+                self.save_settings()
+                self.refresh_folder_shortcut_bar()
+                redraw()
+
+        def add_folder():
+            path = filedialog.askdirectory(parent=popup, title="Choose Shortcut Folder")
+            if not path:
+                return
+            label = simpledialog.askstring("Folder Shortcut Name", "Button name:", initialvalue=Path(path).name, parent=popup)
+            if label is None:
+                return
+            label = label.strip() or Path(path).name
+            self.settings.setdefault("folder_shortcuts", []).append({"label": label, "path": path})
+            self.save_settings()
+            self.refresh_folder_shortcut_bar()
+            redraw()
+
+        buttons = ctk.CTkFrame(popup, fg_color="transparent")
+        buttons.pack(fill="x", padx=16, pady=(0, 14))
+        ctk.CTkButton(buttons, text="+ Add Folder", command=add_folder).pack(side="left")
+        ctk.CTkButton(buttons, text="Done", command=popup.destroy).pack(side="right")
+        redraw()
     def build_quick_split_tab(self, tab):
         bubble_color, border_color = self.get_log_bubble_colors()
 
@@ -1852,6 +1976,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self.search_var = ctk.StringVar()
         self.sort_mode_var = ctk.StringVar(value="Date ↓")
+        self.log_filters = {"workspace": "", "date_from": "", "date_to": ""}
 
         ctk.CTkLabel(search_frame, text="Search:").pack(side="left", padx=(0, 5))
         self.search_entry = CTkEntry(search_frame, textvariable=self.search_var)
@@ -1872,6 +1997,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         ctk.CTkButton(search_frame, text="🧹 Clear Log", command=self.clear_log).pack(side="right", padx=(10, 0))
         ctk.CTkButton(search_frame, text="📤 Export to...", command=self.open_log_export_popup).pack(side="right", padx=(10, 5))
+        self.log_filter_button = ctk.CTkButton(search_frame, text="⚲ Filters", command=self.open_log_filters)
+        self.log_filter_button.pack(side="right", padx=(10, 0))
 
         self.load_full_log()
     def build_keybinds_tab(self):
@@ -2253,15 +2380,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         ctk.CTkLabel(date_bubble, text="📅 Date Options", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
 
-        self.autofill_today_var = ctk.BooleanVar(value=self.settings.get("autofill_todays_date", False))
-        autofill_today_checkbox = ctk.CTkCheckBox(
+        ctk.CTkLabel(
             date_bubble,
-            text="Autofill date fields with today's date",
-            variable=self.autofill_today_var,
-            command=self.update_autofill_today_setting
-        )
-        autofill_today_checkbox.pack(anchor="w", padx=20, pady=(0, 5))
-        self.settings_widgets_to_scale.append(autofill_today_checkbox)
+            text="Choose whether a Date field starts with today's date in that field's Custom Field settings.",
+            text_color="#888888", wraplength=700, justify="left"
+        ).pack(anchor="w", padx=20, pady=(0, 5))
 
         self.future_date_popup_var = ctk.BooleanVar(value=not self.settings.get("suppressFutureDateWarning", False))
         future_checkbox = ctk.CTkCheckBox(date_bubble, text="Warn me when I enter a future date", variable=self.future_date_popup_var, command=self.update_future_date_setting)
@@ -4162,6 +4285,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         autofill_var = ctk.BooleanVar(value=bool(field.get("autofill", True)))
         title_case_var = ctk.BooleanVar(value=bool(field.get("title_case", False)))
         date_format_var = ctk.StringVar(value=field.get("date_format", "M-D-YYYY"))
+        auto_today_var = ctk.BooleanVar(value=bool(field.get("auto_today", False)))
         color_var = ctk.StringVar(value=field.get("color", ""))
         condition_enabled_var = ctk.BooleanVar(value=isinstance(field.get("condition"), dict))
 
@@ -4237,6 +4361,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
         ctk.CTkLabel(
             date_row, text="(Today button follows this format)",
             text_color="#888888", font=(self.font_family, max(10, self.font_size - 2))
+        ).pack(side="left", padx=8)
+        ctk.CTkCheckBox(
+            date_row, text="Autofill this field with today's date", variable=auto_today_var
         ).pack(side="left", padx=8)
 
         choices_section = ctk.CTkFrame(type_specific, fg_color="transparent")
@@ -4319,6 +4446,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             field["autofill"] = bool(autofill_var.get())
             field["title_case"] = bool(title_case_var.get())
             field["date_format"] = date_format_var.get() if date_format_var.get() in DATE_FORMATS else "M-D-YYYY"
+            field["auto_today"] = bool(auto_today_var.get()) if new_type == "date" else False
             try:
                 field["color"] = self.normalize_field_color(color_var.get())
             except ValueError as error:
@@ -5015,6 +5143,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             prev = self.settings.get("export_folder")
             self.settings["export_folder"] = folder
             self.export_folder_var.set(folder)
+            self.refresh_folder_shortcut_bar()
             self.save_settings()
 
             if prev != folder:
@@ -5068,6 +5197,17 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         if query:
             parsed = [p for p in parsed if query in p["raw"].lower()]
+
+        filters = getattr(self, "log_filters", {})
+        workspace = str(filters.get("workspace", "")).strip().casefold()
+        date_from = str(filters.get("date_from", "")).strip()
+        date_to = str(filters.get("date_to", "")).strip()
+        if workspace:
+            parsed = [p for p in parsed if workspace in self._extract_value(p["raw"], "Workspace").casefold()]
+        if date_from:
+            parsed = [p for p in parsed if p["date"] >= date_from]
+        if date_to:
+            parsed = [p for p in parsed if p["date"] <= date_to]
 
         reverse = sort_mode in ["Date ↓", "Z → A"]
         if "Date" in sort_mode:
@@ -5132,6 +5272,38 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     padx=12,
                     pady=4
                 ).pack(fill="x", padx=4, pady=1)
+
+    def open_log_filters(self):
+        popup = tk.Toplevel(self)
+        popup.title("Filter Logs")
+        popup.transient(self)
+        popup.resizable(False, False)
+        popup.grab_set()
+
+        body = ctk.CTkFrame(popup)
+        body.pack(fill="both", expand=True, padx=14, pady=14)
+        ctk.CTkLabel(body, text="Filter Logs", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", pady=(0, 10))
+        ctk.CTkLabel(body, text="Workspace name (partial match is okay)").pack(anchor="w")
+        workspace_var = ctk.StringVar(value=self.log_filters.get("workspace", ""))
+        CTkEntry(body, textvariable=workspace_var, width=310).pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(body, text="Export date from (YYYY-MM-DD)").pack(anchor="w")
+        from_var = ctk.StringVar(value=self.log_filters.get("date_from", ""))
+        CTkEntry(body, textvariable=from_var, width=310).pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(body, text="Export date through (YYYY-MM-DD)").pack(anchor="w")
+        to_var = ctk.StringVar(value=self.log_filters.get("date_to", ""))
+        CTkEntry(body, textvariable=to_var, width=310).pack(fill="x", pady=(0, 12))
+
+        def apply_filters():
+            self.log_filters = {"workspace": workspace_var.get().strip(), "date_from": from_var.get().strip(), "date_to": to_var.get().strip()}
+            active = any(self.log_filters.values())
+            self.log_filter_button.configure(text="⚲ Filters •" if active else "⚲ Filters")
+            self.update_log_view()
+            popup.destroy()
+
+        buttons = ctk.CTkFrame(body, fg_color="transparent")
+        buttons.pack(fill="x")
+        ctk.CTkButton(buttons, text="Clear", command=lambda: (workspace_var.set(""), from_var.set(""), to_var.set(""))).pack(side="left")
+        ctk.CTkButton(buttons, text="Apply", command=apply_filters).pack(side="right")
     def clear_log(self):
         confirm = messagebox.askyesno("Clear Log", "Are you sure you want to permanently clear the entire export log?")
         if confirm:
@@ -5822,6 +5994,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
         name_entry.pack(side="left")
         session["client_name_entry"] = name_entry
         session["widgets_to_scale"].append(name_entry)
+        ctk.CTkButton(
+            client_box, text="Aa", width=38,
+            command=lambda s=session: self.force_title_case_client_name(s)
+        ).pack(side="left", padx=(6, 0))
+        self.add_tooltip(client_box.winfo_children()[-1], "Convert the current client name to title case.")
+        name_entry.bind("<KeyRelease>", lambda _event, s=session, w=name_entry: self.show_client_suggestions(s, w))
+        name_entry.bind("<FocusOut>", lambda _event: self.after(150, self.hide_client_suggestions))
 
         for part_index, r in enumerate(ranges):
             part_number = part_index + 1
@@ -5998,7 +6177,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 saved = self.get_workspace_saved_value(session, workspace_name, part_index, key, default)
                 if (
                     field.get("type") == "date"
-                    and self.settings.get("autofill_todays_date", False)
+                    and field.get("auto_today", False)
                     and not str(saved or "").strip()
                 ):
                     saved = self.today_value_for_field(field)
@@ -7276,6 +7455,69 @@ class PDFSplitterApp(TkinterDnD.Tk):
         temp = ' '.join(smart_capitalize(w) for w in words)
         debug(f" TC --> {temp}", "debug")
         return temp
+
+    def force_title_case_client_name(self, session):
+        """Explicitly normalize pasted names without changing normal export rules."""
+        current = session.get("client_name_var").get().strip()
+        if current:
+            session["client_name_var"].set(self.title_case(current.lower()))
+        self.hide_client_suggestions()
+
+    def get_recent_client_names(self):
+        if not hasattr(self, "full_log_lines"):
+            self.load_full_log()
+        names = []
+        seen = set()
+        for line in reversed(getattr(self, "full_log_lines", [])):
+            match = re.search(r"Client:\s*(.*?)\s*\|", line)
+            if not match:
+                continue
+            name = match.group(1).strip()
+            key = name.casefold()
+            if name and key not in seen:
+                seen.add(key)
+                names.append(name)
+        return names
+
+    def hide_client_suggestions(self):
+        popup = getattr(self, "client_suggestion_popup", None)
+        if popup is not None:
+            try:
+                popup.destroy()
+            except tk.TclError:
+                pass
+        self.client_suggestion_popup = None
+
+    def show_client_suggestions(self, session, entry):
+        self.hide_client_suggestions()
+        query = session["client_name_var"].get().strip().casefold()
+        if not query:
+            return
+        matches = [name for name in self.get_recent_client_names() if query in name.casefold()][:8]
+        if not matches:
+            return
+
+        popup = tk.Toplevel(self)
+        popup.overrideredirect(True)
+        popup.transient(self)
+        popup.attributes("-topmost", True)
+        entry.update_idletasks()
+        popup.geometry(f"{max(250, entry.winfo_width())}x{min(196, 26 * len(matches))}+{entry.winfo_rootx()}+{entry.winfo_rooty() + entry.winfo_height() + 2}")
+        listbox = tk.Listbox(popup, activestyle="none", font=(self.font_family, self.font_size))
+        listbox.pack(fill="both", expand=True)
+        for name in matches:
+            listbox.insert("end", name)
+
+        def choose(_event=None):
+            picked = listbox.curselection()
+            if picked:
+                session["client_name_var"].set(listbox.get(picked[0]))
+                entry.focus_set()
+            self.hide_client_suggestions()
+
+        listbox.bind("<ButtonRelease-1>", choose)
+        listbox.bind("<Return>", choose)
+        self.client_suggestion_popup = popup
 
     # ─── Keybinds ───
     def focus_search(self):
