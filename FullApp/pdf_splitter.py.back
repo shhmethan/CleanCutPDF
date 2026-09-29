@@ -21,7 +21,7 @@ from decimal import Decimal, InvalidOperation
 
 # ─── Third-Party Libraries ───────────────────────────────────────────
 import pymupdf as fitz
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageStat
 from PyPDF2 import PdfReader, PdfWriter
 
 # ─── GUI: Tkinter & CustomTkinter ────────────────────────────────────
@@ -33,7 +33,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.9.19"
+CURRENT_VERSION = "1.9.25"
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
@@ -44,6 +44,7 @@ USER_DATA_DIR.mkdir(exist_ok=True)
 SETTINGS_FILE = USER_DATA_DIR / "settings.json"
 LOG_FILE = USER_DATA_DIR / "full.log"
 DEBUG_FILE = USER_DATA_DIR / "debug.log"
+CRASH_FILE = USER_DATA_DIR / "crash.log"
 KEYBINDS_FILE = USER_DATA_DIR / "keybinds.json"
 PINK_LIGHT = USER_DATA_DIR / "pink_light.json"
 PINK_DARK = USER_DATA_DIR / "pink_dark.json"
@@ -85,7 +86,8 @@ DEFAULT_CUSTOM_FIELDS = {
     },
     "date": {
         "key": "date", "label": "Date", "type": "date", "placeholder": "e.g. 8-20-2026",
-        "default": "", "required": False, "autofill": True, "date_format": "M-D-YYYY", "system": True
+        "default": "", "required": False, "autofill": True, "auto_today": False,
+        "date_format": "M-D-YYYY", "system": True
     },
     "matter_number": {
         "key": "matter_number", "label": "Matter / Case #", "type": "text",
@@ -181,7 +183,7 @@ DEFAULT_SETTINGS = {
     "export_folder": "",
     "retain_client_name": False,
     "remove_blank_pages": True,
-    "autofill_todays_date": False,
+    "folder_shortcuts": [],
     "quick_split_filename_order": "Original Name - Part Number",
     "export_log_enabled": True,
     "auto_restore_session": True,
@@ -217,6 +219,34 @@ SORT_MODES = [
 ]
 
 debug_log = []
+MAX_DEBUG_ENTRIES = 2500
+MAX_LOG_ENTRIES = 2500
+MAX_LOG_BYTES = 4 * 1024 * 1024
+
+
+def _atomic_json_dump(path, value):
+    """Write JSON through a temporary file so interrupted saves do not corrupt it."""
+    path = Path(path)
+    temporary = path.with_name(f".{path.name}.tmp")
+    with open(temporary, "w", encoding="utf-8") as handle:
+        json.dump(value, handle, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+
+
+def _write_uncaught_exception(exc_type, exc_value, exc_traceback):
+    """Record uncaught exceptions so a failed launch can be diagnosed."""
+    try:
+        import traceback
+        with open(CRASH_FILE, "a", encoding="utf-8") as handle:
+            handle.write(f"\n[{datetime.datetime.now().isoformat()}]\n")
+            traceback.print_exception(exc_type, exc_value, exc_traceback, file=handle)
+    except Exception:
+        pass
+
+
+sys.excepthook = _write_uncaught_exception
 
 def debug(message, type):
     full_message = ""
@@ -242,6 +272,8 @@ def debug(message, type):
         full_message = f"{timestamp} [UNDO/REDO] {message}"
 
     debug_log.append(full_message)
+    if len(debug_log) > MAX_DEBUG_ENTRIES:
+        del debug_log[:-MAX_DEBUG_ENTRIES]
     print(full_message)
 
     try:
@@ -685,6 +717,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self.splitter_tab = self.notebook.add("Split & Rename")
         self.quick_splitter_tab = self.notebook.add("Quick Split")
+        self.rename_only_tab = self.notebook.add("Rename Only")
         self.settings_tab = self.notebook.add("Settings")
         self.log_tab = self.notebook.add("Logs")
         self.about_tab = self.notebook.add("About")
@@ -693,6 +726,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self.build_splitter_tab()
         self.build_quick_split_tab(self.quick_splitter_tab)
+        self.build_rename_only_tab()
         self.build_about_tab(self.about_tab)
         self.build_settings_tab()
         self.build_log_tab()
@@ -1093,7 +1127,14 @@ class PDFSplitterApp(TkinterDnD.Tk):
         dot_radius = 10
         spacing = 40
         start_x = (overlay_w - spacing * 2) // 2
-        y_pos = overlay_h // 2
+        canvas.create_text(
+            overlay_w // 2, 33,
+            text=message,
+            fill=active_color,
+            font=(self.font_family, max(10, self.font_size - 1), "bold"),
+            width=overlay_w - 24
+        )
+        y_pos = 82
 
         self.loading_dots = []
         for i in range(3):
@@ -1238,6 +1279,20 @@ class PDFSplitterApp(TkinterDnD.Tk):
             if key not in nested_keys:
                 self.settings[key] = value
 
+        shortcuts = self.settings.get("folder_shortcuts", [])
+        if not isinstance(shortcuts, list):
+            shortcuts = []
+        normalized_shortcuts = []
+        for shortcut in shortcuts:
+            if not isinstance(shortcut, dict) or not shortcut.get("path"):
+                continue
+            normalized = copy.deepcopy(shortcut)
+            normalized.setdefault("label", Path(str(shortcut["path"])).name or "Folder")
+            normalized.setdefault("icon", "📁")
+            normalized.setdefault("color", "")
+            normalized_shortcuts.append(normalized)
+        self.settings["folder_shortcuts"] = normalized_shortcuts
+
         # Reusable field library. Built-in fields are always restored if an old
         # settings file does not contain them, while user-created fields are retained.
         fields = copy.deepcopy(DEFAULT_CUSTOM_FIELDS)
@@ -1253,6 +1308,15 @@ class PDFSplitterApp(TkinterDnD.Tk):
         for field in fields.values():
             if isinstance(field, dict):
                 field.setdefault("color", "")
+                field.setdefault("auto_today", False)
+
+        # v1.9.18 offered a global date-autofill setting.  Preserve its effect
+        # on upgrade, but make it an explicit property of each Date field now.
+        if user_settings.get("autofill_todays_date", False):
+            for field in fields.values():
+                if isinstance(field, dict) and field.get("type") == "date":
+                    field["auto_today"] = True
+        self.settings.pop("autofill_todays_date", None)
 
         self.settings["custom_fields"] = fields
 
@@ -1358,7 +1422,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 raw_elements = layout.get("elements", {})
                 if isinstance(raw_elements, dict):
                     for key, box in raw_elements.items():
-                        if key not in fields:
+                        # A layout tile is valid only while the field is still
+                        # assigned to this workspace. Keeping an old tile here
+                        # made an unassigned field appear to come back later.
+                        if key not in definition["field_keys"]:
                             continue
                         if not isinstance(box, dict):
                             continue
@@ -1504,8 +1571,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
     def save_settings(self):
         SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(self.settings, f, indent=2)
+        _atomic_json_dump(SETTINGS_FILE, self.settings)
 
     def save_sessions(self):
         data = []
@@ -1526,13 +1592,16 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 "parts": legacy_parts
             })
 
-        with open(SESSION_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        _atomic_json_dump(SESSION_FILE, data)
         debug(f"Saved {len(data)} session(s) to {SESSION_FILE}", "saved")
     def _on_close(self):
-        self.save_sessions()
-        debug("Saving sessions", "debug")
-        self.destroy()
+        try:
+            self.save_sessions()
+            debug("Saving sessions", "debug")
+        except Exception as error:
+            debug(f"Could not save sessions during close: {error}", "error")
+        finally:
+            self.destroy()
     def reconcile_workspace_data_ranges(self, workspace_data, ranges):
         """Keep saved field values, but always trust the current PDF for part ranges."""
         if not isinstance(workspace_data, dict):
@@ -1685,12 +1754,372 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.drop_target_register(DND_FILES)
         self.dnd_bind('<<Drop>>', self.handle_drop)
 
+        # Folder shortcuts stay available while processing a document, without
+        # taking space away from the individual PDF tabs.
+        self.folder_shortcut_bar = ctk.CTkFrame(wrapper, fg_color="transparent")
+        self.folder_shortcut_bar.pack(fill="x", padx=10, pady=(8, 0))
+        self.refresh_folder_shortcut_bar()
+
         self.pdf_tabview = ctk.CTkTabview(wrapper)
         self.pdf_tabview.pack(fill="both", expand=True)
 
         self.add_plus_tab()
         self.enable_tab_closing()
         self._apply_tab_font_size()
+
+    def build_rename_only_tab(self):
+        """Build a fast batch-renaming workspace that never opens or scans PDFs."""
+        self.rename_only_files = {}
+        wrapper = ctk.CTkFrame(self.rename_only_tab)
+        wrapper.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            wrapper, text="📝 Rename Only",
+            font=(self.font_family, self.font_size + 4, "bold"),
+            text_color="#3B8ED0"
+        ).pack(pady=(14, 3))
+        ctk.CTkLabel(
+            wrapper,
+            text="Rename PDF files without opening them or looking for SPLIT HERE markers.",
+            text_color="#888888"
+        ).pack(pady=(0, 12))
+
+        controls = ctk.CTkFrame(wrapper, fg_color="transparent")
+        controls.pack(fill="x", padx=12, pady=(0, 10))
+        ctk.CTkButton(controls, text="➕ Add PDFs", command=self.add_rename_only_files, width=120).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(controls, text="Clear", command=self.clear_rename_only_files, width=80).pack(side="left", padx=6)
+        ctk.CTkLabel(controls, text="Action:").pack(side="left", padx=(24, 6))
+        self.rename_action_var = ctk.StringVar(value="Create renamed copies")
+        ctk.CTkOptionMenu(
+            controls,
+            values=["Create renamed copies", "Rename originals in place"],
+            variable=self.rename_action_var,
+            width=190
+        ).pack(side="left")
+
+        destination_row = ctk.CTkFrame(wrapper, fg_color="transparent")
+        destination_row.pack(fill="x", padx=12, pady=(0, 10))
+        ctk.CTkLabel(destination_row, text="Output folder:").pack(side="left", padx=(0, 8))
+        self.rename_output_var = ctk.StringVar(value=self.settings.get("export_folder", ""))
+        CTkEntry(destination_row, textvariable=self.rename_output_var).pack(side="left", fill="x", expand=True, padx=(0, 8))
+        ctk.CTkButton(destination_row, text="Browse…", command=self.choose_rename_output_folder, width=90).pack(side="left")
+
+        self.rename_rows_frame = ctk.CTkScrollableFrame(wrapper)
+        self.rename_rows_frame.pack(fill="both", expand=True, padx=12, pady=(0, 10))
+        self.refresh_rename_only_rows()
+
+        bottom = ctk.CTkFrame(wrapper, fg_color="transparent")
+        bottom.pack(fill="x", padx=12, pady=(0, 12))
+        ctk.CTkButton(
+            bottom, text="Rename Files", command=self.rename_only_files_now,
+            width=150, state="disabled"
+        ).pack(side="right")
+        self.rename_execute_button = bottom.winfo_children()[-1]
+
+    def add_rename_only_files(self):
+        paths = filedialog.askopenfilenames(filetypes=[("PDF files", "*.pdf")])
+        changed = False
+        for raw_path in paths:
+            path = Path(raw_path)
+            if path.suffix.lower() != ".pdf" or str(path) in self.rename_only_files:
+                continue
+            self.rename_only_files[str(path)] = ctk.StringVar(value=path.stem)
+            changed = True
+        if changed:
+            self.refresh_rename_only_rows()
+
+    def clear_rename_only_files(self):
+        self.rename_only_files.clear()
+        self.refresh_rename_only_rows()
+
+    def choose_rename_output_folder(self):
+        folder = filedialog.askdirectory(title="Select Rename Output Folder")
+        if folder:
+            self.rename_output_var.set(folder)
+
+    def refresh_rename_only_rows(self):
+        if not hasattr(self, "rename_rows_frame"):
+            return
+        for child in self.rename_rows_frame.winfo_children():
+            child.destroy()
+
+        if not self.rename_only_files:
+            ctk.CTkLabel(
+                self.rename_rows_frame,
+                text="Add one or more PDFs to begin.", text_color="#888888"
+            ).pack(pady=30)
+        else:
+            for path_string, name_var in self.rename_only_files.items():
+                row = ctk.CTkFrame(self.rename_rows_frame)
+                row.pack(fill="x", pady=4, padx=4)
+                ctk.CTkLabel(
+                    row, text=Path(path_string).name, anchor="w", width=280
+                ).pack(side="left", padx=10, pady=8)
+                ctk.CTkLabel(row, text="New name:").pack(side="left", padx=(8, 5))
+                CTkEntry(row, textvariable=name_var).pack(side="left", fill="x", expand=True, padx=(0, 8), pady=6)
+                ctk.CTkButton(
+                    row, text="Remove", width=75,
+                    command=lambda item=path_string: self.remove_rename_only_file(item)
+                ).pack(side="right", padx=(0, 8))
+
+        if hasattr(self, "rename_execute_button"):
+            self.rename_execute_button.configure(
+                state="normal" if self.rename_only_files else "disabled"
+            )
+
+    def remove_rename_only_file(self, path_string):
+        self.rename_only_files.pop(path_string, None)
+        self.refresh_rename_only_rows()
+
+    def rename_only_files_now(self):
+        if not self.rename_only_files:
+            return
+        action = self.rename_action_var.get()
+        output_folder = Path(self.rename_output_var.get().strip()).expanduser()
+        if action == "Create renamed copies" and not output_folder:
+            messagebox.showwarning("Output Folder Required", "Choose an output folder first.")
+            return
+        if action == "Rename originals in place" and not messagebox.askyesno(
+            "Rename Originals", "This will change the original filenames. Continue?"
+        ):
+            return
+
+        try:
+            if action == "Create renamed copies":
+                output_folder.mkdir(parents=True, exist_ok=True)
+
+            renamed = 0
+            for source_string, name_var in list(self.rename_only_files.items()):
+                source = Path(source_string)
+                if not source.exists():
+                    debug(f"Rename-only source no longer exists: {source}", "warning")
+                    continue
+                new_stem = re.sub(r'[<>:"/\\|?*\x00-\x1F]', "_", name_var.get().strip()).strip(" .")
+                if not new_stem:
+                    raise ValueError(f"Enter a new name for {source.name}.")
+                target_folder = source.parent if action == "Rename originals in place" else output_folder
+                target = target_folder / f"{new_stem}.pdf"
+                counter = 2
+                while target.exists() and target.resolve() != source.resolve():
+                    target = target_folder / f"{new_stem}_{counter}.pdf"
+                    counter += 1
+                if action == "Rename originals in place":
+                    os.replace(source, target)
+                else:
+                    shutil.copy2(source, target)
+                renamed += 1
+
+            messagebox.showinfo("Rename Complete", f"Renamed {renamed} file(s).")
+            debug(f"Rename-only completed for {renamed} file(s)", "saved")
+            self.clear_rename_only_files()
+        except Exception as error:
+            debug(f"Rename-only failed: {error}", "error")
+            messagebox.showerror("Rename Failed", str(error))
+
+    def open_folder_path(self, folder, label="Folder"):
+        path = Path(str(folder or "")).expanduser()
+        if not str(folder or "").strip():
+            messagebox.showinfo("No Folder Set", f"Set the {label.lower()} first.")
+            return
+        if not path.is_dir():
+            messagebox.showwarning("Folder Not Found", f"{label} no longer exists:\n\n{path}")
+            return
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(str(path))
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(path)])
+            else:
+                subprocess.Popen(["xdg-open", str(path)])
+        except Exception as error:
+            messagebox.showerror("Open Folder Failed", f"Could not open this folder:\n\n{error}")
+
+    def refresh_folder_shortcut_bar(self):
+        if not hasattr(self, "folder_shortcut_bar"):
+            return
+        for child in self.folder_shortcut_bar.winfo_children():
+            child.destroy()
+
+        ctk.CTkButton(
+            self.folder_shortcut_bar, text="📁 Open Output Folder", width=165,
+            command=lambda: self.open_folder_path(self.settings.get("export_folder", ""), "Default Export Folder")
+        ).pack(side="left", padx=(0, 6))
+
+        shortcuts = self.settings.get("folder_shortcuts", [])
+        if not isinstance(shortcuts, list):
+            shortcuts = []
+        for shortcut in shortcuts:
+            if not isinstance(shortcut, dict) or not shortcut.get("path"):
+                continue
+            label = str(shortcut.get("label") or Path(shortcut["path"]).name or "Folder")
+            icon = str(shortcut.get("icon") or "📁").strip() or "📁"
+            button_kwargs = {
+                "text": f"{icon} {label}",
+                "width": 130,
+                "command": lambda item=shortcut: self.open_folder_path(
+                    item.get("path"), item.get("label", "Folder")
+                )
+            }
+            color = str(shortcut.get("color") or "").strip()
+            if re.fullmatch(r"#[0-9A-Fa-f]{6}", color):
+                red, green, blue = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+                hover = "#{:02X}{:02X}{:02X}".format(
+                    max(0, int(red * 0.82)),
+                    max(0, int(green * 0.82)),
+                    max(0, int(blue * 0.82))
+                )
+                text_color = "#000000" if (red * 299 + green * 587 + blue * 114) > 150000 else "#FFFFFF"
+                button_kwargs.update(fg_color=color, hover_color=hover, text_color=text_color)
+            ctk.CTkButton(self.folder_shortcut_bar, **button_kwargs).pack(side="left", padx=3)
+
+        ctk.CTkButton(
+            self.folder_shortcut_bar, text="Manage Folders…", width=125,
+            command=self.manage_folder_shortcuts
+        ).pack(side="right")
+
+    def manage_folder_shortcuts(self):
+        popup = tk.Toplevel(self)
+        popup.title("Manage Folder Shortcuts")
+        popup.transient(self)
+        popup.geometry("600x420")
+        popup.minsize(500, 300)
+
+        ctk.CTkLabel(
+            popup, text="Folder Shortcuts", font=(self.font_family, self.font_size + 3, "bold")
+        ).pack(anchor="w", padx=16, pady=(16, 3))
+        ctk.CTkLabel(
+            popup, text="Add folders you open often, such as Files to be Processed or a mail log folder.",
+            text_color="#888888", wraplength=550, justify="left"
+        ).pack(anchor="w", padx=16, pady=(0, 10))
+
+        listing = ctk.CTkScrollableFrame(popup)
+        listing.pack(fill="both", expand=True, padx=16, pady=(0, 10))
+
+        def redraw():
+            for child in listing.winfo_children():
+                child.destroy()
+            items = self.settings.get("folder_shortcuts", [])
+            for index, item in enumerate(items):
+                if not isinstance(item, dict):
+                    continue
+                row = ctk.CTkFrame(listing)
+                row.pack(fill="x", pady=4)
+                label = item.get("label") or Path(item.get("path", "")).name or "Folder"
+                icon = str(item.get("icon") or "📁").strip() or "📁"
+                label_kwargs = {
+                    "text": f"{icon}  {label}\n{item.get('path', '')}",
+                    "justify": "left",
+                    "anchor": "w"
+                }
+                color = str(item.get("color") or "").strip()
+                if re.fullmatch(r"#[0-9A-Fa-f]{6}", color):
+                    label_kwargs["text_color"] = color
+                ctk.CTkLabel(row, **label_kwargs).pack(
+                    side="left", fill="x", expand=True, padx=10, pady=7
+                )
+                ctk.CTkButton(row, text="Open", width=62, command=lambda value=item: self.open_folder_path(value.get("path"), value.get("label", "Folder"))).pack(side="right", padx=4)
+                ctk.CTkButton(row, text="Edit", width=62, command=lambda i=index: edit_shortcut(i)).pack(side="right", padx=4)
+                ctk.CTkButton(row, text="Remove", width=75, fg_color="#B33A3A", hover_color="#8D2D2D",
+                              command=lambda i=index: remove(i)).pack(side="right", padx=(4, 8))
+
+        def edit_shortcut(index, remove_if_cancelled=False):
+            items = self.settings.get("folder_shortcuts", [])
+            if not (0 <= index < len(items)):
+                return
+            item = items[index]
+
+            editor = tk.Toplevel(popup)
+            editor.title("Edit Folder Shortcut")
+            editor.transient(popup)
+            editor.grab_set()
+            editor.resizable(False, False)
+            editor.geometry("470x300")
+
+            ctk.CTkLabel(
+                editor, text="Folder Shortcut",
+                font=(self.font_family, self.font_size + 2, "bold")
+            ).pack(anchor="w", padx=18, pady=(16, 10))
+
+            form = ctk.CTkFrame(editor, fg_color="transparent")
+            form.pack(fill="x", padx=18)
+            ctk.CTkLabel(form, text="Name", width=80, anchor="w").grid(row=0, column=0, sticky="w", pady=6)
+            label_var = ctk.StringVar(value=item.get("label") or Path(item.get("path", "")).name)
+            CTkEntry(form, textvariable=label_var, width=330).grid(row=0, column=1, sticky="ew", pady=6)
+
+            ctk.CTkLabel(form, text="Icon", width=80, anchor="w").grid(row=1, column=0, sticky="w", pady=6)
+            icon_var = ctk.StringVar(value=str(item.get("icon") or "📁"))
+            ctk.CTkOptionMenu(
+                form,
+                values=["📁", "📂", "🗂️", "📥", "📤", "📌", "⭐", "⚡", "🧾", "💼"],
+                variable=icon_var,
+                width=120
+            ).grid(row=1, column=1, sticky="w", pady=6)
+
+            ctk.CTkLabel(form, text="Color", width=80, anchor="w").grid(row=2, column=0, sticky="w", pady=6)
+            color_var = ctk.StringVar(value=str(item.get("color") or ""))
+            color_row = ctk.CTkFrame(form, fg_color="transparent")
+            color_row.grid(row=2, column=1, sticky="ew", pady=6)
+            color_entry = CTkEntry(color_row, textvariable=color_var, width=190)
+            color_entry.pack(side="left")
+
+            def choose_color():
+                chosen = colorchooser.askcolor(color=color_var.get() or None, parent=editor)[1]
+                if chosen:
+                    color_var.set(chosen.upper())
+
+            ctk.CTkButton(color_row, text="Choose…", width=90, command=choose_color).pack(side="left", padx=8)
+            ctk.CTkLabel(
+                editor, text=str(item.get("path", "")),
+                text_color="#888888", wraplength=420, justify="left"
+            ).pack(anchor="w", padx=18, pady=(8, 4))
+
+            def cancel():
+                if remove_if_cancelled and 0 <= index < len(items):
+                    items.pop(index)
+                editor.destroy()
+                redraw()
+
+            def save():
+                label = label_var.get().strip() or Path(item.get("path", "")).name or "Folder"
+                raw_color = color_var.get().strip()
+                try:
+                    color = self.normalize_field_color(raw_color) if raw_color else ""
+                except ValueError as error:
+                    messagebox.showerror("Invalid Color", str(error), parent=editor)
+                    return
+                item.update({"label": label, "icon": icon_var.get().strip() or "📁", "color": color})
+                self.save_settings()
+                self.refresh_folder_shortcut_bar()
+                editor.destroy()
+                redraw()
+
+            buttons = ctk.CTkFrame(editor, fg_color="transparent")
+            buttons.pack(fill="x", padx=18, pady=(12, 16))
+            ctk.CTkButton(buttons, text="Cancel", width=90, command=cancel).pack(side="right", padx=(6, 0))
+            ctk.CTkButton(buttons, text="Save", width=90, command=save).pack(side="right")
+            editor.protocol("WM_DELETE_WINDOW", cancel)
+
+        def remove(index):
+            items = self.settings.get("folder_shortcuts", [])
+            if 0 <= index < len(items):
+                items.pop(index)
+                self.save_settings()
+                self.refresh_folder_shortcut_bar()
+                redraw()
+
+        def add_folder():
+            path = filedialog.askdirectory(parent=popup, title="Choose Shortcut Folder")
+            if not path:
+                return
+            items = self.settings.setdefault("folder_shortcuts", [])
+            items.append({"label": Path(path).name, "path": path, "icon": "📁", "color": ""})
+            edit_shortcut(len(items) - 1, remove_if_cancelled=True)
+
+        buttons = ctk.CTkFrame(popup, fg_color="transparent")
+        buttons.pack(fill="x", padx=16, pady=(0, 14))
+        ctk.CTkButton(buttons, text="+ Add Folder", command=add_folder).pack(side="left")
+        ctk.CTkButton(buttons, text="Done", command=popup.destroy).pack(side="right")
+        redraw()
     def build_quick_split_tab(self, tab):
         bubble_color, border_color = self.get_log_bubble_colors()
 
@@ -1852,6 +2281,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         self.search_var = ctk.StringVar()
         self.sort_mode_var = ctk.StringVar(value="Date ↓")
+        self.log_filters = {"workspace": "", "date_from": "", "date_to": ""}
 
         ctk.CTkLabel(search_frame, text="Search:").pack(side="left", padx=(0, 5))
         self.search_entry = CTkEntry(search_frame, textvariable=self.search_var)
@@ -1872,6 +2302,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         ctk.CTkButton(search_frame, text="🧹 Clear Log", command=self.clear_log).pack(side="right", padx=(10, 0))
         ctk.CTkButton(search_frame, text="📤 Export to...", command=self.open_log_export_popup).pack(side="right", padx=(10, 5))
+        self.log_filter_button = ctk.CTkButton(search_frame, text="⚲ Filters", command=self.open_log_filters)
+        self.log_filter_button.pack(side="right", padx=(10, 0))
 
         self.load_full_log()
     def build_keybinds_tab(self):
@@ -2253,15 +2685,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         ctk.CTkLabel(date_bubble, text="📅 Date Options", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
 
-        self.autofill_today_var = ctk.BooleanVar(value=self.settings.get("autofill_todays_date", False))
-        autofill_today_checkbox = ctk.CTkCheckBox(
+        ctk.CTkLabel(
             date_bubble,
-            text="Autofill date fields with today's date",
-            variable=self.autofill_today_var,
-            command=self.update_autofill_today_setting
-        )
-        autofill_today_checkbox.pack(anchor="w", padx=20, pady=(0, 5))
-        self.settings_widgets_to_scale.append(autofill_today_checkbox)
+            text="Choose whether a Date field starts with today's date in that field's Custom Field settings.",
+            text_color="#888888", wraplength=700, justify="left"
+        ).pack(anchor="w", padx=20, pady=(0, 5))
 
         self.future_date_popup_var = ctk.BooleanVar(value=not self.settings.get("suppressFutureDateWarning", False))
         future_checkbox = ctk.CTkCheckBox(date_bubble, text="Warn me when I enter a future date", variable=self.future_date_popup_var, command=self.update_future_date_setting)
@@ -3998,7 +4426,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.assigned_fields_list.bind("<Button-1>", self._assignment_drag_start)
         self.assigned_fields_list.bind("<B1-Motion>", self._assignment_drag_motion)
         self.assigned_fields_list.bind("<ButtonRelease-1>", self._assignment_drag_end)
+        self.assigned_fields_list.bind("<Double-Button-1>", lambda _event: self.unassign_selected_field())
         self._assignment_drag_index = None
+        self._assignment_drag_moved = False
 
         self.refresh_custom_field_selector()
         self.refresh_workspace_field_assignment()
@@ -4075,6 +4505,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
         for definition in self.settings.get("workspaces", {}).values():
             definition["field_keys"] = [item for item in definition.get("field_keys", []) if item != key]
             definition.get("field_overrides", {}).pop(key, None)
+            layout = definition.get("custom_layout")
+            if isinstance(layout, dict):
+                layout.get("elements", {}).pop(key, None)
+                layout.get("field_positions", {}).pop(key, None)
 
         for other in self.settings.get("custom_fields", {}).values():
             condition = other.get("condition")
@@ -4162,6 +4596,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         autofill_var = ctk.BooleanVar(value=bool(field.get("autofill", True)))
         title_case_var = ctk.BooleanVar(value=bool(field.get("title_case", False)))
         date_format_var = ctk.StringVar(value=field.get("date_format", "M-D-YYYY"))
+        auto_today_var = ctk.BooleanVar(value=bool(field.get("auto_today", False)))
         color_var = ctk.StringVar(value=field.get("color", ""))
         condition_enabled_var = ctk.BooleanVar(value=isinstance(field.get("condition"), dict))
 
@@ -4237,6 +4672,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
         ctk.CTkLabel(
             date_row, text="(Today button follows this format)",
             text_color="#888888", font=(self.font_family, max(10, self.font_size - 2))
+        ).pack(side="left", padx=8)
+        ctk.CTkCheckBox(
+            date_row, text="Autofill this field with today's date", variable=auto_today_var
         ).pack(side="left", padx=8)
 
         choices_section = ctk.CTkFrame(type_specific, fg_color="transparent")
@@ -4319,6 +4757,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             field["autofill"] = bool(autofill_var.get())
             field["title_case"] = bool(title_case_var.get())
             field["date_format"] = date_format_var.get() if date_format_var.get() in DATE_FORMATS else "M-D-YYYY"
+            field["auto_today"] = bool(auto_today_var.get()) if new_type == "date" else False
             try:
                 field["color"] = self.normalize_field_color(color_var.get())
             except ValueError as error:
@@ -4420,18 +4859,30 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def unassign_selected_field(self):
         selection = self.assigned_fields_list.curselection()
         if not selection:
+            messagebox.showinfo("Remove Field", "Select a field in the Assigned list first.")
             return
         key = self.assignment_assigned_keys[selection[0]]
         workspace_name = self.custom_assignment_workspace_var.get()
         definition = self.settings["workspaces"][workspace_name]
         definition["field_keys"] = [item for item in definition.get("field_keys", []) if item != key]
+        definition.get("field_overrides", {}).pop(key, None)
+        layout = definition.get("custom_layout")
+        if isinstance(layout, dict):
+            layout.get("elements", {}).pop(key, None)
+            layout.get("field_positions", {}).pop(key, None)
+        for note in definition.get("notes", []):
+            if isinstance(note, dict) and note.get("before_field") == key:
+                note["before_field"] = "__end__"
+        debug(f"Removed field '{key}' from workspace '{workspace_name}'", "saved")
         self._save_field_assignment_change(workspace_name)
 
     def _assignment_drag_start(self, event):
         if not self.assignment_assigned_keys:
             self._assignment_drag_index = None
+            self._assignment_drag_moved = False
             return
         self._assignment_drag_index = self.assigned_fields_list.nearest(event.y)
+        self._assignment_drag_moved = False
 
     def _assignment_drag_motion(self, event):
         if self._assignment_drag_index is None or not self.assignment_assigned_keys:
@@ -4443,6 +4894,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         key = self.assignment_assigned_keys.pop(old_index)
         self.assignment_assigned_keys.insert(new_index, key)
+        self._assignment_drag_moved = True
         self.assigned_fields_list.delete(0, "end")
         for item in self.assignment_assigned_keys:
             self.assigned_fields_list.insert("end", self._field_display_name(item))
@@ -4458,9 +4910,16 @@ class PDFSplitterApp(TkinterDnD.Tk):
     def _assignment_drag_end(self, _event):
         if self._assignment_drag_index is None:
             return
+        moved = bool(getattr(self, "_assignment_drag_moved", False))
+        self._assignment_drag_index = None
+        self._assignment_drag_moved = False
+        # A normal click should only select the row. Earlier builds rebuilt the
+        # list on every mouse release, which immediately erased that selection
+        # before the user could press Remove.
+        if not moved:
+            return
         workspace_name = self.custom_assignment_workspace_var.get()
         self.settings["workspaces"][workspace_name]["field_keys"] = list(self.assignment_assigned_keys)
-        self._assignment_drag_index = None
         self._save_field_assignment_change(workspace_name)
 
     def _save_field_assignment_change(self, workspace_name):
@@ -4866,6 +5325,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
     def load_quick_split_pdf_from_path(self, path):
         fitz_doc = None
+        self.show_loading_overlay(f"Quick splitting…\n{Path(path).name}")
+        self.update_idletasks()
         try:
             reader = PdfReader(path)
             ranges = self.detect_split_ranges_from_reader(reader, source_path=path)
@@ -4914,6 +5375,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 f"blank pages removed: {skipped_pages if skipped_pages else 'None'}",
                 "saved"
             )
+            self.hide_loading_overlay()
             messagebox.showinfo(
                 "Quick Split Complete",
                 f"{len(created_files)} files saved to:\n{export_dir}" +
@@ -4922,6 +5384,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         except Exception as e:
             debug(f"Failed to quick split: \n{e}", "error")
+            self.hide_loading_overlay()
             messagebox.showerror("Error", f"Failed to quick split:\n{e}")
         finally:
             if fitz_doc is not None:
@@ -5015,11 +5478,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
             prev = self.settings.get("export_folder")
             self.settings["export_folder"] = folder
             self.export_folder_var.set(folder)
+            self.refresh_folder_shortcut_bar()
             self.save_settings()
 
             if prev != folder:
-                with open(LOG_FILE, "a", encoding="utf-8") as f:
-                    f.write(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Export folder changed from '{prev}' to '{folder}'\n")
+                self.append_log_lines([
+                    f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Export folder changed from '{prev}' to '{folder}'\n"
+                ])
 
             self.load_full_log()
     def update_retain_client_setting(self):
@@ -5038,10 +5503,25 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.check_future_date(date_str, callback_on_confirm=lambda: debug(f"Confirmed future date: {date_str}", "debug"))
 
     # ─── Log Management ───
+    def append_log_lines(self, lines):
+        """Append log entries while keeping the on-disk log bounded."""
+        try:
+            existing = []
+            if LOG_FILE.exists() and LOG_FILE.stat().st_size <= MAX_LOG_BYTES:
+                with open(LOG_FILE, "r", encoding="utf-8", errors="replace") as handle:
+                    existing = handle.readlines()
+            combined = (existing + list(lines))[-MAX_LOG_ENTRIES:]
+            temporary = LOG_FILE.with_name(f".{LOG_FILE.name}.tmp")
+            with open(temporary, "w", encoding="utf-8") as handle:
+                handle.writelines(combined)
+            os.replace(temporary, LOG_FILE)
+        except Exception as error:
+            debug(f"Could not update export log: {error}", "warning")
+
     def load_full_log(self):
         if LOG_FILE.exists():
-            with open(LOG_FILE, "r") as f:
-                self.full_log_lines = f.readlines()
+            with open(LOG_FILE, "r", encoding="utf-8", errors="replace") as f:
+                self.full_log_lines = f.readlines()[-MAX_LOG_ENTRIES:]
         else:
             self.full_log_lines = []
 
@@ -5068,6 +5548,17 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         if query:
             parsed = [p for p in parsed if query in p["raw"].lower()]
+
+        filters = getattr(self, "log_filters", {})
+        workspace = str(filters.get("workspace", "")).strip().casefold()
+        date_from = str(filters.get("date_from", "")).strip()
+        date_to = str(filters.get("date_to", "")).strip()
+        if workspace:
+            parsed = [p for p in parsed if workspace in self._extract_value(p["raw"], "Workspace").casefold()]
+        if date_from:
+            parsed = [p for p in parsed if p["date"] >= date_from]
+        if date_to:
+            parsed = [p for p in parsed if p["date"] <= date_to]
 
         reverse = sort_mode in ["Date ↓", "Z → A"]
         if "Date" in sort_mode:
@@ -5132,6 +5623,38 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     padx=12,
                     pady=4
                 ).pack(fill="x", padx=4, pady=1)
+
+    def open_log_filters(self):
+        popup = tk.Toplevel(self)
+        popup.title("Filter Logs")
+        popup.transient(self)
+        popup.resizable(False, False)
+        popup.grab_set()
+
+        body = ctk.CTkFrame(popup)
+        body.pack(fill="both", expand=True, padx=14, pady=14)
+        ctk.CTkLabel(body, text="Filter Logs", font=(self.font_family, self.font_size + 2, "bold")).pack(anchor="w", pady=(0, 10))
+        ctk.CTkLabel(body, text="Workspace name (partial match is okay)").pack(anchor="w")
+        workspace_var = ctk.StringVar(value=self.log_filters.get("workspace", ""))
+        CTkEntry(body, textvariable=workspace_var, width=310).pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(body, text="Export date from (YYYY-MM-DD)").pack(anchor="w")
+        from_var = ctk.StringVar(value=self.log_filters.get("date_from", ""))
+        CTkEntry(body, textvariable=from_var, width=310).pack(fill="x", pady=(0, 8))
+        ctk.CTkLabel(body, text="Export date through (YYYY-MM-DD)").pack(anchor="w")
+        to_var = ctk.StringVar(value=self.log_filters.get("date_to", ""))
+        CTkEntry(body, textvariable=to_var, width=310).pack(fill="x", pady=(0, 12))
+
+        def apply_filters():
+            self.log_filters = {"workspace": workspace_var.get().strip(), "date_from": from_var.get().strip(), "date_to": to_var.get().strip()}
+            active = any(self.log_filters.values())
+            self.log_filter_button.configure(text="⚲ Filters •" if active else "⚲ Filters")
+            self.update_log_view()
+            popup.destroy()
+
+        buttons = ctk.CTkFrame(body, fg_color="transparent")
+        buttons.pack(fill="x")
+        ctk.CTkButton(buttons, text="Clear", command=lambda: (workspace_var.set(""), from_var.set(""), to_var.set(""))).pack(side="left")
+        ctk.CTkButton(buttons, text="Apply", command=apply_filters).pack(side="right")
     def clear_log(self):
         confirm = messagebox.askyesno("Clear Log", "Are you sure you want to permanently clear the entire export log?")
         if confirm:
@@ -5335,12 +5858,68 @@ class PDFSplitterApp(TkinterDnD.Tk):
         return colors.get(theme_name, ("#f0f0f0", "#cccccc"))
 
     # ─── PDF Load & Split ───
+    def confirm_batch_workspace(self, file_count):
+        """Confirm one workspace before a batch of PDFs is opened."""
+        if file_count <= 1:
+            return self.settings.get("default_workspace", "Accounting")
+
+        available = list(WORKSPACES.keys()) or ["Accounting"]
+        current = self.settings.get("default_workspace", "Accounting")
+        if current not in available:
+            current = available[0]
+
+        dialog = tk.Toplevel(self)
+        dialog.title("Choose Workspace")
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+        dialog.geometry("470x230")
+
+        ctk.CTkLabel(
+            dialog, text=f"Open {file_count} PDFs",
+            font=(self.font_family, self.font_size + 3, "bold")
+        ).pack(pady=(22, 6))
+        ctk.CTkLabel(
+            dialog,
+            text="Choose the workspace that should be used for all of these files.",
+            wraplength=410, justify="center", text_color="#888888"
+        ).pack(padx=20, pady=(0, 14))
+
+        workspace_var = ctk.StringVar(value=current)
+        ctk.CTkOptionMenu(
+            dialog, values=available, variable=workspace_var, width=230
+        ).pack(pady=(0, 18))
+
+        result = {"workspace": None}
+
+        def cancel():
+            result["workspace"] = None
+            dialog.destroy()
+
+        def accept():
+            result["workspace"] = workspace_var.get()
+            self.settings["default_workspace"] = result["workspace"]
+            self.save_settings()
+            dialog.destroy()
+
+        buttons = ctk.CTkFrame(dialog, fg_color="transparent")
+        buttons.pack(fill="x", padx=22, pady=(0, 16))
+        ctk.CTkButton(buttons, text="Cancel", width=100, command=cancel).pack(side="right", padx=(8, 0))
+        ctk.CTkButton(buttons, text="Open Files", width=110, command=accept).pack(side="right")
+        dialog.protocol("WM_DELETE_WINDOW", cancel)
+        dialog.after(60, dialog.focus_force)
+        self.wait_window(dialog)
+        return result["workspace"]
+
     def load_pdf(self):
         paths = filedialog.askopenfilenames(filetypes=[("PDF files", "*.pdf")])
-        for path in paths:
-            if path.lower().endswith(".pdf"):
-                self.load_pdf_from_path(path)
-    def load_pdf_from_path(self, path, render=True):
+        valid_paths = [path for path in paths if path.lower().endswith(".pdf")]
+        workspace_name = self.confirm_batch_workspace(len(valid_paths))
+        if valid_paths and workspace_name is None:
+            return
+        for path in valid_paths:
+            self.load_pdf_from_path(path, workspace_name=workspace_name)
+    def load_pdf_from_path(self, path, render=True, workspace_name=None):
         pdf_name = Path(path).stem
 
         # Prevent duplicate loads
@@ -5359,6 +5938,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
             self._apply_tab_font_size()
             self.pdf_tabview.set(tab_label)
 
+            if workspace_name not in WORKSPACES:
+                workspace_name = self.settings.get("default_workspace", "Accounting")
+            if workspace_name not in WORKSPACES:
+                workspace_name = "Accounting"
+
             session = {
                 "tab": tab,
                 "tab_label": tab_label,
@@ -5367,7 +5951,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 "ranges": ranges,
                 "entries": [],
                 "client_name_var": ctk.StringVar(),
-                "workspace": self.settings.get("default_workspace", "Accounting"),
+                "workspace": workspace_name,
                 "workspace_data": {},
                 "last_exported_files": [],
                 "widgets_to_scale": []
@@ -5403,6 +5987,77 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return True
         return "SPLIT" in words and "HERE" in words
 
+    def _looks_like_visual_split_marker(self, fitz_page):
+        """Recognize the colored SPLIT HERE sheet when a scan has no text layer.
+
+        The printed separator is a nearly solid colored page with one short,
+        wide line of dark text near the center. This intentionally conservative
+        check avoids treating normal letters, statements, and photo pages as
+        separators while covering scanners that intermittently omit OCR.
+        """
+        try:
+            pix = fitz_page.get_pixmap(matrix=fitz.Matrix(0.65, 0.65), alpha=False)
+            image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+            resampling = getattr(Image, "Resampling", Image).LANCZOS
+            image = image.resize((240, 312), resampling)
+
+            median = ImageStat.Stat(image).median
+            background_range = max(median) - min(median)
+            background_brightness = sum(median) / 3
+            # White office documents are rejected here. Bright colored paper is
+            # accepted by its channel spread; gray colored paper by brightness.
+            colored_background = background_range >= 15 or background_brightness <= 238
+            if not colored_background:
+                return False
+
+            flattened = getattr(image, "get_flattened_data", None)
+            pixels = list(flattened() if callable(flattened) else image.getdata())
+            uniform_count = sum(
+                1 for pixel in pixels
+                if all(abs(pixel[channel] - median[channel]) <= 30 for channel in range(3))
+            )
+            uniform_ratio = uniform_count / max(1, len(pixels))
+            dark_count = sum(1 for pixel in pixels if max(pixel) < 120)
+            dark_ratio = dark_count / max(1, len(pixels))
+            if uniform_ratio < 0.82 or dark_ratio > 0.025:
+                return False
+
+            width, height = image.size
+            left, right = int(width * 0.15), int(width * 0.85)
+            top, bottom = int(height * 0.20), int(height * 0.80)
+            dark_points = []
+            for y in range(top, bottom):
+                for x in range(left, right):
+                    if max(image.getpixel((x, y))) < 120:
+                        dark_points.append((x, y))
+
+            if len(dark_points) < 70:
+                return False
+            min_x = min(point[0] for point in dark_points)
+            max_x = max(point[0] for point in dark_points)
+            min_y = min(point[1] for point in dark_points)
+            max_y = max(point[1] for point in dark_points)
+            text_width_ratio = (max_x - min_x + 1) / width
+            text_height_ratio = (max_y - min_y + 1) / height
+            text_center_y = ((min_y + max_y) / 2) / height
+
+            matched = (
+                0.25 <= text_width_ratio <= 0.72
+                and 0.015 <= text_height_ratio <= 0.13
+                and 0.32 <= text_center_y <= 0.68
+            )
+            if matched:
+                debug(
+                    "Visual split-marker fallback matched "
+                    f"(uniform={uniform_ratio:.2f}, dark={dark_ratio:.3f}, "
+                    f"text={text_width_ratio:.2f}x{text_height_ratio:.2f})",
+                    "debug"
+                )
+            return matched
+        except Exception as error:
+            debug(f"Visual split-marker fallback failed: {error}", "warning")
+            return False
+
     def detect_split_ranges_from_reader(self, reader, source_path=None):
         debug("Starting detect_split_ranges", "debug")
         split_pages = []
@@ -5425,15 +6080,22 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 marker_found = self._is_split_marker_text(text)
                 extraction_source = "PyPDF2"
 
+                fitz_page = None
                 if not marker_found and fitz_doc is not None and idx < fitz_doc.page_count:
                     try:
-                        fitz_text = fitz_doc.load_page(idx).get_text("text") or ""
+                        fitz_page = fitz_doc.load_page(idx)
+                        fitz_text = fitz_page.get_text("text") or ""
                         if self._is_split_marker_text(fitz_text):
                             marker_found = True
                             text = fitz_text
                             extraction_source = "PyMuPDF"
                     except Exception as error:
                         debug(f"PyMuPDF text extraction failed on page {idx + 1}: {error}", "warning")
+
+                if not marker_found and fitz_page is not None:
+                    if self._looks_like_visual_split_marker(fitz_page):
+                        marker_found = True
+                        extraction_source = "visual scan fallback"
 
                 word_count = len(re.findall(r"\S+", text))
                 debug(f"Page {idx + 1}: {word_count} words ({extraction_source})", "debug")
@@ -5586,8 +6248,12 @@ class PDFSplitterApp(TkinterDnD.Tk):
             messagebox.showerror("Invalid File(s)", "Only PDF files are supported.")
             return
 
+        workspace_name = self.confirm_batch_workspace(len(valid_files))
+        if workspace_name is None:
+            return
+
         for path in valid_files:
-            self.load_pdf_from_path(path)
+            self.load_pdf_from_path(path, workspace_name=workspace_name)
 
         self.enable_tab_closing()
     def export_current_pdf(self):
@@ -5811,17 +6477,87 @@ class PDFSplitterApp(TkinterDnD.Tk):
         client_box = ctk.CTkFrame(form_frame, fg_color="transparent")
         client_box.pack(pady=(10, 10), padx=10, anchor="w", fill="x")
         name_label = ctk.CTkLabel(client_box, text=f"{profile.get('client_label', 'Client Name')} (optional):")
-        name_label.pack(side="left")
+        name_label.pack(side="left", anchor="n", pady=(7, 0))
         session["widgets_to_scale"].append(name_label)
 
         info_icon = ctk.CTkLabel(client_box, text="❓", text_color="#888888", cursor="question_arrow")
-        info_icon.pack(side="left", padx=(5, 10))
-        self.add_tooltip(info_icon, "Names use smart title case. Mixed capitalization and common acronyms are preserved.")
+        info_icon.pack(side="left", anchor="n", padx=(5, 10), pady=(7, 0))
+        self.add_tooltip(
+            info_icon,
+            "Client suggestions come from folders in the output location. Press Tab to accept the highlighted match."
+        )
 
-        name_entry = CTkEntry(client_box, textvariable=session["client_name_var"], width=300)
-        name_entry.pack(side="left")
+        name_column = ctk.CTkFrame(client_box, fg_color="transparent", width=300)
+        name_column.pack(side="left", anchor="n")
+
+        name_entry = CTkEntry(
+            name_column,
+            textvariable=session["client_name_var"],
+            width=300,
+            placeholder_text="Type to search output folders"
+        )
+        name_entry.pack(fill="x")
         session["client_name_entry"] = name_entry
         session["widgets_to_scale"].append(name_entry)
+
+        list_bg, list_fg, list_select_bg, list_select_fg = self._filename_editor_colors()
+        suggestion_listbox = tk.Listbox(
+            name_column,
+            height=3,
+            exportselection=False,
+            activestyle="none",
+            font=(self.font_family, self.font_size),
+            bg=list_bg,
+            fg=list_fg,
+            selectbackground=list_select_bg,
+            selectforeground=list_select_fg,
+            relief="solid",
+            borderwidth=1,
+            highlightthickness=0,
+            takefocus=False
+        )
+        session["client_suggestion_listbox"] = suggestion_listbox
+
+        suggestion_listbox.bind(
+            "<ButtonRelease-1>",
+            lambda _event, s=session, w=name_entry: self.accept_client_suggestion(s, w)
+        )
+        suggestion_listbox.bind(
+            "<Return>",
+            lambda _event, s=session, w=name_entry: self.accept_client_suggestion(s, w)
+        )
+        suggestion_listbox.bind(
+            "<Tab>",
+            lambda _event, s=session, w=name_entry: self.accept_client_suggestion(s, w)
+        )
+        ctk.CTkButton(
+            client_box, text="Aa", width=38,
+            command=lambda s=session: self.force_title_case_client_name(s)
+        ).pack(side="left", anchor="n", padx=(6, 0))
+        self.add_tooltip(client_box.winfo_children()[-1], "Convert the current client name to title case.")
+        # Bind the real tkinter Entry inside CustomTkinter. Binding the outer
+        # CTkEntry frame does not receive typing events on every platform.
+        name_entry_control = getattr(name_entry, "_entry", name_entry)
+        name_entry_control.bind(
+            "<KeyRelease>",
+            lambda event, s=session, w=name_entry: (
+                None if event.keysym in {"Tab", "Return", "Escape", "Up", "Down"}
+                else self.show_client_suggestions(s, w)
+            ),
+            add="+"
+        )
+        name_entry_control.bind(
+            "<Tab>",
+            lambda _event, s=session, w=name_entry: self.accept_client_suggestion(s, w),
+            add="+"
+        )
+        name_entry_control.bind("<Down>", lambda _event: self.move_client_suggestion(1), add="+")
+        name_entry_control.bind("<Up>", lambda _event: self.move_client_suggestion(-1), add="+")
+        name_entry_control.bind(
+            "<FocusOut>",
+            lambda _event: self.after(150, self.hide_client_suggestions),
+            add="+"
+        )
 
         for part_index, r in enumerate(ranges):
             part_number = part_index + 1
@@ -5998,7 +6734,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 saved = self.get_workspace_saved_value(session, workspace_name, part_index, key, default)
                 if (
                     field.get("type") == "date"
-                    and self.settings.get("autofill_todays_date", False)
+                    and field.get("auto_today", False)
                     and not str(saved or "").strip()
                 ):
                     saved = self.today_value_for_field(field)
@@ -6434,6 +7170,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
             debug(f"Failed to update preview page: {error}", "error")
 
     def render_pdf_preview(self, session, frame, page_index=0):
+        doc = None
         try:
             doc = fitz.open(str(session["path"]))
             page_count = doc.page_count
@@ -6536,6 +7273,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
             doc.close()
 
         except Exception as e:
+            if doc is not None:
+                try:
+                    doc.close()
+                except Exception:
+                    pass
             debug(f"Failed to render PDF preview (page {page_index}): {e}", "debug")
             ctk.CTkLabel(frame, text="Unable to preview PDF").pack()
     def export_session(self, session):
@@ -6852,12 +7594,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 pass
 
         self.last_exported_files = list(session["last_exported_files"])
-
         if self.settings.get("export_log_enabled", True):
-            with open(LOG_FILE, "a", encoding="utf-8") as f:
-                for line in log_lines:
-                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    f.write(f"[{timestamp}] {line}\n")
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.append_log_lines([f"[{timestamp}] {line}\n" for line in log_lines])
             self.load_full_log()
 
         messagebox.showinfo(
@@ -7034,6 +7773,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         canvas.configure(xscrollcommand=h_scroll.set, yscrollcommand=v_scroll.set)
 
         def render_scaled_image():
+            doc = None
             try:
                 doc = fitz.open(str(session["path"]))
                 page = doc.load_page(page_index)
@@ -7058,6 +7798,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
                 doc.close()
             except Exception as e:
+                if doc is not None:
+                    try:
+                        doc.close()
+                    except Exception:
+                        pass
                 debug(f"Failed to render zoomed image: {e}", "error")
                 tk.messagebox.showerror("Render Error", str(e))
 
@@ -7101,21 +7846,30 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         # Compute fit-to-width zoom after layout
         def set_initial_zoom():
-            doc = fitz.open(str(session["path"]))
-            page = doc.load_page(page_index)
-            page_width = page.rect.width
-            canvas_width = canvas.winfo_width()
+            doc = None
+            try:
+                doc = fitz.open(str(session["path"]))
+                page = doc.load_page(page_index)
+                page_width = page.rect.width
+                canvas_width = canvas.winfo_width()
 
-            if canvas_width <= 1:  # Not ready yet
-                debug("Canvas not ready — retrying zoom calc...", "debug")
-                win.after(50, set_initial_zoom)
-                return
+                if canvas_width <= 1:  # Not ready yet
+                    debug("Canvas not ready — retrying zoom calc...", "debug")
+                    win.after(50, set_initial_zoom)
+                    return
 
-            fit_zoom = max(1.0, min(5.0, canvas_width / page_width))
-            zoom_state["scale"] = round(fit_zoom, 2)
-            debug(f"Calculated initial zoom to fit width: {zoom_state['scale']:.2f}", "debug")
-            render_scaled_image()
-            doc.close()
+                fit_zoom = max(1.0, min(5.0, canvas_width / page_width))
+                zoom_state["scale"] = round(fit_zoom, 2)
+                debug(f"Calculated initial zoom to fit width: {zoom_state['scale']:.2f}", "debug")
+                render_scaled_image()
+            except Exception as error:
+                debug(f"Failed to calculate preview zoom: {error}", "error")
+            finally:
+                if doc is not None:
+                    try:
+                        doc.close()
+                    except Exception:
+                        pass
 
         win.after(50, set_initial_zoom)  # Wait for layout before rendering
 
@@ -7276,6 +8030,146 @@ class PDFSplitterApp(TkinterDnD.Tk):
         temp = ' '.join(smart_capitalize(w) for w in words)
         debug(f" TC --> {temp}", "debug")
         return temp
+
+    def force_title_case_client_name(self, session):
+        """Explicitly normalize pasted names without changing normal export rules."""
+        current = session.get("client_name_var").get().strip()
+        if current:
+            session["client_name_var"].set(self.title_case(current.lower()))
+        self.hide_client_suggestions()
+
+    def get_output_client_folder_names(self):
+        """Return immediate folder names from the configured output location."""
+        output_folder = str(self.settings.get("export_folder", "") or "").strip()
+        if not output_folder:
+            debug("Client autofill skipped: no output folder is configured", "warning")
+            return []
+
+        root = Path(output_folder)
+        if not root.is_dir():
+            debug(f"Client autofill skipped: output folder does not exist: {root}", "warning")
+            return []
+
+        names = []
+        seen = set()
+        try:
+            folders = sorted(
+                (item for item in root.iterdir() if item.is_dir()),
+                key=lambda item: item.name.casefold()
+            )
+        except (OSError, PermissionError) as error:
+            debug(f"Could not read client folders from {root}: {error}", "warning")
+            return []
+
+        excluded = {"quick split files"}
+        for folder in folders:
+            name = folder.name.strip()
+            if not name or name.startswith(".") or name.casefold() in excluded:
+                continue
+            key = name.casefold()
+            if key not in seen:
+                seen.add(key)
+                names.append(name)
+        debug(f"Client autofill found {len(names)} folder name(s) in {root}", "debug")
+        return names
+
+    def rank_client_folder_matches(self, query, names, limit=3):
+        """Return exact consecutive matches: name prefix, word prefix, substring."""
+        query = str(query or "").strip().casefold()
+        if not query:
+            return []
+
+        def score(name):
+            folded = name.casefold()
+            words = re.findall(r"[a-z0-9]+", folded)
+            if folded.startswith(query):
+                match_level = 0
+            elif any(word.startswith(query) for word in words):
+                match_level = 1
+            else:
+                match_level = 2
+            return (match_level, folded.find(query), folded)
+
+        exact_matches = [name for name in names if query in name.casefold()]
+        return sorted(exact_matches, key=score)[:max(1, int(limit))]
+
+    def hide_client_suggestions(self):
+        listbox = getattr(self, "client_suggestion_listbox", None)
+        if listbox is not None:
+            try:
+                listbox.pack_forget()
+                listbox.delete(0, "end")
+            except tk.TclError:
+                pass
+        self.client_suggestion_listbox = None
+
+    def move_client_suggestion(self, direction):
+        listbox = getattr(self, "client_suggestion_listbox", None)
+        if listbox is None:
+            return None
+        try:
+            size = listbox.size()
+            if size <= 0:
+                return None
+            current = listbox.curselection()
+            index = current[0] if current else 0
+            index = max(0, min(size - 1, index + int(direction)))
+            listbox.selection_clear(0, "end")
+            listbox.selection_set(index)
+            listbox.activate(index)
+            listbox.see(index)
+            return "break"
+        except tk.TclError:
+            return None
+
+    def accept_client_suggestion(self, session, entry):
+        listbox = getattr(self, "client_suggestion_listbox", None)
+        if listbox is None:
+            return None
+        try:
+            picked = listbox.curselection()
+            index = picked[0] if picked else 0
+            if listbox.size() > 0:
+                session["client_name_var"].set(listbox.get(index))
+                entry.icursor("end")
+                self.hide_client_suggestions()
+                return "break"
+        except tk.TclError:
+            self.hide_client_suggestions()
+        return None
+
+    def show_client_suggestions(self, session, entry):
+        self.hide_client_suggestions()
+        query = session["client_name_var"].get().strip().casefold()
+        if not query:
+            return
+        matches = self.rank_client_folder_matches(
+            query,
+            self.get_output_client_folder_names(),
+            limit=3
+        )
+        debug(f"Client autofill query '{query}' matched: {matches}", "debug")
+        if not matches:
+            return
+
+        listbox = session.get("client_suggestion_listbox")
+        if listbox is None:
+            debug("Client autofill could not display: inline listbox is unavailable", "warning")
+            return
+        try:
+            if not listbox.winfo_exists():
+                return
+            listbox.delete(0, "end")
+            listbox.configure(height=len(matches))
+        except tk.TclError:
+            return
+        for name in matches:
+            listbox.insert("end", name)
+        listbox.selection_set(0)
+        listbox.activate(0)
+        listbox.pack(fill="x", pady=(2, 0))
+        listbox.lift()
+        self.client_suggestion_listbox = listbox
 
     # ─── Keybinds ───
     def focus_search(self):
