@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CleanCutPDF.App.ViewModels"
+             x:Class="CleanCutPDF.App.Views.RenameOnlyView"
+             x:DataType="vm:RenameOnlyViewModel">
+
+  <StackPanel Margin="24" Spacing="14" MaxWidth="900" HorizontalAlignment="Left">
+    <StackPanel Spacing="4">
+      <TextBlock Text="Rename Only" Classes="page-title" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="Rename each PDF with the normal workspace fields. Each PDF is treated as one document; no SPLIT HERE markers are used." />
+    </StackPanel>
+
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Planned for Phase 3" FontWeight="SemiBold" />
+        <ItemsControl ItemsSource="{Binding PlannedFeatures}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

@@ -1,0 +1,115 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CleanCutPDF.App.ViewModels"
+             xmlns:updates="using:CleanCutPDF.Core.Updates"
+             x:Class="CleanCutPDF.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+  <ScrollViewer>
+    <StackPanel Margin="24" Spacing="14" MaxWidth="900" HorizontalAlignment="Left">
+      <TextBlock Text="Settings" Classes="page-title" />
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="16" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Theme" VerticalAlignment="Center" Width="120" />
+            <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}" Width="200" />
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Themes switch instantly. Color palettes (Blue, Green, Pink) and font settings arrive in Phase 5." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Export" FontWeight="SemiBold" FontSize="16" />
+          <Grid ColumnDefinitions="120,*,Auto,Auto" ColumnSpacing="8">
+            <TextBlock Text="Default folder" VerticalAlignment="Center" />
+            <TextBox Grid.Column="1" Text="{Binding ExportFolderDisplay, Mode=OneWay}" IsReadOnly="True" />
+            <Button Grid.Column="2" Content="Browse…" Command="{Binding BrowseExportFolderCommand}" />
+            <Button Grid.Column="3" Content="Open Folder" Command="{Binding OpenExportFolderCommand}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="About" FontWeight="SemiBold" FontSize="16" />
+          <TextBlock Text="{Binding VersionText}" />
+          <Grid ColumnDefinitions="120,*,Auto" ColumnSpacing="8">
+            <TextBlock Text="Data folder" VerticalAlignment="Center" />
+            <SelectableTextBlock Grid.Column="1" Text="{Binding DataFolder}" VerticalAlignment="Center"
+                                 TextWrapping="Wrap" />
+            <Button Grid.Column="2" Content="Open" Command="{Binding OpenDataFolderCommand}" />
+          </Grid>
+          <TextBlock Text="{Binding LegacyStatus}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="License" FontWeight="SemiBold" FontSize="16" />
+          <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="6"
+                IsVisible="{Binding License.HasLicense}">
+            <TextBlock Text="Licensed to" />
+            <TextBlock Grid.Column="1" Text="{Binding License.LicensedTo}" />
+            <TextBlock Grid.Row="1" Text="Expires" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding License.ExpiresText}" />
+            <TextBlock Grid.Row="2" Text="Last verified" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding License.LastVerifiedText}" />
+          </Grid>
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="The license is checked online in the background once a week. Without internet, CleanCutPDF keeps working for up to 30 days after the last successful check." />
+          <TextBlock Text="{Binding License.Message}" TextWrapping="Wrap" FontSize="12"
+                     IsVisible="{Binding License.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Verify Now" Command="{Binding License.VerifyNowCommand}"
+                    IsVisible="{Binding License.HasLicense}" />
+            <Button Content="Remove License…" Command="{Binding License.RemoveLicenseCommand}"
+                    IsVisible="{Binding License.HasLicense}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="16" />
+          <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto" RowSpacing="6">
+            <TextBlock Text="Installed" />
+            <TextBlock Grid.Column="1" Text="{Binding Updates.CurrentVersion}" />
+            <TextBlock Grid.Row="1" Text="Last checked" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Updates.LastCheckedText}" />
+          </Grid>
+          <CheckBox Content="Check for updates every time CleanCutPDF opens (in the background)"
+                    IsChecked="{Binding Updates.CheckAutomatically}" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Check Now" Command="{Binding Updates.CheckNowCommand}" />
+            <TextBlock Text="{Binding Updates.StatusText}" Classes="muted" VerticalAlignment="Center"
+                       TextWrapping="Wrap" />
+          </StackPanel>
+
+          <TextBlock Text="Release notes" FontWeight="SemiBold" Margin="0,6,0,0" />
+          <TextBlock Text="Release notes appear after the first successful update check." Classes="muted"
+                     FontSize="12" IsVisible="{Binding !Updates.ReleaseNotes.Count}" />
+          <ItemsControl ItemsSource="{Binding Updates.ReleaseNotes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="updates:ReleaseNotes">
+                <StackPanel Spacing="2" Margin="0,4">
+                  <TextBlock Text="{Binding Version}" FontWeight="SemiBold" />
+                  <ItemsControl ItemsSource="{Binding Lines}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" FontSize="13" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

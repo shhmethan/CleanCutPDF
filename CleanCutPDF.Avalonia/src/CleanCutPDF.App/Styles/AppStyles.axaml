@@ -1,0 +1,56 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="SidebarBackground" Color="#EEF2F6" />
+          <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="CardBorder" Color="#D5DCE3" />
+          <SolidColorBrush x:Key="MutedText" Color="#66707A" />
+          <SolidColorBrush x:Key="AccentText" Color="#2F7BBF" />
+          <SolidColorBrush x:Key="PreviewBackground" Color="#E3E7EB" />
+          <SolidColorBrush x:Key="ErrorText" Color="#B3261E" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="SidebarBackground" Color="#1F242A" />
+          <SolidColorBrush x:Key="CardBackground" Color="#2A3036" />
+          <SolidColorBrush x:Key="CardBorder" Color="#3A424A" />
+          <SolidColorBrush x:Key="MutedText" Color="#A0A8B0" />
+          <SolidColorBrush x:Key="AccentText" Color="#6CB2EB" />
+          <SolidColorBrush x:Key="PreviewBackground" Color="#15191D" />
+          <SolidColorBrush x:Key="ErrorText" Color="#F2B8B5" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <Style Selector="TextBlock.page-title">
+    <Setter Property="FontSize" Value="22" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+  </Style>
+
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
+  </Style>
+
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorText}" />
+  </Style>
+
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
+  <Style Selector="ListBox.nav ListBoxItem">
+    <Setter Property="Padding" Value="14,10" />
+    <Setter Property="Margin" Value="6,2" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+</Styles>

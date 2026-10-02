@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0-alpha.1",
+  "download_url": "https://github.com/shhmethan/CleanCutPDF/releases",
+  "sha256": "",
+  "changelog": {
+    "2.0.0-alpha.1": [
+      "First preview of CleanCutPDF 2, rebuilt in C# with Avalonia for Windows and macOS.",
+      "PDF loading and page previews run in the background so the window never freezes.",
+      "Previews are cached, prefetched, and cancelled when you move on quickly.",
+      "Themes switch instantly without rebuilding the window.",
+      "Updates are checked in the background every time the app opens; the license is rechecked weekly. Neither delays startup."
+    ]
+  }
+}

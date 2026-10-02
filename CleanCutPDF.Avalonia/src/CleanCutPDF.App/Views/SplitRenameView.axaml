@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CleanCutPDF.App.ViewModels"
+             x:Class="CleanCutPDF.App.Views.SplitRenameView"
+             x:DataType="vm:SplitRenameViewModel">
+
+  <Grid Margin="24">
+
+    <!-- Empty state -->
+    <StackPanel IsVisible="{Binding !HasDocument}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Spacing="12">
+      <TextBlock Text="✂" FontSize="42" HorizontalAlignment="Center" />
+      <TextBlock Text="No PDF open" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+      <TextBlock Text="Double-click a PDF in the Inbox to open it here." Classes="muted"
+                 HorizontalAlignment="Center" />
+      <Button Content="Go to Inbox" Command="{Binding BackToInboxCommand}" HorizontalAlignment="Center" />
+    </StackPanel>
+
+    <!-- Editor -->
+    <DockPanel IsVisible="{Binding HasDocument}">
+      <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,14">
+        <TextBlock Text="Split &amp; Rename" Classes="page-title" />
+        <!-- Long names scroll horizontally instead of being cut off. -->
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <TextBlock Text="{Binding Document.FileName, FallbackValue=''}" FontWeight="SemiBold"
+                     TextWrapping="NoWrap" Classes="muted" />
+        </ScrollViewer>
+      </StackPanel>
+
+      <Grid ColumnDefinitions="*,6,1.1*">
+
+        <!-- Left: workspace fields (Phase 2) -->
+        <Border Classes="card">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+              <Button Content="Export PDFs" IsEnabled="False" Classes="accent"
+                      ToolTip.Tip="Exporting arrives in Phase 2" />
+              <Button Content="Close PDF" Command="{Binding CloseDocumentCommand}" />
+              <Button Content="Back to Inbox" Command="{Binding BackToInboxCommand}" />
+            </StackPanel>
+            <StackPanel Spacing="10">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Workspace:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Document.Workspace, FallbackValue=''}" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBlock Text="{Binding Document.StatusText, FallbackValue=''}" Classes="muted" />
+              <Border BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="6"
+                      Padding="14" Margin="0,8,0,0">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Coming in Phase 2" FontWeight="SemiBold" />
+                  <TextBlock TextWrapping="Wrap" Classes="muted"
+                             Text="Background SPLIT HERE detection, Part cards, the optional client field, workspace fields (text, number, currency, date, dropdown, checkbox, toggle), description autofill, Today buttons, and exporting with blank-page removal." />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+
+        <GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns" />
+
+        <!-- Right: preview -->
+        <Border Grid.Column="2" Classes="card" Padding="0">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Top" Margin="12,10" Spacing="6">
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
+                <Button Content="← Prev" Command="{Binding Preview.PreviousPageCommand}" />
+                <TextBlock Text="Page" VerticalAlignment="Center" />
+                <TextBox Text="{Binding Preview.PageInput}" Width="56" MinWidth="0"
+                         HorizontalContentAlignment="Center">
+                  <TextBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding Preview.GoToPageCommand}" />
+                  </TextBox.KeyBindings>
+                </TextBox>
+                <TextBlock Text="{Binding Preview.PageCount, StringFormat='of {0}'}" VerticalAlignment="Center" />
+                <Button Content="Go" Command="{Binding Preview.GoToPageCommand}" />
+                <Button Content="Next →" Command="{Binding Preview.NextPageCommand}" />
+              </StackPanel>
+              <TextBlock Text="{Binding Preview.ErrorMessage}" Classes="error" TextWrapping="Wrap"
+                         HorizontalAlignment="Center"
+                         IsVisible="{Binding Preview.ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+
+            <Grid Background="{DynamicResource PreviewBackground}">
+              <Border x:Name="PreviewViewport" Padding="12">
+                <Image Source="{Binding Preview.PageImage}" Stretch="Uniform"
+                       RenderOptions.BitmapInterpolationMode="HighQuality" />
+              </Border>
+              <ProgressBar IsIndeterminate="True" VerticalAlignment="Top" Height="3" MinWidth="0"
+                           IsVisible="{Binding Preview.IsLoading}" />
+            </Grid>
+          </DockPanel>
+        </Border>
+      </Grid>
+    </DockPanel>
+  </Grid>
+</UserControl>
