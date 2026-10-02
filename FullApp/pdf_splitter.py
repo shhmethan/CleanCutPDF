@@ -37,7 +37,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.10.0"
+CURRENT_VERSION = "1.10.1"
 MAX_RENDERED_PDF_TABS = 3
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
@@ -639,6 +639,8 @@ class CTkUndoEntry(ctk.CTkEntry):
         self.after(10, self._bind_events)
 
     def _bind_events(self):
+        if not self._widget_exists():
+            return
         try:
             self._entry.bind("<Key>", self._on_keypress)
             self._entry.bind("<Control-z>", self._undo)
@@ -648,6 +650,8 @@ class CTkUndoEntry(ctk.CTkEntry):
             debug(f"[UNDO] Failed to bind events: {e}", "error")
 
     def _on_keypress(self, event=None):
+        if not self._widget_exists():
+            return
         keys_to_commit_immediately = ["Return", "Tab", "space"]
 
         if event.keysym in keys_to_commit_immediately:
@@ -661,6 +665,9 @@ class CTkUndoEntry(ctk.CTkEntry):
         self._typing_timer = self.after(600, self._commit_snapshot)
 
     def _commit_snapshot(self):
+        if not self._widget_exists():
+            self._typing_timer = None
+            return
         current = self.get()
         if current != self._last_value:
             self._undo_stack.append(self._last_value)
@@ -669,6 +676,8 @@ class CTkUndoEntry(ctk.CTkEntry):
             self._last_value = current
 
     def _undo(self, event=None):
+        if not self._widget_exists():
+            return "break"
         self._commit_snapshot()  # Commit any unsaved change before undoing
         if self._undo_stack:
             prev = self._undo_stack.pop()
@@ -682,6 +691,8 @@ class CTkUndoEntry(ctk.CTkEntry):
         return "break"
 
     def _redo(self, event=None):
+        if not self._widget_exists():
+            return "break"
         if self._redo_stack:
             next_val = self._redo_stack.pop()
             self._undo_stack.append(self.get())
@@ -692,6 +703,27 @@ class CTkUndoEntry(ctk.CTkEntry):
         else:
             debug("[REDO] Nothing to redo.", "undo")
         return "break"
+
+    def _widget_exists(self):
+        try:
+            return bool(self.winfo_exists() and self._entry.winfo_exists())
+        except tk.TclError:
+            return False
+
+    def destroy(self):
+        if self._typing_timer:
+            try:
+                self.after_cancel(self._typing_timer)
+            except tk.TclError:
+                pass
+            self._typing_timer = None
+        try:
+            self._entry.unbind("<Key>")
+            self._entry.unbind("<Control-z>")
+            self._entry.unbind("<Control-y>")
+        except tk.TclError:
+            pass
+        super().destroy()
 
 CTkEntry = CTkUndoEntry
 
@@ -1772,10 +1804,30 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 folder_id = session.get("folder_id", "inbox")
                 parent = folder_nodes.get(folder_id, folder_nodes.get("inbox", ""))
                 workspace = session.get("workspace", "Accounting")
+                display_text = f"{Path(session['path']).name}  [{workspace}]"
                 tree.insert(
                     parent, "end", iid=f"doc:{pdf_name}",
-                    text=f"{Path(session['path']).name}  [{workspace}]"
+                    text=display_text
                 )
+
+            # Treeview's #0 column otherwise stays at the sidebar width, which
+            # makes a horizontal scrollbar exist without providing meaningful
+            # extra content to scroll through. Size it to the longest visible
+            # label so the full filename/workspace text is reachable.
+            labels = []
+            for item_id in tree.get_children(""):
+                labels.append(str(tree.item(item_id, "text") or ""))
+                labels.extend(
+                    str(tree.item(child, "text") or "")
+                    for child in tree.get_children(item_id)
+                )
+            max_label_chars = max((len(label) for label in labels), default=24)
+            tree.column(
+                "#0",
+                width=max(260, max_label_chars * 8 + 36),
+                minwidth=260,
+                stretch=False
+            )
 
             for item_id in selected_ids:
                 if tree.exists(item_id):
@@ -1804,6 +1856,87 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     document_node,
                     text=f"{Path(session['path']).name}  [{session.get('workspace', 'Accounting')}]"
                 )
+        labels = []
+        for item_id in tree.get_children(""):
+            labels.append(str(tree.item(item_id, "text") or ""))
+            labels.extend(
+                str(tree.item(child, "text") or "")
+                for child in tree.get_children(item_id)
+            )
+        max_label_chars = max((len(label) for label in labels), default=24)
+        tree.column(
+            "#0",
+            width=max(260, max_label_chars * 8 + 36),
+            minwidth=260,
+            stretch=False
+        )
+
+    def _close_pdf_session(self, session, refresh=True):
+        name = next((key for key, value in self.pdf_sessions.items() if value is session), None)
+        if name is None:
+            return
+        tab_label = session.get("tab_label")
+        try:
+            was_visible = self.pdf_tabview.get() == tab_label
+        except (tk.TclError, AttributeError):
+            was_visible = False
+        was_active = self.active_pdf_session is session or was_visible
+        if was_active:
+            try:
+                if "➕ New PDF" in getattr(self.pdf_tabview, "_tabs", {}):
+                    # Select the empty landing view before deleting the old
+                    # tab; CTkTabview can otherwise leave the deleted frame
+                    # painted until a later navigation event.
+                    self.pdf_tabview.set("➕ New PDF")
+            except tk.TclError:
+                pass
+            try:
+                tab_frame = session.get("tab")
+                if tab_frame is not None:
+                    for child in tab_frame.winfo_children():
+                        child.destroy()
+            except (tk.TclError, AttributeError):
+                pass
+        try:
+            if tab_label and tab_label in getattr(self.pdf_tabview, "_tabs", {}):
+                self.pdf_tabview.delete(tab_label)
+        except tk.TclError:
+            pass
+        self.pdf_sessions.pop(name, None)
+        if self.active_pdf_session is session:
+            self.active_pdf_session = None
+        if was_active:
+            # Deleting a CTkTabview tab can leave its old frame visible until
+            # another tab is explicitly selected. Always clear the editor
+            # after closing the active PDF so its preview cannot remain stale.
+            try:
+                if "➕ New PDF" in getattr(self.pdf_tabview, "_tabs", {}):
+                    self.pdf_tabview.set("➕ New PDF")
+                    self.active_pdf_session = None
+            except tk.TclError:
+                pass
+        if refresh:
+            self.save_sessions()
+            self._refresh_pdf_navigation()
+            self._refresh_pdf_sidebar()
+
+    def close_selected_documents(self):
+        sessions = self._selected_document_sessions()
+        if not sessions:
+            messagebox.showinfo("Close PDFs", "Select one or more PDFs first.")
+            return
+        names = [Path(session.get("path", "PDF")).name for session in sessions]
+        if not messagebox.askyesno(
+            "Close PDFs",
+            f"Close {len(names)} selected PDF(s)?\n\n" + "\n".join(names[:8])
+            + ("\n…" if len(names) > 8 else "")
+        ):
+            return
+        for session in list(sessions):
+            self._close_pdf_session(session, refresh=False)
+        self.save_sessions()
+        self._refresh_pdf_navigation()
+        self._refresh_pdf_sidebar()
 
     def _on_pdf_tree_select(self, _event=None):
         if getattr(self, "_refreshing_pdf_sidebar", False):
@@ -1829,11 +1962,6 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 if hasattr(self, "pdf_tabview") and "➕ New PDF" in getattr(self.pdf_tabview, "_tabs", {}):
                     self.pdf_tabview.set("➕ New PDF")
 
-            documents = [item for item in selected if item.startswith("doc:")]
-            if len(documents) == 1:
-                session = self.pdf_sessions.get(documents[0][4:])
-                if session is not None:
-                    self._activate_pdf_session(session)
             _record_last_action("PDF sidebar selection complete", ", ".join(selected_names))
         except Exception as error:
             _write_handled_exception("PDF sidebar selection", error)
@@ -1846,6 +1974,16 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 )
             except Exception:
                 pass
+
+    def _on_pdf_tree_double_click(self, event=None):
+        """Open a PDF only after an explicit double-click."""
+        tree = self.pdf_document_tree
+        item_id = tree.identify_row(event.y) if event is not None else ""
+        if not item_id or not item_id.startswith("doc:"):
+            return
+        session = self.pdf_sessions.get(item_id[4:])
+        if session is not None:
+            self._activate_pdf_session(session)
 
     def create_pdf_folder(self):
         name = simpledialog.askstring("New Folder", "Folder name:", parent=self)
@@ -2010,6 +2148,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         else:
             menu.add_command(label="Change Workspace for Selected", command=self.bulk_change_workspace)
             menu.add_command(label="Move Selected to Folder", command=self._move_selected_documents_to_folder)
+            menu.add_command(label="Close Selected PDF(s)", command=self.close_selected_documents)
 
         try:
             menu.tk_popup(event.x_root, event.y_root)
@@ -2305,6 +2444,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.folder_shortcut_bar = ctk.CTkFrame(wrapper, fg_color="transparent")
         self.folder_shortcut_bar.pack(fill="x", padx=10, pady=(8, 0))
         self.refresh_folder_shortcut_bar()
+        self.pdf_sidebar_toggle_button = ctk.CTkButton(
+            self.folder_shortcut_bar, text="◀ Hide Inbox", width=105,
+            command=self.toggle_pdf_sidebar
+        )
+        self.pdf_sidebar_toggle_button.pack(side="right")
 
         self.load_pdf_project()
         # Inbox is always the landing folder when the application starts.
@@ -2375,10 +2519,21 @@ class PDFSplitterApp(TkinterDnD.Tk):
             style="CleanCutPDF.Treeview"
         )
         tree_scroll = ttk.Scrollbar(tree_frame, orient="vertical", command=self.pdf_document_tree.yview)
-        self.pdf_document_tree.configure(yscrollcommand=tree_scroll.set)
-        self.pdf_document_tree.pack(side="left", fill="both", expand=True)
-        tree_scroll.pack(side="right", fill="y")
+        tree_scroll_x = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.pdf_document_tree.xview)
+        self.pdf_document_tree.configure(
+            yscrollcommand=tree_scroll.set,
+            xscrollcommand=tree_scroll_x.set
+        )
+        # Use a grid for the explorer and its two scrollbars. Packing the
+        # horizontal scrollbar after an expanding Treeview leaves only a tiny
+        # sliver of usable width instead of spanning the explorer box.
+        tree_frame.grid_rowconfigure(0, weight=1)
+        tree_frame.grid_columnconfigure(0, weight=1)
+        self.pdf_document_tree.grid(row=0, column=0, sticky="nsew")
+        tree_scroll.grid(row=0, column=1, sticky="ns")
+        tree_scroll_x.grid(row=1, column=0, sticky="ew")
         self.pdf_document_tree.bind("<<TreeviewSelect>>", self._on_pdf_tree_select)
+        self.pdf_document_tree.bind("<Double-1>", self._on_pdf_tree_double_click)
         self.pdf_document_tree.bind("<Button-3>", self._show_pdf_tree_context_menu)
 
         ctk.CTkButton(
@@ -2388,6 +2543,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
         ctk.CTkButton(
             self.pdf_sidebar, text="Move Selected to Folder", height=30,
             command=self._move_selected_documents_to_folder
+        ).pack(fill="x", padx=8, pady=(0, 8))
+        ctk.CTkButton(
+            self.pdf_sidebar, text="Close Selected PDF(s)", height=30,
+            fg_color="#b84a4a", hover_color="#963b3b",
+            command=self.close_selected_documents
         ).pack(fill="x", padx=8, pady=(0, 8))
 
         self.pdf_tabview = ctk.CTkTabview(document_area)
@@ -2400,6 +2560,17 @@ class PDFSplitterApp(TkinterDnD.Tk):
             self._hide_internal_pdf_tab_strip()
         self._apply_tab_font_size()
         self._refresh_pdf_sidebar()
+
+    def toggle_pdf_sidebar(self):
+        sidebar = getattr(self, "pdf_sidebar", None)
+        if sidebar is None:
+            return
+        if sidebar.winfo_manager():
+            sidebar.pack_forget()
+            self.pdf_sidebar_toggle_button.configure(text="▶ Show Inbox")
+        else:
+            sidebar.pack(side="left", fill="y", padx=(0, 8), before=self.pdf_tabview)
+            self.pdf_sidebar_toggle_button.configure(text="◀ Hide Inbox")
 
     def _hide_internal_pdf_tab_strip(self):
         """Hide the legacy PDF tab buttons while retaining their content frames."""
@@ -2476,8 +2647,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
             debug(f"Could not activate PDF from document picker: {error}", "error")
 
     def build_rename_only_tab(self):
-        """Build a fast batch-renaming workspace that never opens or scans PDFs."""
+        """Build the workspace-aware one-file-at-a-time rename editor."""
         self.rename_only_files = {}
+        self.rename_only_selected_path = None
         wrapper = ctk.CTkFrame(self.rename_only_tab)
         wrapper.pack(fill="both", expand=True, padx=20, pady=20)
 
@@ -2488,7 +2660,8 @@ class PDFSplitterApp(TkinterDnD.Tk):
         ).pack(pady=(14, 3))
         ctk.CTkLabel(
             wrapper,
-            text="Rename PDF files without opening them or looking for SPLIT HERE markers.",
+            text="Rename each PDF with the normal workspace fields. Each PDF is treated as one document; no SPLIT HERE markers are used.",
+            wraplength=900,
             text_color="#888888"
         ).pack(pady=(0, 12))
 
@@ -2512,17 +2685,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
         CTkEntry(destination_row, textvariable=self.rename_output_var).pack(side="left", fill="x", expand=True, padx=(0, 8))
         ctk.CTkButton(destination_row, text="Browse…", command=self.choose_rename_output_folder, width=90).pack(side="left")
 
-        self.rename_rows_frame = ctk.CTkScrollableFrame(wrapper)
-        self.rename_rows_frame.pack(fill="both", expand=True, padx=12, pady=(0, 10))
+        editor_area = ctk.CTkFrame(wrapper, fg_color="transparent")
+        editor_area.pack(fill="both", expand=True, padx=12, pady=(0, 10))
+        self.rename_rows_frame = ctk.CTkScrollableFrame(editor_area, width=245)
+        self.rename_rows_frame.pack(side="left", fill="y", padx=(0, 10))
+        self.rename_editor_frame = ctk.CTkFrame(editor_area)
+        self.rename_editor_frame.pack(side="left", fill="both", expand=True)
         self.refresh_rename_only_rows()
-
-        bottom = ctk.CTkFrame(wrapper, fg_color="transparent")
-        bottom.pack(fill="x", padx=12, pady=(0, 12))
-        ctk.CTkButton(
-            bottom, text="Rename Files", command=self.rename_only_files_now,
-            width=150, state="disabled"
-        ).pack(side="right")
-        self.rename_execute_button = bottom.winfo_children()[-1]
 
     def add_rename_only_files(self):
         paths = filedialog.askopenfilenames(filetypes=[("PDF files", "*.pdf")])
@@ -2531,14 +2700,45 @@ class PDFSplitterApp(TkinterDnD.Tk):
             path = Path(raw_path)
             if path.suffix.lower() != ".pdf" or str(path) in self.rename_only_files:
                 continue
-            self.rename_only_files[str(path)] = ctk.StringVar(value=path.stem)
+            try:
+                reader = PdfReader(str(path))
+            except Exception as error:
+                messagebox.showwarning("PDF Could Not Be Opened", f"{path.name}\n\n{error}")
+                continue
+            self.rename_only_files[str(path)] = {
+                "path": path,
+                "reader": reader,
+                "ranges": [{"start": 0, "end": max(0, len(reader.pages) - 1)}],
+                "ranges_ready": True,
+                "entries": [],
+                "client_name_var": ctk.StringVar(),
+                "workspace": self.settings.get("default_workspace", "Accounting"),
+                "workspace_data": {},
+                "last_exported_files": [],
+                "widgets_to_scale": [],
+                "rename_only": True,
+                "tab": self.rename_editor_frame,
+                "tab_label": path.name
+            }
             changed = True
         if changed:
+            if self.rename_only_selected_path not in self.rename_only_files:
+                self.rename_only_selected_path = next(iter(self.rename_only_files), None)
             self.refresh_rename_only_rows()
+            self.select_rename_only_file(self.rename_only_selected_path)
 
     def clear_rename_only_files(self):
         self.rename_only_files.clear()
+        self.rename_only_selected_path = None
         self.refresh_rename_only_rows()
+        self._clear_rename_only_editor()
+
+    def _clear_rename_only_editor(self):
+        editor = getattr(self, "rename_editor_frame", None)
+        if editor is None:
+            return
+        for child in editor.winfo_children():
+            child.destroy()
 
     def choose_rename_output_folder(self):
         folder = filedialog.askdirectory(title="Select Rename Output Folder")
@@ -2557,31 +2757,45 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 text="Add one or more PDFs to begin.", text_color="#888888"
             ).pack(pady=30)
         else:
-            for path_string, name_var in self.rename_only_files.items():
+            for path_string, session in self.rename_only_files.items():
                 row = ctk.CTkFrame(self.rename_rows_frame)
-                row.pack(fill="x", pady=4, padx=4)
-                ctk.CTkLabel(
-                    row, text=Path(path_string).name, anchor="w", width=280
-                ).pack(side="left", padx=10, pady=8)
-                ctk.CTkLabel(row, text="New name:").pack(side="left", padx=(8, 5))
-                CTkEntry(row, textvariable=name_var).pack(side="left", fill="x", expand=True, padx=(0, 8), pady=6)
+                row.pack(fill="x", pady=3, padx=3)
+                row.configure(fg_color="#3B8ED0" if path_string == self.rename_only_selected_path else "transparent")
                 ctk.CTkButton(
-                    row, text="Remove", width=75,
+                    row, text=Path(path_string).name, anchor="w", height=34,
+                    fg_color="transparent", hover_color="#2f6f9f",
+                    command=lambda item=path_string: self.select_rename_only_file(item)
+                ).pack(side="left", fill="x", expand=True, padx=3, pady=3)
+                ctk.CTkButton(
+                    row, text="✕", width=32,
                     command=lambda item=path_string: self.remove_rename_only_file(item)
-                ).pack(side="right", padx=(0, 8))
-
-        if hasattr(self, "rename_execute_button"):
-            self.rename_execute_button.configure(
-                state="normal" if self.rename_only_files else "disabled"
-            )
+                ).pack(side="right", padx=(0, 3))
 
     def remove_rename_only_file(self, path_string):
         self.rename_only_files.pop(path_string, None)
+        if self.rename_only_selected_path == path_string:
+            self.rename_only_selected_path = next(iter(self.rename_only_files), None)
+        self.refresh_rename_only_rows()
+        if self.rename_only_selected_path:
+            self.select_rename_only_file(self.rename_only_selected_path)
+        else:
+            self._clear_rename_only_editor()
+
+    def select_rename_only_file(self, path_string):
+        if not path_string or path_string not in self.rename_only_files:
+            return
+        self.rename_only_selected_path = path_string
+        session = self.rename_only_files[path_string]
+        session["tab"] = self.rename_editor_frame
+        self.render_splitter_tab(self.rename_editor_frame, session)
         self.refresh_rename_only_rows()
 
     def rename_only_files_now(self):
-        if not self.rename_only_files:
+        path_string = self.rename_only_selected_path
+        if not path_string or path_string not in self.rename_only_files:
+            messagebox.showinfo("Rename PDF", "Select a PDF first.")
             return
+        session = self.rename_only_files[path_string]
         action = self.rename_action_var.get()
         output_folder = Path(self.rename_output_var.get().strip()).expanduser()
         if action == "Create renamed copies" and not output_folder:
@@ -2593,33 +2807,28 @@ class PDFSplitterApp(TkinterDnD.Tk):
             return
 
         try:
-            if action == "Create renamed copies":
-                output_folder.mkdir(parents=True, exist_ok=True)
+            source = Path(session["path"])
+            if not source.exists():
+                raise FileNotFoundError(source)
+            entry = session.get("entries", [None])[0]
+            if entry is None:
+                raise ValueError("The workspace fields have not finished loading yet.")
+            new_stem = self.get_session_filename(session, entry)
+            target_folder = source.parent if action == "Rename originals in place" else output_folder
+            target_folder.mkdir(parents=True, exist_ok=True)
+            target = target_folder / f"{new_stem}.pdf"
+            counter = 2
+            while target.exists() and target.resolve() != source.resolve():
+                target = target_folder / f"{new_stem}_{counter}.pdf"
+                counter += 1
+            if action == "Rename originals in place":
+                os.replace(source, target)
+            else:
+                shutil.copy2(source, target)
 
-            renamed = 0
-            for source_string, name_var in list(self.rename_only_files.items()):
-                source = Path(source_string)
-                if not source.exists():
-                    debug(f"Rename-only source no longer exists: {source}", "warning")
-                    continue
-                new_stem = re.sub(r'[<>:"/\\|?*\x00-\x1F]', "_", name_var.get().strip()).strip(" .")
-                if not new_stem:
-                    raise ValueError(f"Enter a new name for {source.name}.")
-                target_folder = source.parent if action == "Rename originals in place" else output_folder
-                target = target_folder / f"{new_stem}.pdf"
-                counter = 2
-                while target.exists() and target.resolve() != source.resolve():
-                    target = target_folder / f"{new_stem}_{counter}.pdf"
-                    counter += 1
-                if action == "Rename originals in place":
-                    os.replace(source, target)
-                else:
-                    shutil.copy2(source, target)
-                renamed += 1
-
-            messagebox.showinfo("Rename Complete", f"Renamed {renamed} file(s).")
-            debug(f"Rename-only completed for {renamed} file(s)", "saved")
-            self.clear_rename_only_files()
+            messagebox.showinfo("Rename Complete", f"Saved as:\n{target.name}")
+            debug(f"Rename-only completed: {source.name} -> {target.name}", "saved")
+            self.remove_rename_only_file(path_string)
         except Exception as error:
             debug(f"Rename-only failed: {error}", "error")
             messagebox.showerror("Rename Failed", str(error))
@@ -6003,6 +6212,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
         debug(f"Workspace switched: {current} -> {workspace_name}", "debug")
         self.render_splitter_tab(session["tab"], session)
         self.save_sessions()
+        self._update_pdf_sidebar_workspace_labels()
+        # Rebuild the explorer as well so the visible Inbox row is guaranteed
+        # to reflect the manually selected workspace, including after the row
+        # has been recreated by a prior selection or folder change.
+        self._refresh_pdf_sidebar()
 
     def get_workspace_saved_value(self, session, workspace_name, part_index, field, default):
         rows = session.get("workspace_data", {}).get(workspace_name, [])
@@ -7268,10 +7482,18 @@ class PDFSplitterApp(TkinterDnD.Tk):
         bubble.pack(fill="both", expand=True, padx=20, pady=20)
 
         ctk.CTkLabel(
-            bubble, text="🧩 Split & Rename",
+            bubble, text="📝 Rename Only" if session.get("rename_only") else "🧩 Split & Rename",
             font=(self.font_family, self.font_size + 4, "bold"),
             text_color="#3B8ED0"
         ).pack(pady=(10, 4))
+        ctk.CTkLabel(
+            bubble,
+            text=f"📄 {Path(session['path']).name}",
+            font=(self.font_family, self.font_size + 1, "bold"),
+            text_color="#666666",
+            wraplength=900,
+            justify="center"
+        ).pack(pady=(0, 8))
 
         workspace_row = ctk.CTkFrame(bubble, fg_color="transparent")
         workspace_row.pack(pady=(0, 4))
@@ -7404,7 +7626,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
             header.pack(fill="x", pady=(10, 0), padx=10)
             part_title = ctk.CTkLabel(
                 header,
-                text=f"Part {part_number} — Pages {r['start'] + 1} to {r['end'] + 1}",
+                text=(
+                    f"File — Pages {r['start'] + 1} to {r['end'] + 1}"
+                    if session.get("rename_only")
+                    else f"Part {part_number} — Pages {r['start'] + 1} to {r['end'] + 1}"
+                ),
                 font=(self.font_family, self.font_size + 1, "bold"),
                 text_color="#3B8ED0",
                 cursor="hand2"
@@ -7936,7 +8162,12 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         button_row = ctk.CTkFrame(bubble, fg_color="transparent")
         button_row.pack(pady=10)
-        ctk.CTkButton(button_row, text="Export PDFs", command=lambda: self.export_session(session)).pack(side="left", padx=10)
+        ctk.CTkButton(
+            button_row,
+            text="Rename PDF" if session.get("rename_only") else "Export PDFs",
+            command=(lambda: self.rename_only_files_now()) if session.get("rename_only")
+            else (lambda: self.export_session(session))
+        ).pack(side="left", padx=10)
         ctk.CTkButton(
             button_row, text="Reset Form", fg_color="#cc4b4b", hover_color="#aa2b2b",
             command=self.reset_ui
@@ -8055,6 +8286,13 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 frame, text="Preview",
                 font=(self.font_family, self.font_size + 1, "bold")
             ).pack(pady=(10, 2))
+            ctk.CTkLabel(
+                frame,
+                text=Path(session["path"]).name,
+                text_color="#888888",
+                wraplength=430,
+                justify="center"
+            ).pack(pady=(0, 4))
 
             control_frame = ctk.CTkFrame(frame, fg_color="transparent")
             control_frame.pack(pady=(10, 0))
@@ -8332,6 +8570,18 @@ class PDFSplitterApp(TkinterDnD.Tk):
             base_name = "_" + base_name
         return base_name or "Document"
 
+    def get_session_filename(self, session, entry):
+        """Build a filename through the same path used by every export mode."""
+        workspace_name = session.get("workspace", "Accounting")
+        client_name = self.title_case(session["client_name_var"].get().strip())
+        values = self.get_workspace_export_values(session, client_name, entry)
+        template = self.settings.get("workspaces", {}).get(workspace_name, {}).get(
+            "filename_template", WORKSPACES.get(workspace_name, {}).get(
+                "default_filename_template", "{client}_{date}"
+            )
+        )
+        return self._format_workspace_filename(template, values, workspace_name)
+
     def _finalize_export(self, session):
         debug("Finalizing export...", "debug")
 
@@ -8389,7 +8639,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 messagebox.showerror("Invalid Field Value", f"Error in Part {idx}:\n{error}")
                 return
 
-            base_name = self._format_workspace_filename(filename_template, values, workspace_name)
+            base_name = self.get_session_filename(session, entry)
             fname = f"{base_name}.pdf"
             file_path = out_dir / fname
 
@@ -8443,11 +8693,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         tab_name = next((name for name, current in self.pdf_sessions.items() if current is session), None)
         if tab_name:
-            tab_label = session.get("tab_label", tab_name)
-            self.pdf_tabview.delete(tab_label)
-            self.pdf_sessions.pop(tab_name, None)
-            self.save_sessions()
-            self._refresh_pdf_navigation()
+            self._close_pdf_session(session)
 
     def split_paths(self, data):
         # Example: '{C:/file1.pdf} {C:/file2.pdf}'
@@ -8882,38 +9128,40 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self.hide_client_suggestions()
 
     def get_output_client_folder_names(self):
-        """Return immediate folder names from the configured output location."""
+        """Return client names from output folders and previous export history."""
         output_folder = str(self.settings.get("export_folder", "") or "").strip()
-        if not output_folder:
-            debug("Client autofill skipped: no output folder is configured", "warning")
-            return []
-
-        root = Path(output_folder)
-        if not root.is_dir():
-            debug(f"Client autofill skipped: output folder does not exist: {root}", "warning")
-            return []
-
         names = []
         seen = set()
-        try:
-            folders = sorted(
-                (item for item in root.iterdir() if item.is_dir()),
-                key=lambda item: item.name.casefold()
-            )
-        except (OSError, PermissionError) as error:
-            debug(f"Could not read client folders from {root}: {error}", "warning")
-            return []
+        if output_folder:
+            root = Path(output_folder)
+            try:
+                folders = sorted(
+                    (item for item in root.iterdir() if item.is_dir()),
+                    key=lambda item: item.name.casefold()
+                ) if root.is_dir() else []
+            except (OSError, PermissionError):
+                folders = []
+            for folder in folders:
+                name = folder.name.strip()
+                if name and not name.startswith(".") and name.casefold() != "quick split files":
+                    if name.casefold() not in seen:
+                        seen.add(name.casefold())
+                        names.append(name)
 
-        excluded = {"quick split files"}
-        for folder in folders:
-            name = folder.name.strip()
-            if not name or name.startswith(".") or name.casefold() in excluded:
-                continue
-            key = name.casefold()
-            if key not in seen:
-                seen.add(key)
-                names.append(name)
-        debug(f"Client autofill found {len(names)} folder name(s) in {root}", "debug")
+        # Keep names available after the output folder changes, and when client
+        # folders were not created for an earlier export.
+        try:
+            if LOG_FILE.exists():
+                for line in LOG_FILE.read_text(encoding="utf-8", errors="ignore").splitlines():
+                    match = re.search(r"\bClient:\s*([^|]+)", line, flags=re.IGNORECASE)
+                    if match:
+                        name = match.group(1).strip()
+                        if name and name.casefold() not in seen:
+                            seen.add(name.casefold())
+                            names.append(name)
+        except OSError as error:
+            debug(f"Could not read client history: {error}", "warning")
+        debug(f"Client autofill found {len(names)} remembered name(s)", "debug")
         return names
 
     def rank_client_folder_matches(self, query, names, limit=3):
@@ -9267,7 +9515,7 @@ class PDFSplitterApp(TkinterDnD.Tk):
         self._bound_key_sequences = []
 
     def enable_tab_closing(self):
-        # PDF navigation is handled by the document sidebar in 1.10.0.
+        # PDF navigation is handled by the document sidebar in 1.10.1.
         # Do not bind the legacy hidden tab buttons; those handlers can race
         # sidebar selection and were the source of the selection crash.
         if hasattr(self, "pdf_document_tree"):
@@ -9301,16 +9549,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
             confirm = messagebox.askyesno("Close Tab", f"Close '{base_name}'?")
             if confirm:
                 debug(f"Closing tab '{tab_label}' and deleting session '{base_name}'", "debug")
-
-                self.pdf_tabview.delete(tab_label)
-
-                if base_name in self.pdf_sessions:
-                    del self.pdf_sessions[base_name]
-                    debug(f"Session '{base_name}' removed from pdf_sessions", "debug")
-                    self.save_sessions()
-                    self._refresh_pdf_navigation()
+                session = self.pdf_sessions.get(base_name)
+                if session is not None:
+                    self._close_pdf_session(session)
                 else:
-                    debug(f"[DEBUG] No matching session found for '{base_name}'")
+                    self.pdf_tabview.delete(tab_label)
             else:
                 debug(f"[DEBUG] User canceled close for '{tab_label}'")
         else:
@@ -9329,13 +9572,11 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
         confirm = messagebox.askyesno("Close Tab", f"Close '{tab_name}'?")
         if confirm:
-            self.pdf_tabview.delete(tab_name)
-            if tab_name in self.pdf_sessions:
-                del self.pdf_sessions[tab_name]
-                self.save_sessions()
-                self._refresh_pdf_navigation()
-
-            self.enable_tab_closing()
+            session = self.pdf_sessions.get(tab_name)
+            if session is not None:
+                self._close_pdf_session(session)
+            else:
+                self.pdf_tabview.delete(tab_name)
     def close_current_tab(self):
         tab_label = self.pdf_tabview.get()
         if tab_label in {"+", "➕ New PDF"}:
@@ -9346,15 +9587,14 @@ class PDFSplitterApp(TkinterDnD.Tk):
         if not confirm:
             return
 
-        self.pdf_tabview.delete(tab_label)
-
-        if base_name in self.pdf_sessions:
-            del self.pdf_sessions[base_name]
-            debug(f"Session '{base_name}' removed from pdf_sessions", "debug")
-            self.save_sessions()
-            self._refresh_pdf_navigation()
-
-        self.enable_tab_closing()
+        session = self.pdf_sessions.get(base_name)
+        if session is not None:
+            self._close_pdf_session(session)
+        else:
+            try:
+                self.pdf_tabview.delete(tab_label)
+            except tk.TclError:
+                pass
     def open_keybind_overlay(self):
         if hasattr(self, "keybind_overlay") and self.keybind_overlay.winfo_exists():
             self.keybind_overlay.lift()

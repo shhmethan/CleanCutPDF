@@ -1,7 +1,24 @@
 {
   "version": "1.10.0",
   "changelog": {
-        "1.10.0": [
+    "1.10.1": [
+      "Redesigned Rename Only to use the normal workspace fields and filename templates.",
+      "Rename Only now treats each PDF as one complete document without using SPLIT HERE markers.",
+      "Added a file list and workspace editor layout to Rename Only.",
+      "PDFs in the Inbox now require a double-click to open, preventing accidental editor loading.",
+      "Added the ability to close multiple selected PDFs from the Inbox.",
+      "Fixed stale PDF previews remaining visible after closing a PDF.",
+      "Fixed Rename Only previews not clearing after removing the last file.",
+      "Fixed manual workspace changes not updating the workspace label in the Inbox.",
+      "Added a full-width horizontal scrollbar to the Inbox file explorer.",
+      "Improved file-explorer scrolling so long filenames and workspace labels can be viewed completely.",
+      "Added the active PDF filename to the Split & Rename editor.",
+      "Added a collapsible Inbox sidebar.",
+      "Improved client-name suggestions using previous export history.",
+      "Fixed delayed Tkinter entry callbacks that could run after an editor was closed.",
+      "Improved PDF closing, navigation, and session cleanup behavior."
+    ],
+    "1.10.0": [
       "Added a file-explorer document sidebar with a persistent Inbox and custom folders.",
       "Added drag-and-drop PDF organization and multi-select document management.",
       "Added bulk workspace switching for multiple selected PDFs.",
@@ -183,5 +200,5 @@
     ]
   },
   "download_url": "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/master1/dist/CleanCutPDF.exe",
-  "sha256": "F3899A6B204A2F8C5A7A57AD21528146F331D3625411B16961F5BE4DA91148C2"
+  "sha256": "DA39F4CB465A238EBB0E1DF1AFC873A59E6E45B03C90B673F4DBA6CA28EEBBC3"
 }
