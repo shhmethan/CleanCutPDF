@@ -369,8 +369,75 @@ public sealed class LegacyImporter(AppPaths paths)
             }
         }
 
+        workspace.Layout = ReadLayout(json, workspace.FieldKeys);
         return workspace;
     }
+
+    /// <summary>
+    /// The 1.x Workspace Designer layout: freeform rectangles (v2+), or the
+    /// first build's row/column/span grid, converted the way 1.x migrated it.
+    /// </summary>
+    private static WorkspaceLayout? ReadLayout(JsonElement workspace, List<string> fieldKeys)
+    {
+        if (!workspace.TryGetProperty("custom_layout", out var layout) || layout.ValueKind != JsonValueKind.Object
+            || Bool(layout, "enabled") != true)
+        {
+            return null;
+        }
+
+        var legacy = new Dictionary<string, LayoutTile>();
+        if (layout.TryGetProperty("elements", out var elements) && elements.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in elements.EnumerateObject().Where(p => fieldKeys.Contains(p.Name) && p.Value.ValueKind == JsonValueKind.Object))
+            {
+                legacy[property.Name] = new LayoutTile
+                {
+                    X = Math.Max(0, Int(property.Value, "x", 0)),
+                    Y = Math.Max(0, Int(property.Value, "y", 0)),
+                    Width = Math.Max(90, Int(property.Value, "width", 240)),
+                    Height = Math.Max(84, Int(property.Value, "height", 84))
+                };
+            }
+        }
+
+        if (legacy.Count == 0)
+        {
+            var positions = layout.TryGetProperty("field_positions", out var p) && p.ValueKind == JsonValueKind.Object ? p : default;
+            for (var index = 0; index < fieldKeys.Count; index++)
+            {
+                var position = positions.ValueKind == JsonValueKind.Object && positions.TryGetProperty(fieldKeys[index], out var found)
+                    ? found
+                    : default;
+                var row = Math.Max(0, Int(position, "row", index));
+                var column = Math.Clamp(Int(position, "col", 0), 0, 2);
+                var span = Math.Clamp(Int(position, "span", 3), 1, 3 - column);
+                legacy[fieldKeys[index]] = new LayoutTile
+                {
+                    X = 30 + column * 190, Y = 55 + row * 86, Width = Math.Max(150, span * 190 - 14), Height = 68
+                };
+            }
+        }
+
+        if (legacy.Count == 0)
+        {
+            return null;
+        }
+
+        var snap = Bool(layout, "snap_to_grid") ?? true;
+        var grid = Math.Clamp(Int(layout, "grid_size", WorkspaceLayout.DefaultGridSize), 8, 64);
+        return new WorkspaceLayout
+        {
+            SnapToGrid = snap,
+            GridSize = grid,
+            Tiles = FreeformLayout.FromLegacy(legacy, snap ? grid : 0)
+        };
+    }
+
+    private static int Int(JsonElement json, string name, int fallback) =>
+        json.ValueKind == JsonValueKind.Object && json.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number)
+            ? (int)Math.Round(number)
+            : fallback;
 
     private static void ReadSessionDocument(JsonElement item, LegacyImport result)
     {

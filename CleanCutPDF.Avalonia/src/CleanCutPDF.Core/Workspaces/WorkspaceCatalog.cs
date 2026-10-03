@@ -22,6 +22,9 @@ public sealed class WorkspaceDefinition
     public Dictionary<string, FieldOverride> FieldOverrides { get; set; } = new();
     public List<WorkspaceNote> Notes { get; set; } = [];
     public bool Permanent { get; set; }
+
+    /// <summary>Custom form layout from the Layout Designer; null = automatic stacked form.</summary>
+    public WorkspaceLayout? Layout { get; set; }
 }
 
 /// <summary>A workspace with its library fields merged with its overrides, ready to render.</summary>
@@ -31,7 +34,8 @@ public sealed record ResolvedWorkspace(
     string Summary,
     string FilenameTemplate,
     IReadOnlyList<FieldDefinition> Fields,
-    IReadOnlyList<WorkspaceNote> Notes)
+    IReadOnlyList<WorkspaceNote> Notes,
+    WorkspaceLayout? Layout = null)
 {
     public FieldDefinition? Field(string key) => Fields.FirstOrDefault(f => f.Key == key);
 }
@@ -73,9 +77,18 @@ public sealed class WorkspaceCatalog
             fields.Add(field);
         }
 
+        // The form gets its own copy, complete for exactly the fields it places.
+        // Header fields stay in the Part header, exactly as in the automatic form.
+        var layout = definition.Layout?.Clone();
+        layout?.Sync(fields.Where(f => !f.IsHeaderField).Select(f => f.Key).ToList());
+
         return new ResolvedWorkspace(definition.Name, definition.ClientLabel, definition.Summary,
-            definition.FilenameTemplate, fields, definition.Notes.ToList());
+            definition.FilenameTemplate, fields, definition.Notes.ToList(), layout is { Tiles.Count: > 0 } ? layout : null);
     }
+
+    /// <summary>The fields a custom layout places: every assigned field except those shown in the Part header.</summary>
+    public IReadOnlyList<string> LayoutFieldKeys(WorkspaceDefinition workspace) =>
+        workspace.FieldKeys.Where(key => Fields.TryGetValue(key, out var field) && !field.IsHeaderField).ToList();
 
     /// <summary>Repairs a loaded catalog: built-in fields restored, Accounting always present, dangling references removed.</summary>
     public void Normalize()
@@ -108,6 +121,12 @@ public sealed class WorkspaceCatalog
             foreach (var note in workspace.Notes.Where(n => !validNotePositions.Contains(n.BeforeField)))
             {
                 note.BeforeField = WorkspaceNote.EndOfForm;
+            }
+
+            workspace.Layout?.Sync(LayoutFieldKeys(workspace));
+            if (workspace.Layout is { Tiles.Count: 0 })
+            {
+                workspace.Layout = null;
             }
         }
     }

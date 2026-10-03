@@ -112,6 +112,20 @@
 
             <Border Classes="card">
               <StackPanel Spacing="8">
+                <TextBlock Text="Form layout" Classes="section-title" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
+                           Text="Fields are normally stacked in order. The Layout Designer opens with the form as it is now and lets you drag fields anywhere and resize them, for example two short fields side by side. Anything you do not move stays as it was. Fields shown in the Part header stay there, and the PDF preview stays where it is." />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Button Content="Design Layout…" Command="{Binding DesignLayoutCommand}" />
+                  <Button Content="Use Automatic Layout…" Command="{Binding UseAutomaticLayoutCommand}" />
+                  <TextBlock Text="{Binding LayoutStatus}" VerticalAlignment="Center" FontWeight="SemiBold"
+                             AutomationProperties.Name="Layout status" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="8">
                 <TextBlock Text="Notes and reminders" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeLarge}" />
                 <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                            Text="Reminders appear in every Part: at the top, under a specific field, or at the end." />

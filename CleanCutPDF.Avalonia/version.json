@@ -1,8 +1,16 @@
 {
-  "version": "2.0.0-alpha.4",
+  "version": "2.0.0-alpha.5",
   "download_url": "https://github.com/shhmethan/CleanCutPDF/releases",
   "sha256": "",
   "changelog": {
+    "2.0.0-alpha.5": [
+      "The Workspace Layout Designer is back: on the Workspaces page, choose Design Layout to drag fields anywhere and resize them, for example two short fields side by side.",
+      "The designer opens showing the form as it looks now. Fields you do not move stay exactly as they were, and saving without changing anything leaves the form unchanged.",
+      "Snap to Grid keeps fields lined up. You can also move and resize the selected field with the arrow keys.",
+      "A field that needs more room (larger text, notes) now moves the fields below it down instead of covering them.",
+      "Use Automatic Layout puts a workspace back to the normal stacked form at any time.",
+      "Importing from CleanCutPDF 1.x now brings over your custom workspace layouts."
+    ],
     "2.0.0-alpha.4": [
       "Color themes are back: choose Blue, Green, or Pink in Settings, in light or dark. The change applies instantly.",
       "Choose the font and text size in Settings. Everything in the app, including dialogs, scales with it.",

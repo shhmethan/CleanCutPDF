@@ -120,5 +120,8 @@ Avalonia 12 ships SkiaSharp 3.x.
    conflict checks, reset, Show Keybinds); Reset Settings (type a code; settings, workspaces, and
    custom fields return to defaults after a backup; license, history, sessions, and shortcuts are
    kept); the 1.x import also brings theme, font, and shortcuts.
-6. **Workspace Layout Designer**.
+6. **Workspace Layout Designer** (done): drag and resize field tiles on a grid (mouse or
+   keyboard, optional snap), saved per workspace; the form places fields by their tiles and
+   moves fields down rather than overlapping when content needs more height; Use Automatic
+   Layout restores the stacked form; 1.x custom layouts are imported.
 7. **Tutorial, help, packaging** (Windows installer, macOS bundle) and installing updates in-app.

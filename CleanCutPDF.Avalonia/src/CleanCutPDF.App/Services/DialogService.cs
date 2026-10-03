@@ -34,6 +34,9 @@ public interface IDialogService
     /// </summary>
     Task<bool> ConfirmWithCodeAsync(string title, string message, string code, Func<string?, bool> matches,
         string confirmText);
+
+    /// <summary>Opens the Workspace Layout Designer. Returns true when the layout was saved.</summary>
+    Task<bool> ShowLayoutDesignerAsync(ViewModels.LayoutDesignerViewModel designer);
 }
 
 public sealed class WindowDialogService : IDialogService
@@ -119,6 +122,12 @@ public sealed class WindowDialogService : IDialogService
             box.SelectAll();
         };
         return await ShowAsync(title, message, confirmText, "Cancel", box) ? box.Text?.Trim() : null;
+    }
+
+    public async Task<bool> ShowLayoutDesignerAsync(ViewModels.LayoutDesignerViewModel designer)
+    {
+        await new Views.LayoutDesignerWindow { DataContext = designer }.ShowDialog(RequireOwner());
+        return designer.Saved;
     }
 
     public async Task<bool> ConfirmWithCodeAsync(string title, string message, string code,

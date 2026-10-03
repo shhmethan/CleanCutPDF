@@ -21,8 +21,14 @@ public sealed partial class PartViewModel : ObservableObject
             ? $"Part {index + 1} — Pages {range.Start + 1} to {range.End + 1}"
             : $"{noun} — Pages {range.Start + 1} to {range.End + 1}";
         Fields = fields;
+
+        // A custom layout places the body fields; header toggles stay in the header either way,
+        // so a layout nobody changed looks exactly like the automatic form.
         HeaderFields = fields.Where(f => f.Definition.IsHeaderField).ToList();
-        BodyFields = fields.Where(f => !f.Definition.IsHeaderField).ToList();
+        var body = fields.Where(f => !f.Definition.IsHeaderField).ToList();
+        IsFreeform = body.Count > 0 && body.All(f => f.Tile is not null);
+        BodyFields = IsFreeform ? [] : body;
+        FreeformFields = IsFreeform ? body : [];
         TopNotes = topNotes;
         EndNotes = endNotes;
         _jumpToPage = jumpToPage;
@@ -34,6 +40,11 @@ public sealed partial class PartViewModel : ObservableObject
     public IReadOnlyList<FieldViewModel> Fields { get; }
     public IReadOnlyList<FieldViewModel> HeaderFields { get; }
     public IReadOnlyList<FieldViewModel> BodyFields { get; }
+
+    /// <summary>True when the workspace uses a Layout Designer layout.</summary>
+    public bool IsFreeform { get; }
+
+    public IReadOnlyList<FieldViewModel> FreeformFields { get; }
     public IReadOnlyList<string> TopNotes { get; }
     public IReadOnlyList<string> EndNotes { get; }
 
@@ -71,7 +82,8 @@ public sealed class WorkspaceFormViewModel
             var fields = new List<FieldViewModel>();
             foreach (var definition in workspace.Fields)
             {
-                var field = FieldViewModel.Create(definition, notesByPosition[definition.Key].ToList());
+                var field = FieldViewModel.Create(definition, notesByPosition[definition.Key].ToList(),
+                    workspace.Layout?.Tiles.GetValueOrDefault(definition.Key));
                 field.Value = saved is not null && saved.TryGetValue(definition.Key, out var value)
                     ? value
                     : FieldRules.InitialValue(definition, today);

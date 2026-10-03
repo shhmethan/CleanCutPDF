@@ -22,11 +22,11 @@ licensing, updates), **diagnostic logging**, **Phase 2** (Split & Rename core: d
 fields, autofill, export, Inbox folders, sessions), **Phase 3** (Rename Only, Quick
 Split, workspace and field editors, 1.x import, folder shortcuts, client suggestions),
 **Phase 4** (Logs page, Undo Last Export, zoom window, SPLIT HERE sheet, Ctrl+Alt+D debug console)
-and **Phase 5** (color palettes, font family and size, rebindable keyboard shortcuts, Reset Settings).
+**Phase 5** (color palettes, font family and size, rebindable keyboard shortcuts, Reset Settings)
+and **Phase 6** (Workspace Layout Designer, freeform form layout, 1.x layout import).
 
 Rows below still say which phase each feature was planned for; everything listed for
-Phases 1–5 is implemented. Remaining: Phase 6 (Workspace Layout Designer), Phase 7 (tutorial,
-help, packaging, in-app updates).
+Phases 1–6 is implemented. Remaining: Phase 7 (tutorial, help, packaging, in-app updates).
 
 Deliberate differences from 1.x:
 - Title case no longer turns "Machado" into "MacHado" (the automatic "Mac" rule was dropped).
@@ -133,7 +133,7 @@ Pillow (image analysis/resizing), reportlab (optional log → PDF export).
 | Conditional fields | e.g. Check Number visible only when Payment Method = CK | Port (Phase 2) |
 | Field colors / tooltips / required `*` | Per field | Port (Phase 2/3) |
 | Workspace notes | Notes at top, end, or directly under a field | Port (Phase 3) |
-| Freeform layout | Workspace Designer tiles (x/y/w/h, snap to grid) | Defer (Phase 6) |
+| Freeform layout | Workspace Designer tiles (x/y/w/h, snap to grid) | **Done** – tiles on a 720-wide surface that stands for the Part's full width; rows take their content's height, so an unchanged layout is identical to the automatic form; header toggles stay in the Part header |
 | Make Client Folder | Checkbox, default on | Port (Phase 2) |
 | Reset Form / Show Keybinds | Buttons | Port (Phase 2/5) |
 | Open Output Folder + folder shortcuts bar | Named, icon, color; manage dialog | Port (Phase 1: open export folder; shortcuts Phase 3) |
@@ -190,7 +190,7 @@ Pillow (image analysis/resizing), reportlab (optional log → PDF export).
 | Field library | Built-in: revoked, agency, description, date, matter_number, document_type, amount, payment_method, check_number (conditional), company | Port (Phase 3) |
 | Field editor | Label, type, placeholder, default, color, required, autofill, title case, date format, auto-today, dropdown choices, conditional visibility | Port (Phase 3) |
 | Assign / unassign / drag reorder | Per workspace | Port (Phase 3) |
-| Workspace Layout Designer | Freeform tiles, resize, snap to grid | Defer (Phase 6) |
+| Workspace Layout Designer | Freeform tiles, resize, snap to grid | **Done** – Workspaces › Form layout; drawn like the real form; mouse and keyboard; saving it unchanged keeps the automatic layout; Use Automatic Layout; 1.x layouts (freeform and the old row/column format) imported |
 | Settings migrations | v1.8 `workspace_settings`, pre-workspace keys, old 3-column layouts, global auto-today | Port inside legacy importer (Phase 3) |
 
 ### 2.12 Logs / export history

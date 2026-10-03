@@ -38,7 +38,9 @@
         <StackPanel Orientation="Horizontal" Spacing="6">
           <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding !HasAccent}" />
           <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding HasAccent}" Foreground="{Binding Accent}" />
-          <TextBlock Text="ⓘ" Classes="muted" IsVisible="{Binding HasTooltip}" ToolTip.Tip="{Binding Tooltip}" />
+          <!-- The negative margin keeps this taller glyph from raising the label row (visible side by side). -->
+          <TextBlock Text="ⓘ" Classes="muted" IsVisible="{Binding HasTooltip}" ToolTip.Tip="{Binding Tooltip}"
+                     VerticalAlignment="Center" Margin="0,-4" />
         </StackPanel>
         <ItemsControl ItemsSource="{Binding Notes}" IsVisible="{Binding HasNotes}">
           <ItemsControl.ItemTemplate>
@@ -61,7 +63,9 @@
         <StackPanel Orientation="Horizontal" Spacing="6">
           <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding !HasAccent}" />
           <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding HasAccent}" Foreground="{Binding Accent}" />
-          <TextBlock Text="ⓘ" Classes="muted" IsVisible="{Binding HasTooltip}" ToolTip.Tip="{Binding Tooltip}" />
+          <!-- The negative margin keeps this taller glyph from raising the label row (visible side by side). -->
+          <TextBlock Text="ⓘ" Classes="muted" IsVisible="{Binding HasTooltip}" ToolTip.Tip="{Binding Tooltip}"
+                     VerticalAlignment="Center" Margin="0,-4" />
         </StackPanel>
         <ItemsControl ItemsSource="{Binding Notes}" IsVisible="{Binding HasNotes}">
           <ItemsControl.ItemTemplate>
@@ -120,7 +124,15 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <ItemsControl ItemsSource="{Binding BodyFields}" />
+          <ItemsControl ItemsSource="{Binding BodyFields}" IsVisible="{Binding !IsFreeform}" />
+          <!-- Custom layout from the Workspace Layout Designer -->
+          <ItemsControl ItemsSource="{Binding FreeformFields}" IsVisible="{Binding IsFreeform}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <controls:FreeformPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
           <ItemsControl ItemsSource="{Binding EndNotes}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="x:String">

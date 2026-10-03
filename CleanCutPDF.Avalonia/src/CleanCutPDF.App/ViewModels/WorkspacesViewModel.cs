@@ -211,6 +211,7 @@ public sealed partial class WorkspacesViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(IsPermanent));
+        RefreshLayoutStatus();
         UpdatePreview();
     }
 
@@ -475,6 +476,71 @@ public sealed partial class WorkspacesViewModel : ObservableObject
         RefreshTokens();
         UpdatePreview();
         ScheduleSave(message);
+    }
+
+    // ───── Form layout ─────
+
+    public bool HasCustomLayout => Current?.Layout is not null;
+
+    public string LayoutStatus => HasCustomLayout
+        ? "Custom layout active"
+        : "Automatic layout (fields stacked in order)";
+
+    [RelayCommand]
+    private async Task DesignLayoutAsync()
+    {
+        if (Current is not { } workspace)
+        {
+            return;
+        }
+
+        var resolved = Catalog.Resolve(workspace.Name);
+        if (resolved.Fields.All(f => f.IsHeaderField))
+        {
+            await _dialogs.ShowMessageAsync("Layout Designer",
+                "Add at least one field to this workspace first (fields shown in the Part header are not part of the layout).");
+            return;
+        }
+
+        var designer = new LayoutDesignerViewModel(resolved, workspace.Layout);
+        if (!await _dialogs.ShowLayoutDesignerAsync(designer))
+        {
+            return;
+        }
+
+        // Saving the designer untouched (or back in one column) keeps the automatic form.
+        var layout = designer.Result();
+        if (layout is null && workspace.Layout is null)
+        {
+            return;
+        }
+
+        workspace.Layout = layout;
+        RefreshLayoutStatus();
+        ScheduleSave(layout is null ? $"{workspace.Name}: back to the automatic layout" : $"{workspace.Name}: custom layout saved");
+    }
+
+    /// <summary>1.x "Reset Layout": back to the automatic stacked form.</summary>
+    [RelayCommand(CanExecute = nameof(HasCustomLayout))]
+    private async Task UseAutomaticLayoutAsync()
+    {
+        if (Current is not { Layout: not null } workspace ||
+            !await _dialogs.ConfirmAsync("Automatic Layout",
+                $"Remove the custom layout for “{workspace.Name}” and stack its fields in order again?", "Use Automatic Layout"))
+        {
+            return;
+        }
+
+        workspace.Layout = null;
+        RefreshLayoutStatus();
+        ScheduleSave($"{workspace.Name}: custom layout removed");
+    }
+
+    private void RefreshLayoutStatus()
+    {
+        OnPropertyChanged(nameof(HasCustomLayout));
+        OnPropertyChanged(nameof(LayoutStatus));
+        UseAutomaticLayoutCommand.NotifyCanExecuteChanged();
     }
 
     // ───── Notes ─────

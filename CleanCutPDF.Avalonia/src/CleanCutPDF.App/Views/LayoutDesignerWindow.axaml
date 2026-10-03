@@ -1,0 +1,162 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CleanCutPDF.App.ViewModels"
+        xmlns:controls="using:CleanCutPDF.App.Controls"
+        x:Class="CleanCutPDF.App.Views.LayoutDesignerWindow"
+        x:DataType="vm:LayoutDesignerViewModel"
+        Title="{Binding Title}"
+        Icon="/Assets/favicon.ico"
+        Width="860" Height="760" MinWidth="820" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+
+  <DockPanel Margin="18">
+    <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,10">
+      <TextBlock Text="{Binding Title}" Classes="page-title" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="This is one Part of the form as it looks now. Drag a field to move it, or drag its edge or corner to resize it. Fields placed side by side here appear side by side in the form." />
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <CheckBox Content="Snap to Grid" IsChecked="{Binding SnapToGrid}" />
+        <Button Content="Back to Automatic" Command="{Binding StackAllCommand}"
+                ToolTip.Tip="Put every field back in one full-width column, in the workspace's field order" />
+      </StackPanel>
+      <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" TextWrapping="Wrap"
+                 AutomationProperties.Name="Designer status" />
+      <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
+                 Text="Keyboard: arrow keys move the selected field, Shift+arrows resize it, Ctrl for single pixels." />
+    </StackPanel>
+
+    <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+      <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap" VerticalAlignment="Center"
+                 Text="Rows are as tall as their fields need. Making a field taller than normal adds space under it, and empty rows you leave between fields stay empty." />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0">
+        <Button Content="Save Layout" Classes="accent" Command="{Binding SaveCommand}" MinWidth="110" />
+        <Button Content="Cancel" Command="{Binding CancelCommand}" MinWidth="90" IsCancel="True" />
+      </StackPanel>
+    </Grid>
+
+    <Border BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="6"
+            Background="{DynamicResource CardBackground}" ClipToBounds="True">
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" Padding="16">
+        <!-- Drawn like a Part card: header on top, the fields under it. -->
+        <Border Background="{DynamicResource SidebarBackground}" CornerRadius="8" Padding="14,10"
+                HorizontalAlignment="Center" VerticalAlignment="Top">
+          <StackPanel Spacing="4" Width="{Binding SurfaceWidth}">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Part 1 — Pages 1 to 2" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeMedium}"
+                         Foreground="{DynamicResource AccentText}" />
+              <ItemsControl Grid.Column="1" ItemsSource="{Binding HeaderFields}"
+                            ToolTip.Tip="Fields set to show in the Part header stay here. Change that on the Field Library tab.">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="12" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Opacity="0.7">
+                      <Border Width="34" Height="18" CornerRadius="9" BorderThickness="1"
+                              BorderBrush="{DynamicResource MutedText}" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Grid>
+
+            <Grid Height="{Binding SurfaceHeight}">
+              <controls:GridLines GridSize="{Binding GridSize}" Stroke="{DynamicResource CardBorder}" Opacity="0.6" />
+              <ListBox x:Name="Surface" ItemsSource="{Binding Tiles}" SelectedItem="{Binding SelectedTile}"
+                       Background="Transparent" Padding="0"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                       ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                       AutomationProperties.Name="Layout surface">
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <Canvas />
+                  </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem" x:DataType="vm:DesignerTileViewModel">
+                    <Setter Property="Canvas.Left" Value="{Binding X}" />
+                    <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                    <Setter Property="Width" Value="{Binding Width}" />
+                    <Setter Property="Height" Value="{Binding Height}" />
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="MinHeight" Value="0" />
+                    <Setter Property="ClipToBounds" Value="True" />
+                  </Style>
+                  <!-- The tile itself supplies the look; the list's own highlight is turned off. -->
+                  <Style Selector="ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="Transparent" />
+                  </Style>
+                  <Style Selector="ListBoxItem Border.tile">
+                    <Setter Property="Background" Value="{DynamicResource SidebarBackground}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+                    <Setter Property="BorderThickness" Value="1" />
+                  </Style>
+                  <Style Selector="ListBoxItem:pointerover Border.tile">
+                    <Setter Property="BorderBrush" Value="{DynamicResource MutedText}" />
+                  </Style>
+                  <Style Selector="ListBoxItem:selected Border.tile">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+                    <Setter Property="BorderThickness" Value="2" />
+                  </Style>
+                  <Style Selector="ListBoxItem TextBlock.width">
+                    <Setter Property="IsVisible" Value="False" />
+                  </Style>
+                  <Style Selector="ListBoxItem:selected TextBlock.width">
+                    <Setter Property="IsVisible" Value="True" />
+                  </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DesignerTileViewModel">
+                    <!-- Same spacing as the real field templates, so the default looks like the form. -->
+                    <Border Classes="tile" CornerRadius="4">
+                      <Grid IsHitTestVisible="False">
+                        <StackPanel Spacing="3" Margin="0,4" IsVisible="{Binding !IsBoolean}">
+                          <Panel>
+                            <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding !HasAccent}"
+                                       TextTrimming="CharacterEllipsis" Margin="2,0,40,0" />
+                            <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding HasAccent}"
+                                       Foreground="{Binding Accent}" TextTrimming="CharacterEllipsis" Margin="2,0,40,0" />
+                          </Panel>
+                          <Grid ColumnDefinitions="Auto,*">
+                            <Border IsVisible="{Binding IsDate}" Margin="0,0,8,0" Padding="8,0" Height="32" CornerRadius="3"
+                                    Background="{DynamicResource CardBorder}">
+                              <TextBlock Text="Today" VerticalAlignment="Center" />
+                            </Border>
+                            <Border Grid.Column="1" Height="32" CornerRadius="3" BorderThickness="1"
+                                    Background="{DynamicResource CardBackground}"
+                                    BorderBrush="{DynamicResource MutedText}">
+                              <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="{Binding Placeholder}" Classes="muted" Margin="10,0"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Text="⌄" Classes="muted" Margin="0,0,10,4"
+                                           VerticalAlignment="Center" IsVisible="{Binding IsChoice}" />
+                              </Grid>
+                            </Border>
+                          </Grid>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,10" VerticalAlignment="Top"
+                                    IsVisible="{Binding IsBoolean}">
+                          <Border Width="34" Height="18" CornerRadius="9" BorderThickness="1"
+                                  BorderBrush="{DynamicResource MutedText}" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding DisplayLabel}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock Classes="muted width" Text="{Binding WidthText}"
+                                   FontSize="{DynamicResource AppFontSizeSmall}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,6,0" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </StackPanel>
+        </Border>
+      </ScrollViewer>
+    </Border>
+  </DockPanel>
+</Window>

@@ -26,6 +26,9 @@ public abstract partial class FieldViewModel : ObservableObject
 
     public bool HasNotes => Notes.Count > 0;
 
+    /// <summary>Where this field sits when the workspace has a custom layout (null in the automatic form).</summary>
+    public LayoutTile? Tile { get; init; }
+
     public string DisplayLabel =>
         Definition.Label
         + (Definition.Type == FieldType.Date ? $" ({Definition.DateFormat})" : "")
@@ -64,12 +67,13 @@ public abstract partial class FieldViewModel : ObservableObject
     /// <summary>Updates the editing controls after Value changed.</summary>
     protected abstract void OnValueChanged();
 
-    public static FieldViewModel Create(FieldDefinition definition, IReadOnlyList<string> notes) => definition.Type switch
-    {
-        FieldType.Checkbox or FieldType.Toggle => new BooleanFieldViewModel(definition, notes),
-        FieldType.Choice => new ChoiceFieldViewModel(definition, notes),
-        _ => new TextFieldViewModel(definition, notes)
-    };
+    public static FieldViewModel Create(FieldDefinition definition, IReadOnlyList<string> notes, LayoutTile? tile = null) =>
+        definition.Type switch
+        {
+            FieldType.Checkbox or FieldType.Toggle => new BooleanFieldViewModel(definition, notes) { Tile = tile },
+            FieldType.Choice => new ChoiceFieldViewModel(definition, notes) { Tile = tile },
+            _ => new TextFieldViewModel(definition, notes) { Tile = tile }
+        };
 
     private static IBrush? TryParseColor(string? color) =>
         !string.IsNullOrWhiteSpace(color) && Color.TryParse(color, out var parsed) ? new SolidColorBrush(parsed) : null;

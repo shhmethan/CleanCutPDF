@@ -1,4 +1,4 @@
-# CleanCutPDF: context for Claude
+# CleanCutPDF: context for Codex
 
 This repo holds **two apps**:
 
