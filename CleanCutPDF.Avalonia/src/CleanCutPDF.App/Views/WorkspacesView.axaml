@@ -34,7 +34,7 @@
 
             <Border Classes="card">
               <StackPanel Spacing="8">
-                <TextBlock Text="Details" FontWeight="SemiBold" FontSize="16" />
+                <TextBlock Text="Details" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeLarge}" />
                 <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto" RowSpacing="8">
                   <TextBlock Text="Client field label" VerticalAlignment="Center" />
                   <TextBox Grid.Column="1" Text="{Binding ClientLabel}" AutomationProperties.Name="Client field label" />
@@ -46,8 +46,8 @@
 
             <Border Classes="card">
               <StackPanel Spacing="8">
-                <TextBlock Text="Filename format" FontWeight="SemiBold" FontSize="16" />
-                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                <TextBlock Text="Filename format" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeLarge}" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                            Text="Type text and add fields as {tokens}. Blank fields disappear cleanly (extra underscores and spaces are removed)." />
                 <TextBox Text="{Binding FilenameTemplate}" FontFamily="Consolas,Menlo,monospace"
                          AutomationProperties.Name="Filename format" />
@@ -59,7 +59,7 @@
                   </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:TokenButton">
-                      <Button Content="{Binding Label, StringFormat='+ {0}'}" FontSize="12"
+                      <Button Content="{Binding Label, StringFormat='+ {0}'}" FontSize="{DynamicResource AppFontSizeSmall}"
                               ToolTip.Tip="{Binding Token, StringFormat='Adds {{{0}}}'}"
                               Command="{Binding $parent[UserControl].((vm:WorkspacesViewModel)DataContext).InsertTokenCommand}"
                               CommandParameter="{Binding}" />
@@ -72,7 +72,7 @@
 
             <Border Classes="card">
               <StackPanel Spacing="8">
-                <TextBlock Text="Fields in this workspace" FontWeight="SemiBold" FontSize="16" />
+                <TextBlock Text="Fields in this workspace" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeLarge}" />
                 <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="10">
                   <StackPanel Spacing="4">
                     <TextBlock Text="Assigned (in form order)" Classes="muted" />
@@ -89,7 +89,7 @@
                       <Button Content="Remove →" Command="{Binding UnassignFieldCommand}" IsEnabled="{Binding HasAssignedSelection}" />
                     </StackPanel>
                     <StackPanel Spacing="3" IsVisible="{Binding HasAssignedSelection}" Margin="0,6,0,0">
-                      <TextBlock Text="Default value in this workspace" Classes="muted" FontSize="12" />
+                      <TextBlock Text="Default value in this workspace" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" />
                       <TextBox Text="{Binding WorkspaceDefault}" AutomationProperties.Name="Default value in this workspace" />
                     </StackPanel>
                   </StackPanel>
@@ -103,7 +103,7 @@
                         </DataTemplate>
                       </ListBox.ItemTemplate>
                     </ListBox>
-                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                    <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                                Text="Create or edit fields on the Field Library tab." />
                   </StackPanel>
                 </Grid>
@@ -112,8 +112,8 @@
 
             <Border Classes="card">
               <StackPanel Spacing="8">
-                <TextBlock Text="Notes and reminders" FontWeight="SemiBold" FontSize="16" />
-                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                <TextBlock Text="Notes and reminders" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeLarge}" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                            Text="Reminders appear in every Part: at the top, under a specific field, or at the end." />
                 <ListBox ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" MaxHeight="160">
                   <ListBox.ItemTemplate>
@@ -159,7 +159,7 @@
                     x:DataType="vm:FieldEditorViewModel">
               <StackPanel Spacing="10">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                  <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="16" />
+                  <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeLarge}" />
                   <TextBlock Text="(built-in: can be edited or unassigned, not deleted)" Classes="muted"
                              VerticalAlignment="Bottom" IsVisible="{Binding IsBuiltIn}" />
                 </StackPanel>
@@ -177,7 +177,7 @@
                   <TextBlock Grid.Row="4" Text="Color (hex)" VerticalAlignment="Center" />
                   <StackPanel Grid.Row="4" Grid.Column="1" Spacing="2">
                     <TextBox Text="{Binding Color}" PlaceholderText="#3B8ED0 (optional)" AutomationProperties.Name="Field color" />
-                    <TextBlock Text="{Binding ColorError}" Classes="error" FontSize="12"
+                    <TextBlock Text="{Binding ColorError}" Classes="error" FontSize="{DynamicResource AppFontSizeSmall}"
                                IsVisible="{Binding ColorError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                   </StackPanel>
                   <TextBlock Grid.Row="5" Text="Tooltip" VerticalAlignment="Center" />
@@ -204,7 +204,7 @@
                 <StackPanel Spacing="4" IsVisible="{Binding IsChoice}">
                   <TextBlock Text="Dropdown choices (one per line)" />
                   <TextBox Text="{Binding OptionsText}" AcceptsReturn="True" Height="110" AutomationProperties.Name="Dropdown choices" />
-                  <TextBlock Classes="muted" FontSize="12" Text="If a choice named Other is present, selecting it shows a free-text box." />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" Text="If a choice named Other is present, selecting it shows a free-text box." />
                 </StackPanel>
 
                 <StackPanel Spacing="6">

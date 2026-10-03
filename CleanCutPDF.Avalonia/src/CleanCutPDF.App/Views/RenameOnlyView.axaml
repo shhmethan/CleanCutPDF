@@ -32,7 +32,7 @@
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel>
                     <TextBlock Text="{Binding FileName}" TextWrapping="NoWrap" />
-                    <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="12" TextWrapping="NoWrap" />
+                    <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="NoWrap" />
                   </StackPanel>
                   <Button Grid.Column="1" Content="✕" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center"
                           ToolTip.Tip="Remove from the list (the file is not changed)"

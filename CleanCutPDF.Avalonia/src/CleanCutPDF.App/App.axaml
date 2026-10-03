@@ -102,7 +102,7 @@
         <StackPanel Spacing="4">
           <Grid ColumnDefinitions="*,Auto">
             <Button Content="{Binding Title}" Command="{Binding ShowInPreviewCommand}"
-                    Background="Transparent" Padding="0" FontWeight="SemiBold" FontSize="15"
+                    Background="Transparent" Padding="0" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeMedium}"
                     Foreground="{DynamicResource AccentText}" Cursor="Hand"
                     ToolTip.Tip="Show this Part's first page in the preview" />
             <ItemsControl Grid.Column="1" ItemsSource="{Binding HeaderFields}">

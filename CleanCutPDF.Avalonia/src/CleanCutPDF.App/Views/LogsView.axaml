@@ -13,7 +13,7 @@
     </StackPanel>
 
     <WrapPanel DockPanel.Dock="Top" ItemSpacing="8" LineSpacing="8" Margin="0,0,0,8">
-      <TextBox Text="{Binding Search}" PlaceholderText="Search clients, files, agencies…" Width="280"
+      <TextBox x:Name="LogSearchBox" Text="{Binding Search}" PlaceholderText="Search clients, files, agencies…" Width="280"
                AutomationProperties.Name="Search history" />
       <TextBox Text="{Binding WorkspaceFilter}" PlaceholderText="Workspace" Width="140"
                AutomationProperties.Name="Workspace filter" />
@@ -52,15 +52,15 @@
                          Classes="muted" Margin="4,10,0,2" />
               <Border Classes="card" Padding="12,8">
                 <StackPanel Spacing="6">
-                  <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="15" />
+                  <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeMedium}" />
                   <ItemsControl ItemsSource="{Binding Entries}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="history:HistoryEntry">
                         <Grid ColumnDefinitions="70,*" Margin="0,2" ToolTip.Tip="{Binding Raw}">
-                          <TextBlock Text="{Binding Time}" Classes="muted" FontSize="12" VerticalAlignment="Top" />
+                          <TextBlock Text="{Binding Time}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" VerticalAlignment="Top" />
                           <StackPanel Grid.Column="1">
                             <SelectableTextBlock Text="{Binding File}" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding Details}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Details}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap" />
                           </StackPanel>
                         </Grid>
                       </DataTemplate>

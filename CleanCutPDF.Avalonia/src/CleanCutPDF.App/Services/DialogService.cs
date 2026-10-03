@@ -27,6 +27,13 @@ public interface IDialogService
 
     /// <summary>Ask for a line of text. Returns null when cancelled.</summary>
     Task<string?> PromptAsync(string title, string message, string initial = "", string confirmText = "OK");
+
+    /// <summary>
+    /// Confirm something drastic: the user must type the code shown. The
+    /// dialog stays open until the code matches or it is cancelled.
+    /// </summary>
+    Task<bool> ConfirmWithCodeAsync(string title, string message, string code, Func<string?, bool> matches,
+        string confirmText);
 }
 
 public sealed class WindowDialogService : IDialogService
@@ -114,8 +121,54 @@ public sealed class WindowDialogService : IDialogService
         return await ShowAsync(title, message, confirmText, "Cancel", box) ? box.Text?.Trim() : null;
     }
 
+    public async Task<bool> ConfirmWithCodeAsync(string title, string message, string code,
+        Func<string?, bool> matches, string confirmText)
+    {
+        var box = new TextBox
+        {
+            Width = 220,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            MaxLength = code.Length
+        };
+        Avalonia.Automation.AutomationProperties.SetName(box, "Confirmation code");
+        box.AttachedToVisualTree += (_, _) => box.Focus();
+        var status = new TextBlock { HorizontalAlignment = HorizontalAlignment.Center, Classes = { "error" } };
+        var panel = new StackPanel
+        {
+            Spacing = 8,
+            Children =
+            {
+                new TextBlock
+                {
+                    // Spaced out so each character is easy to read.
+                    Text = string.Join("  ", code.ToCharArray()),
+                    FontFamily = new FontFamily("Consolas,Menlo,monospace"),
+                    FontSize = 24,
+                    FontWeight = FontWeight.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                },
+                box,
+                status
+            }
+        };
+
+        return await ShowAsync(title, message, confirmText, "Cancel", panel, () =>
+        {
+            if (matches(box.Text))
+            {
+                return true;
+            }
+
+            status.Text = "The code does not match.";
+            box.Text = "";
+            box.Focus();
+            return false;
+        });
+    }
+
     private async Task<bool> ShowAsync(string title, string message, string confirmText, string? cancelText,
-        Control? extra = null)
+        Control? extra = null, Func<bool>? canConfirm = null)
     {
         var owner = RequireOwner();
         var result = false;
@@ -134,6 +187,11 @@ public sealed class WindowDialogService : IDialogService
         var confirm = new Button { Content = confirmText, IsDefault = true, MinWidth = 90 };
         confirm.Click += (_, _) =>
         {
+            if (canConfirm is not null && !canConfirm())
+            {
+                return;
+            }
+
             result = true;
             dialog.Close();
         };

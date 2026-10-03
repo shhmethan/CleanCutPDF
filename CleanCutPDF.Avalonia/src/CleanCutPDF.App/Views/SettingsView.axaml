@@ -14,20 +14,31 @@
 
       <Border Classes="card">
         <StackPanel Spacing="10">
-          <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="16" />
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBlock Text="Theme" VerticalAlignment="Center" Width="120" />
-            <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}" Width="200" />
-          </StackPanel>
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                     Text="Themes switch instantly. Color palettes (Blue, Green, Pink) and font settings arrive in Phase 5." />
+          <TextBlock Text="Appearance" Classes="section-title" />
+          <Grid ColumnDefinitions="Auto,220" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="8">
+            <TextBlock Text="Theme" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="Theme" />
+            <TextBlock Grid.Row="1" Text="Color" VerticalAlignment="Center" />
+            <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding AccentOptions}" SelectedItem="{Binding SelectedAccent}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="Color" />
+            <TextBlock Grid.Row="2" Text="Font" VerticalAlignment="Center" />
+            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding FontOptions}" SelectedItem="{Binding SelectedFont}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="Font" />
+            <TextBlock Grid.Row="3" Text="Text size" VerticalAlignment="Center" />
+            <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedFontSize}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="Text size" />
+          </Grid>
+          <Button Content="Reset Font" Command="{Binding ResetFontCommand}" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
+                     Text="Changes apply instantly to every window." />
         </StackPanel>
       </Border>
 
       <Border Classes="card">
         <StackPanel Spacing="10">
-          <TextBlock Text="Export" FontWeight="SemiBold" FontSize="16" />
-          <Grid ColumnDefinitions="120,*,Auto,Auto" ColumnSpacing="8">
+          <TextBlock Text="Export" Classes="section-title" />
+          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
             <TextBlock Text="Default folder" VerticalAlignment="Center" />
             <TextBox Grid.Column="1" Text="{Binding ExportFolderDisplay, Mode=OneWay}" IsReadOnly="True" />
             <Button Grid.Column="2" Content="Browse…" Command="{Binding BrowseExportFolderCommand}" />
@@ -38,9 +49,9 @@
 
       <Border Classes="card">
         <StackPanel Spacing="8">
-          <TextBlock Text="Behavior" FontWeight="SemiBold" FontSize="16" />
+          <TextBlock Text="Behavior" Classes="section-title" />
           <CheckBox Content="Remove blank pages automatically when exporting" IsChecked="{Binding RemoveBlankPages}" />
-          <TextBlock Classes="muted" FontSize="12" Margin="28,-4,0,4" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" Margin="28,-4,0,4" TextWrapping="Wrap"
                      Text="Checks every exported page, including blank pages between non-blank pages. Pages with text or annotations are always kept." />
           <CheckBox Content="Make a client folder inside the export folder" IsChecked="{Binding MakeClientFolder}" />
           <CheckBox Content="Warn me when I enter a future date" IsChecked="{Binding WarnOnFutureDates}" />
@@ -51,9 +62,9 @@
 
       <Border Classes="card">
         <StackPanel Spacing="8">
-          <TextBlock Text="About" FontWeight="SemiBold" FontSize="16" />
+          <TextBlock Text="About" Classes="section-title" />
           <TextBlock Text="{Binding VersionText}" />
-          <Grid ColumnDefinitions="120,*,Auto" ColumnSpacing="8">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
             <TextBlock Text="Data folder" VerticalAlignment="Center" />
             <SelectableTextBlock Grid.Column="1" Text="{Binding DataFolder}" VerticalAlignment="Center"
                                  TextWrapping="Wrap" />
@@ -64,8 +75,40 @@
 
       <Border Classes="card">
         <StackPanel Spacing="8">
-          <TextBlock Text="Folder shortcuts" FontWeight="SemiBold" FontSize="16" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Text="Keyboard shortcuts" Classes="section-title" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
+                     Text="Click a shortcut, then press the new key combination (Esc cancels). Ctrl+Alt+D always opens the debug console and cannot be changed." />
+          <ItemsControl ItemsSource="{Binding Keybinds.Rows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:KeybindRowViewModel">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6" Margin="0,2">
+                  <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Content="{Binding ButtonText}" MinWidth="160" HorizontalContentAlignment="Center"
+                          Classes.accent="{Binding IsCapturing}"
+                          AutomationProperties.Name="{Binding Label, StringFormat='{}{0} shortcut'}"
+                          ToolTip.Tip="Click, then press the new key combination"
+                          Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).Keybinds.BeginCaptureCommand}" CommandParameter="{Binding}" />
+                  <Button Grid.Column="2" Content="✕" IsEnabled="{Binding HasGesture}"
+                          AutomationProperties.Name="{Binding Label, StringFormat='Remove {0} shortcut'}"
+                          ToolTip.Tip="Remove this shortcut"
+                          Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).Keybinds.ClearCommand}" CommandParameter="{Binding}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="{Binding Keybinds.Message}" Classes="error" TextWrapping="Wrap"
+                     IsVisible="{Binding Keybinds.HasMessage}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Show Keybinds" Command="{Binding Keybinds.ShowAllCommand}" />
+            <Button Content="Reset to Defaults…" Command="{Binding Keybinds.ResetAllCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Folder shortcuts" Classes="section-title" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                      Text="Folders you open often (for example Files to be Processed). They appear as buttons at the top of Split &amp; Rename." />
           <ItemsControl ItemsSource="{Binding Shortcuts.Shortcuts}">
             <ItemsControl.ItemTemplate>
@@ -77,7 +120,7 @@
                       <Run Text=" " />
                       <Run Text="{Binding Label}" FontWeight="SemiBold" />
                     </TextBlock>
-                    <TextBlock Text="{Binding Path}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Path}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                   <Button Grid.Column="1" Content="Open" VerticalAlignment="Center"
                           Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).Shortcuts.OpenCommand}" CommandParameter="{Binding}" />
@@ -96,10 +139,10 @@
 
       <Border Classes="card">
         <StackPanel Spacing="8">
-          <TextBlock Text="Import from CleanCutPDF 1.x" FontWeight="SemiBold" FontSize="16" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Text="Import from CleanCutPDF 1.x" Classes="section-title" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                      Text="Brings over your workspaces, custom fields, filename formats, notes, settings, folder shortcuts, open PDFs with their typed values, Inbox folders, and export history. CleanCutPDF 1.x data is only read, never changed." />
-          <TextBlock Text="{Binding LegacyStatus}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
+          <TextBlock Text="{Binding LegacyStatus}" Classes="muted" TextWrapping="Wrap" FontSize="{DynamicResource AppFontSizeSmall}" />
           <StackPanel Orientation="Horizontal" Spacing="10">
             <Button Content="Import…" Command="{Binding LegacyImport.ImportCommand}" />
             <TextBlock Text="{Binding LegacyImport.LastImportText}" Classes="muted" VerticalAlignment="Center" />
@@ -109,10 +152,10 @@
 
       <Border Classes="card">
         <StackPanel Spacing="10">
-          <TextBlock Text="Diagnostics" FontWeight="SemiBold" FontSize="16" />
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Text="Diagnostics" Classes="section-title" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                      Text="CleanCutPDF keeps a daily log of what it did and any problems (file names and actions only; no client names or field values). Logs older than 14 days are deleted automatically. If something goes wrong, send the newest log file." />
-          <Grid ColumnDefinitions="120,*,Auto" ColumnSpacing="8">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
             <TextBlock Text="Logs folder" VerticalAlignment="Center" />
             <SelectableTextBlock Grid.Column="1" Text="{Binding LogsFolder}" VerticalAlignment="Center"
                                  TextWrapping="Wrap" />
@@ -125,8 +168,8 @@
 
       <Border Classes="card">
         <StackPanel Spacing="10">
-          <TextBlock Text="License" FontWeight="SemiBold" FontSize="16" />
-          <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="6"
+          <TextBlock Text="License" Classes="section-title" />
+          <Grid ColumnSpacing="16" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="6"
                 IsVisible="{Binding License.HasLicense}">
             <TextBlock Text="Licensed to" />
             <TextBlock Grid.Column="1" Text="{Binding License.LicensedTo}" />
@@ -135,9 +178,9 @@
             <TextBlock Grid.Row="2" Text="Last verified" />
             <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding License.LastVerifiedText}" />
           </Grid>
-          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+          <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                      Text="The license is checked online in the background once a week. Without internet, CleanCutPDF keeps working for up to 30 days after the last successful check." />
-          <TextBlock Text="{Binding License.Message}" TextWrapping="Wrap" FontSize="12"
+          <TextBlock Text="{Binding License.Message}" TextWrapping="Wrap" FontSize="{DynamicResource AppFontSizeSmall}"
                      IsVisible="{Binding License.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Content="Verify Now" Command="{Binding License.VerifyNowCommand}"
@@ -150,8 +193,8 @@
 
       <Border Classes="card">
         <StackPanel Spacing="10">
-          <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="16" />
-          <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto" RowSpacing="6">
+          <TextBlock Text="Updates" Classes="section-title" />
+          <Grid ColumnSpacing="16" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="6">
             <TextBlock Text="Installed" />
             <TextBlock Grid.Column="1" Text="{Binding Updates.CurrentVersion}" />
             <TextBlock Grid.Row="1" Text="Last checked" />
@@ -167,7 +210,7 @@
 
           <TextBlock Text="Release notes" FontWeight="SemiBold" Margin="0,6,0,0" />
           <TextBlock Text="Release notes appear after the first successful update check." Classes="muted"
-                     FontSize="12" IsVisible="{Binding !Updates.ReleaseNotes.Count}" />
+                     FontSize="{DynamicResource AppFontSizeSmall}" IsVisible="{Binding !Updates.ReleaseNotes.Count}" />
           <ItemsControl ItemsSource="{Binding Updates.ReleaseNotes}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="updates:ReleaseNotes">
@@ -176,7 +219,7 @@
                   <ItemsControl ItemsSource="{Binding Lines}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="x:String">
-                        <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" FontSize="13" />
+                        <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" FontSize="{DynamicResource AppFontSizeSmall}" />
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>
                   </ItemsControl>
@@ -184,6 +227,14 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+        </StackPanel>
+      </Border>
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Reset" Classes="section-title" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
+                     Text="Returns every setting, all workspaces, and all custom fields to the defaults. Your license, export history, open PDFs, diagnostic logs, and keyboard shortcuts are kept, and the current files are backed up first." />
+          <Button Content="Reset Settings…" Command="{Binding ResetSettingsCommand}" />
         </StackPanel>
       </Border>
     </StackPanel>

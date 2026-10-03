@@ -48,6 +48,14 @@ public sealed class WorkspaceStore(AppPaths paths, AppLog? log = null)
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>Replaces every workspace and custom field with the built-in ones and saves.</summary>
+    public async Task ResetToDefaultsAsync(CancellationToken cancellationToken = default)
+    {
+        Catalog = WorkspaceCatalog.CreateDefault();
+        log?.Info("Workspaces", "Workspaces and fields reset to the built-in defaults");
+        await SaveAsync(cancellationToken);
+    }
+
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
         Catalog.Normalize();

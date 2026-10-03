@@ -3,6 +3,7 @@ using CleanCutPDF.Core;
 using CleanCutPDF.Core.Diagnostics;
 using CleanCutPDF.Core.Infrastructure;
 using CleanCutPDF.Core.Services;
+using CleanCutPDF.Core.Shortcuts;
 using CleanCutPDF.Core.Workspaces;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -31,6 +32,111 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Ctrl+Alt+D (as in 1.x).</summary>
     public void OpenDebugConsole() => _tools.OpenDebugConsole();
     private readonly ClientSuggestions _clientSuggestions;
+    private readonly KeybindsViewModel _keybinds;
+    private readonly AppLifetimeService _lifetime;
+    private readonly IDialogService _dialogs;
+    private readonly SplitRenameViewModel _splitRename;
+    private readonly LogsViewModel _logs;
+    private readonly NavigationService _navigation;
+    private bool _shortcutRunning;
+
+    /// <summary>Asks the window to put the keyboard focus in a named control (or its first input).</summary>
+    public event EventHandler<string>? FocusRequested;
+
+    /// <summary>Asks the window to paste the clipboard into the focused text box.</summary>
+    public event EventHandler? PasteRequested;
+
+    /// <summary>The shortcut action a key press should run, or null.</summary>
+    public string? MatchShortcut(string gesture) => License.IsLocked ? null : _keybinds.Match(gesture);
+
+    /// <summary>Runs a keyboard shortcut (ids are in <see cref="ShortcutCatalog"/>).</summary>
+    public async Task RunShortcutAsync(string id)
+    {
+        if (_shortcutRunning || License.IsLocked)
+        {
+            return; // A held key must not start the same action twice.
+        }
+
+        _shortcutRunning = true;
+        try
+        {
+            _log?.Debug("Shortcut", id);
+            var page = SelectedNavigationItem?.Page;
+            switch (id)
+            {
+                case ShortcutCatalog.OpenPdf:
+                    _navigation.NavigateTo(AppPage.Inbox);
+                    await _inbox.OpenPdfsCommand.ExecuteAsync(null);
+                    break;
+                case ShortcutCatalog.ClosePdf:
+                    // 1.x asked first, so one stray key press cannot discard typed values.
+                    if (page == AppPage.SplitRename && _splitRename.Document is { } document
+                        && _splitRename.CloseDocumentCommand.CanExecute(null)
+                        && await _dialogs.ConfirmAsync("Close PDF", $"Close “{document.FileName}”?", "Close"))
+                    {
+                        _splitRename.CloseDocumentCommand.Execute(null);
+                    }
+
+                    break;
+                case ShortcutCatalog.Export:
+                    if (page == AppPage.RenameOnly && _renameOnly.RenameCommand.CanExecute(null))
+                    {
+                        await _renameOnly.RenameCommand.ExecuteAsync(null);
+                    }
+                    else if (page == AppPage.SplitRename && _splitRename.ExportCommand.CanExecute(null))
+                    {
+                        await _splitRename.ExportCommand.ExecuteAsync(null);
+                    }
+
+                    break;
+                case ShortcutCatalog.ResetForm:
+                    if (page == AppPage.SplitRename && _splitRename.ResetFormCommand.CanExecute(null))
+                    {
+                        await _splitRename.ResetFormCommand.ExecuteAsync(null);
+                    }
+
+                    break;
+                case ShortcutCatalog.Quit:
+                    _lifetime.Quit();
+                    break;
+                case ShortcutCatalog.SearchLogs:
+                    _navigation.NavigateTo(AppPage.Logs);
+                    FocusRequested?.Invoke(this, "LogSearchBox");
+                    break;
+                case ShortcutCatalog.UndoLastExport:
+                    await _tools.UndoLastExportAsync();
+                    break;
+                case ShortcutCatalog.PasteClipboard:
+                    PasteRequested?.Invoke(this, EventArgs.Empty);
+                    break;
+                case ShortcutCatalog.ClearLog:
+                    _navigation.NavigateTo(AppPage.Logs);
+                    await _logs.EnsureLoadedAsync();
+                    await _logs.ClearLogCommand.ExecuteAsync(null);
+                    break;
+                case ShortcutCatalog.FocusClientName when _splitRename.HasDocument:
+                    _navigation.NavigateTo(AppPage.SplitRename);
+                    FocusRequested?.Invoke(this, "ClientNameBox");
+                    break;
+                case ShortcutCatalog.FocusFirstPart when _splitRename.HasDocument:
+                    _navigation.NavigateTo(AppPage.SplitRename);
+                    FocusRequested?.Invoke(this, "PartsList");
+                    break;
+                case ShortcutCatalog.SelectExportFolder:
+                    await _settingsPage.BrowseExportFolderCommand.ExecuteAsync(null);
+                    break;
+            }
+        }
+        catch (Exception error)
+        {
+            _crashLog.Write($"Keyboard shortcut {id} failed", error);
+            Activity.Report("That shortcut could not be completed; details are in the diagnostic log.");
+        }
+        finally
+        {
+            _shortcutRunning = false;
+        }
+    }
 
     public MainWindowViewModel(
         InboxViewModel inbox,
@@ -51,8 +157,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
         CrashLog crashLog,
         AppLog log,
         WorkspaceStore workspaces,
-        DocumentStore documents)
+        DocumentStore documents,
+        KeybindsViewModel keybinds,
+        AppLifetimeService lifetime,
+        IDialogService dialogs)
     {
+        _keybinds = keybinds;
+        _lifetime = lifetime;
+        _dialogs = dialogs;
+        _splitRename = splitRename;
+        _logs = logs;
+        _navigation = navigation;
         _log = log;
         _workspaces = workspaces;
         _documents = documents;

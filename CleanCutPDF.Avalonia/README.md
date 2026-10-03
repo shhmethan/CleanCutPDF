@@ -115,6 +115,10 @@ Avalonia 12 ships SkiaSharp 3.x.
    date filters, sorting, export to CSV/TSV/Text/PDF, Print, Clear Log to the Recycle Bin);
    Undo Last Export (files go to the Recycle Bin/Trash); zoom window (fit to width, Ctrl+scroll
    50-500%); printable SPLIT HERE sheet; debug console (Ctrl+Alt+D) showing every log entry live.
-5. **Personalization**: color palettes, fonts, keybinds, settings reset.
+5. **Personalization** (done): color palettes (Blue, Green, Pink in light or dark) and font
+   family/size, all applied live; rebindable keyboard shortcuts (1.x defaults, press-to-capture,
+   conflict checks, reset, Show Keybinds); Reset Settings (type a code; settings, workspaces, and
+   custom fields return to defaults after a backup; license, history, sessions, and shortcuts are
+   kept); the 1.x import also brings theme, font, and shortcuts.
 6. **Workspace Layout Designer**.
 7. **Tutorial, help, packaging** (Windows installer, macOS bundle) and installing updates in-app.

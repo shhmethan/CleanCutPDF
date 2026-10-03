@@ -7,14 +7,36 @@ public enum AppThemeMode
     Dark
 }
 
+/// <summary>The color palette layered on top of light/dark (1.x Blue, Green, and Pink themes).</summary>
+public enum AppAccent
+{
+    Blue,
+    Green,
+    Pink
+}
+
 /// <summary>
-/// Persisted application settings. Phase 1 holds only the values the shell
-/// needs; workspaces, custom fields, and keybinds are added in later phases.
+/// Persisted application settings. Workspaces and custom fields live in
+/// workspaces.json; everything else the user can change is here.
 /// </summary>
 public sealed class AppSettings
 {
+    public const int DefaultFontSize = 14;
+    public const int MinFontSize = 11;
+    public const int MaxFontSize = 24;
+
     public int SchemaVersion { get; set; } = 1;
     public AppThemeMode Theme { get; set; } = AppThemeMode.Light;
+    public AppAccent Accent { get; set; } = AppAccent.Blue;
+
+    /// <summary>Font family name; empty means the built-in default (Inter).</summary>
+    public string FontFamily { get; set; } = string.Empty;
+
+    public int FontSize { get; set; } = DefaultFontSize;
+
+    /// <summary>Keyboard shortcuts the user changed (action id → gesture); defaults are not stored.</summary>
+    public Dictionary<string, string> Keybinds { get; set; } = [];
+
     public string ExportFolder { get; set; } = string.Empty;
     public string DefaultWorkspace { get; set; } = "Accounting";
     public bool RemoveBlankPages { get; set; } = true;
@@ -39,8 +61,11 @@ public sealed class AppSettings
     {
         var copy = (AppSettings)MemberwiseClone();
         copy.FolderShortcuts = FolderShortcuts.Select(s => s with { }).ToList();
+        copy.Keybinds = new Dictionary<string, string>(Keybinds);
         return copy;
     }
+
+    public static int ClampFontSize(int size) => Math.Clamp(size, MinFontSize, MaxFontSize);
 }
 
 /// <summary>A frequently used folder shown as a button in the editor (1.x folder shortcuts).</summary>

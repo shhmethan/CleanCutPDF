@@ -23,7 +23,7 @@
     </WrapPanel>
 
     <TextBlock DockPanel.Dock="Top" Text="{Binding SelectionSummary}" Classes="muted"
-               FontSize="12" Margin="2,0,0,6" TextWrapping="Wrap" />
+               FontSize="{DynamicResource AppFontSizeSmall}" Margin="2,0,0,6" TextWrapping="Wrap" />
 
     <Grid>
       <Border Classes="card" Padding="4">
@@ -67,7 +67,7 @@
                 <TextBlock Text="📄" VerticalAlignment="Center" />
                 <StackPanel Spacing="1">
                   <TextBlock Text="{Binding DisplayText}" TextWrapping="NoWrap" />
-                  <TextBlock Text="{Binding StatusText}" FontSize="12" TextWrapping="NoWrap"
+                  <TextBlock Text="{Binding StatusText}" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="NoWrap"
                              Classes="muted" Classes.error="{Binding IsFailed}" />
                 </StackPanel>
                 <ProgressBar Width="70" MinWidth="0" Height="4" VerticalAlignment="Center"
@@ -81,8 +81,8 @@
 
       <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center"
                   Spacing="10" IsHitTestVisible="False">
-        <TextBlock Text="📂" FontSize="42" HorizontalAlignment="Center" />
-        <TextBlock Text="No PDFs yet" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+        <TextBlock Text="📂" FontSize="{DynamicResource AppFontSizeIcon}" HorizontalAlignment="Center" />
+        <TextBlock Text="No PDFs yet" FontSize="{DynamicResource AppFontSizeHeader}" FontWeight="SemiBold" HorizontalAlignment="Center" />
         <TextBlock Text="Click Open PDFs… or drag and drop one or more PDF files here."
                    Classes="muted" HorizontalAlignment="Center" />
       </StackPanel>

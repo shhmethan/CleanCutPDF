@@ -26,10 +26,10 @@
       </WrapPanel>
     </Border>
 
-    <TextBlock DockPanel.Dock="Bottom" Margin="10,4" Classes="muted" FontSize="11" TextWrapping="Wrap"
+    <TextBlock DockPanel.Dock="Bottom" Margin="10,4" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                Text="Shows everything the app logs, including Debug detail that is only written to the log files when Settings › Diagnostics › Detailed logging is on." />
 
-    <ListBox x:Name="EntryList" ItemsSource="{Binding Entries}" FontFamily="Consolas,Menlo,monospace" FontSize="12"
+    <ListBox x:Name="EntryList" ItemsSource="{Binding Entries}" FontFamily="Consolas,Menlo,monospace" FontSize="{DynamicResource AppFontSizeSmall}"
              ScrollViewer.HorizontalScrollBarVisibility="Auto">
       <ListBox.Styles>
         <Style Selector="ListBoxItem">

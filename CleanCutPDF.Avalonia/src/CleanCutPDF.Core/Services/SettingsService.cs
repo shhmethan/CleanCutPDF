@@ -17,6 +17,9 @@ public interface ISettingsService
     /// <summary>Applies a change and persists it in the background (coalesced).</summary>
     void Update(Action<AppSettings> change);
 
+    /// <summary>Swaps in a whole new set of settings (Reset Settings) and persists it.</summary>
+    void Replace(AppSettings replacement);
+
     Task FlushAsync();
 }
 
@@ -30,6 +33,8 @@ public sealed class JsonSettingsService(AppPaths paths, CrashLog crashLog) : ISe
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        // A local file, never HTML: keep "ctrl+k" and folder names readable instead of \u-escaped.
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) }
     };
 
@@ -78,14 +83,22 @@ public sealed class JsonSettingsService(AppPaths paths, CrashLog crashLog) : ISe
         Changed?.Invoke(this, loaded);
     }
 
-    public void Update(Action<AppSettings> change)
+    public void Update(Action<AppSettings> change) => Apply(current =>
+    {
+        var next = current.Clone();
+        change(next);
+        return next;
+    });
+
+    public void Replace(AppSettings replacement) => Apply(_ => replacement.Clone());
+
+    private void Apply(Func<AppSettings, AppSettings> produce)
     {
         AppSettings snapshot;
         CancellationTokenSource debounce;
         lock (_gate)
         {
-            var next = _current.Clone();
-            change(next);
+            var next = produce(_current);
             _current = next;
             snapshot = next;
 

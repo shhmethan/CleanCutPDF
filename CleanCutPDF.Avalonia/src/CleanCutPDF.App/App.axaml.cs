@@ -102,6 +102,8 @@ public partial class App : Application
             sp.GetRequiredService<ExportHistory>(), sp.GetRequiredService<AppLog>()));
         services.AddSingleton<ClientNameIndex>();
         services.AddSingleton<LegacyImporter>();
+        services.AddSingleton(sp => new SettingsReset(sp.GetRequiredService<AppPaths>(),
+            sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<WorkspaceStore>(), sp.GetRequiredService<AppLog>()));
         services.AddSingleton(sp => new RenameService(sp.GetRequiredService<ExportHistory>(), sp.GetRequiredService<AppLog>()));
         services.AddSingleton(sp => new QuickSplitService(sp.GetRequiredService<IPdfEngine>(), sp.GetRequiredService<AppLog>()));
         services.AddSingleton(sp => new ExportService(sp.GetRequiredService<IPdfEngine>(),
@@ -142,6 +144,7 @@ public partial class App : Application
         services.AddSingleton<LogsViewModel>();
         services.AddSingleton<WorkspacesViewModel>();
         services.AddSingleton<FolderShortcutsViewModel>();
+        services.AddSingleton<KeybindsViewModel>();
         services.AddSingleton<LegacyImportViewModel>();
 
         return services.BuildServiceProvider();

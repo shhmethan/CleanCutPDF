@@ -1,8 +1,16 @@
 {
-  "version": "2.0.0-alpha.3",
+  "version": "2.0.0-alpha.4",
   "download_url": "https://github.com/shhmethan/CleanCutPDF/releases",
   "sha256": "",
   "changelog": {
+    "2.0.0-alpha.4": [
+      "Color themes are back: choose Blue, Green, or Pink in Settings, in light or dark. The change applies instantly.",
+      "Choose the font and text size in Settings. Everything in the app, including dialogs, scales with it.",
+      "Keyboard shortcuts are back with the same defaults as CleanCutPDF 1.x (Ctrl+O Open PDF, Ctrl+E Export PDFs, Ctrl+F Search Logs, Ctrl+Shift+Z Undo Last Export, and more).",
+      "Change any shortcut in Settings: click it and press the new keys. CleanCutPDF warns you if the keys are already in use, and you can reset them all to the defaults.",
+      "New Reset Settings button returns settings, workspaces, and custom fields to the defaults after you type a short code. Your license, export history, open PDFs, and shortcuts are kept, and a backup is saved first.",
+      "Importing from CleanCutPDF 1.x now also brings over your color theme, font, text size, and keyboard shortcuts."
+    ],
     "2.0.0-alpha.3": [
       "New Logs page: every exported or renamed file grouped by day and client, with search, workspace and date filters, and sorting. It stays fast with long histories.",
       "Export the history to CSV, TSV, text, or PDF, or print it.",

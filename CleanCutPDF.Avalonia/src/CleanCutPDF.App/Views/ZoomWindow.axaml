@@ -18,7 +18,7 @@
           <Button Content="Next →" Command="{Binding NextPageCommand}" />
         </StackPanel>
         <TextBlock Grid.Column="1" Text="Ctrl + scroll to zoom · scroll to move · Shift + scroll to move sideways · Esc to close"
-                   Classes="muted" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                   Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" HorizontalAlignment="Center" VerticalAlignment="Center" />
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
           <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out" AutomationProperties.Name="Zoom out" />
           <TextBlock Text="{Binding ZoomText}" VerticalAlignment="Center" MinWidth="48" TextAlignment="Center" />

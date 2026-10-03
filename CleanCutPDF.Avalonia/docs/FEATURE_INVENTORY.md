@@ -20,12 +20,13 @@ Legend for the "Plan" column:
 Done and tested: **Phase 1** (shell, background PDF engine, preview, settings, themes,
 licensing, updates), **diagnostic logging**, **Phase 2** (Split & Rename core: detection,
 fields, autofill, export, Inbox folders, sessions), **Phase 3** (Rename Only, Quick
-Split, workspace and field editors, 1.x import, folder shortcuts, client suggestions) and
-**Phase 4** (Logs page, Undo Last Export, zoom window, SPLIT HERE sheet, Ctrl+Alt+D debug console).
+Split, workspace and field editors, 1.x import, folder shortcuts, client suggestions),
+**Phase 4** (Logs page, Undo Last Export, zoom window, SPLIT HERE sheet, Ctrl+Alt+D debug console)
+and **Phase 5** (color palettes, font family and size, rebindable keyboard shortcuts, Reset Settings).
 
 Rows below still say which phase each feature was planned for; everything listed for
-Phases 1–4 is implemented. Remaining: Phase 5 (color palettes, fonts, keybinds, settings reset),
-Phase 6 (Workspace Layout Designer), Phase 7 (tutorial, help, packaging, in-app updates).
+Phases 1–5 is implemented. Remaining: Phase 6 (Workspace Layout Designer), Phase 7 (tutorial,
+help, packaging, in-app updates).
 
 Deliberate differences from 1.x:
 - Title case no longer turns "Machado" into "MacHado" (the automatic "Mac" rule was dropped).
@@ -205,10 +206,10 @@ Pillow (image analysis/resizing), reportlab (optional log → PDF export).
 ### 2.13 Appearance, keybinds, misc
 | Feature | Python behavior | Plan |
 |---|---|---|
-| Themes | Light Blue, Dark Blue, Dark Green, Light Pink, Dark Pink (full UI rebuild) | Redesign – live resource swap, no rebuild (Phase 1 light/dark, palettes Phase 5) |
-| Font family / size | Live | Port (Phase 5) |
-| Keybinds | 8 rebindable actions (Open, Close Tab, Export, Reset, Quit, Search Logs, Undo Export, Paste Clipboard) | Port (Phase 5) |
-| Reset settings | CAPTCHA-confirmed reset of settings.json only, then restart | Port (Phase 5) |
+| Themes | Light Blue, Dark Blue, Dark Green, Light Pink, Dark Pink (full UI rebuild) | **Done** – light/dark/system × Blue/Green/Pink, live resource swap, no rebuild |
+| Font family / size | Live | **Done** – Inter (default) plus the 1.x fonts that are installed; sizes 11–24; every size in the UI derives from it |
+| Keybinds | 8 rebindable actions (Open, Close Tab, Export, Reset, Quit, Search Logs, Undo Export, Paste Clipboard) | **Done** – same defaults, plus Clear Log, Focus Client Name, Focus First Part, Select Export Folder (unassigned); stored in settings.json; Ctrl+Alt+D is fixed; text-editing keys (Ctrl+C/V/X/A/Z/Y) and keys without Ctrl/Alt are refused |
+| Reset settings | CAPTCHA-confirmed reset of settings.json only, then restart | **Done** – also resets workspaces.json, backs both files up first, keeps shortcuts, applies live |
 | SPLIT HERE template | Generates a one-page PDF | Port (Phase 4) |
 | Help tab | Usage, Quick Split, printing tips | Port (Phase 7) |
 | About / release notes | Version + changelog from remote `version.json` | **Done** – cached manifest, refreshed in background each launch |

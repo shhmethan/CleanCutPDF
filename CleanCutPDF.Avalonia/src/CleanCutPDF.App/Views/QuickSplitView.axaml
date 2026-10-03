@@ -23,7 +23,7 @@
         <TextBlock Grid.Column="1" Text="Filename order:" VerticalAlignment="Center" />
         <ComboBox Grid.Column="2" ItemsSource="{Binding FilenameOrders}" SelectedItem="{Binding FilenameOrder}" MinWidth="240"
                   AutomationProperties.Name="Filename order" />
-        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Example}" Classes="muted" FontSize="12" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Example}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" />
       </Grid>
     </Border>
     </Grid>
@@ -46,7 +46,7 @@
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Spacing="2">
                   <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextWrapping="NoWrap" />
-                  <TextBlock Text="{Binding Status}" Classes="muted" Classes.error="{Binding IsFailed}" FontSize="12"
+                  <TextBlock Text="{Binding Status}" Classes="muted" Classes.error="{Binding IsFailed}" FontSize="{DynamicResource AppFontSizeSmall}"
                              TextWrapping="Wrap" />
                 </StackPanel>
                 <Button Grid.Column="1" Content="Open Folder" IsVisible="{Binding IsDone}" VerticalAlignment="Center"
@@ -59,8 +59,8 @@
       </ItemsControl>
       <StackPanel IsVisible="{Binding !HasJobs}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"
                   IsHitTestVisible="False">
-        <TextBlock Text="⚡" FontSize="42" HorizontalAlignment="Center" />
-        <TextBlock Text="Drop one or more PDFs here" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+        <TextBlock Text="⚡" FontSize="{DynamicResource AppFontSizeIcon}" HorizontalAlignment="Center" />
+        <TextBlock Text="Drop one or more PDFs here" FontSize="{DynamicResource AppFontSizeHeader}" FontWeight="SemiBold" HorizontalAlignment="Center" />
         <TextBlock Text="or click Open PDFs…" Classes="muted" HorizontalAlignment="Center" />
       </StackPanel>
     </Grid>

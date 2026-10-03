@@ -15,8 +15,8 @@
     <!-- Empty state -->
     <StackPanel IsVisible="{Binding !HasDocument}" HorizontalAlignment="Center" VerticalAlignment="Center"
                 Spacing="12">
-      <TextBlock Text="✂" FontSize="42" HorizontalAlignment="Center" />
-      <TextBlock Text="No PDF open" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+      <TextBlock Text="✂" FontSize="{DynamicResource AppFontSizeIcon}" HorizontalAlignment="Center" />
+      <TextBlock Text="No PDF open" FontSize="{DynamicResource AppFontSizeHeader}" FontWeight="SemiBold" HorizontalAlignment="Center" />
       <TextBlock Text="Double-click a PDF in the Inbox to open it here." Classes="muted"
                  HorizontalAlignment="Center" />
       <Button Content="Go to Inbox" Command="{Binding BackToInboxCommand}" HorizontalAlignment="Center" />
@@ -78,7 +78,7 @@
           <ComboBox Grid.Column="3" ItemsSource="{Binding WorkspaceNames}" SelectedItem="{Binding SelectedWorkspace}"
                     MinWidth="170" IsEnabled="{Binding IsFormReady}" />
         </Grid>
-        <TextBlock Text="{Binding WorkspaceSummary}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding WorkspaceSummary}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap" />
       </StackPanel>
 
       <Grid ColumnDefinitions="1.15*,6,*">
@@ -102,7 +102,7 @@
                       Padding="12,8" CornerRadius="6" Background="{DynamicResource SidebarBackground}"
                       BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                 <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock TextWrapping="Wrap" FontSize="12"
+                  <TextBlock TextWrapping="Wrap" FontSize="{DynamicResource AppFontSizeSmall}"
                              Text="No SPLIT HERE pages were detected, so this PDF is one Part. If separator sheets are visible in the preview, the scanner may not have created a readable text layer." />
                   <Button Grid.Column="1" Content="Don't show again" Margin="8,0,0,0" VerticalAlignment="Center"
                           Command="{Binding DisableNoSplitWarningCommand}" />
@@ -114,7 +114,7 @@
                   <StackPanel Spacing="3">
                     <TextBlock Text="{Binding ClientLabel}" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                      <AutoCompleteBox Text="{Binding ClientName}" ItemsSource="{Binding ClientSuggestions}"
+                      <AutoCompleteBox x:Name="ClientNameBox" Text="{Binding ClientName}" ItemsSource="{Binding ClientSuggestions}"
                                        FilterMode="None" MinimumPrefixLength="1" MinimumPopulateDelay="0"
                                        PlaceholderText="Client name (leave blank to omit)"
                                        AutomationProperties.Name="Client name"
@@ -123,7 +123,7 @@
                               ToolTip.Tip="Convert the client name to title case (for pasted ALL CAPS names)" />
                     </Grid>
                   </StackPanel>
-                  <ItemsControl ItemsSource="{Binding Parts}">
+                  <ItemsControl x:Name="PartsList" ItemsSource="{Binding Parts}">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate>
                         <VirtualizingStackPanel />
@@ -139,9 +139,9 @@
                         Spacing="10" Width="320">
               <TextBlock Text="Finding SPLIT HERE pages…" FontWeight="SemiBold" HorizontalAlignment="Center" />
               <ProgressBar Maximum="100" Value="{Binding Document.DetectionPercent, FallbackValue=0}" Height="6" />
-              <TextBlock Text="{Binding Document.StatusText, FallbackValue=''}" Classes="muted" FontSize="12"
+              <TextBlock Text="{Binding Document.StatusText, FallbackValue=''}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}"
                          HorizontalAlignment="Center" TextWrapping="Wrap" />
-              <TextBlock Text="You can page through the preview while this runs." Classes="muted" FontSize="12"
+              <TextBlock Text="You can page through the preview while this runs." Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}"
                          HorizontalAlignment="Center" />
             </StackPanel>
 

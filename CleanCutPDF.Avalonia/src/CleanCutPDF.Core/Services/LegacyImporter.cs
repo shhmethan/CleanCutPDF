@@ -13,6 +13,10 @@ public sealed class LegacyImport
     public WorkspaceCatalog? Catalog { get; set; }
     public Action<AppSettings>? ApplySettings { get; set; }
     public List<FolderShortcut> FolderShortcuts { get; } = [];
+
+    /// <summary>Keyboard shortcuts from keybinds.json (action id → gesture), not yet validated.</summary>
+    public Dictionary<string, string> Keybinds { get; } = [];
+
     public SessionState Session { get; } = new();
     public List<string> HistoryLines { get; } = [];
     public List<string> Warnings { get; } = [];
@@ -41,6 +45,24 @@ public sealed class LegacyImporter(AppPaths paths)
         {
             result.Warnings.Add("No CleanCutPDF 1.x data folder was found.");
             return result;
+        }
+
+        // 1.x kept keyboard shortcuts in their own file: { "Open PDF": "ctrl+o", … }.
+        if (TryParse(Path.Combine(directory, "keybinds.json"), result) is { } keybinds)
+        {
+            using (keybinds)
+            {
+                if (keybinds.RootElement.ValueKind == JsonValueKind.Object)
+                {
+                    foreach (var property in keybinds.RootElement.EnumerateObject().Where(p => p.Value.ValueKind == JsonValueKind.String))
+                    {
+                        if (Shortcuts.ShortcutCatalog.IdForLegacyName(property.Name) is { } id)
+                        {
+                            result.Keybinds[id] = property.Value.GetString() ?? "";
+                        }
+                    }
+                }
+            }
         }
 
         var settingsFile = Path.Combine(directory, "settings.json");
@@ -199,12 +221,38 @@ public sealed class LegacyImporter(AppPaths paths)
         var suppressFuture = Bool(root, "suppressFutureDateWarning");
         var suppressNoSplit = Bool(root, "suppressNoSplitWarning");
         var shortcutsCopy = result.FolderShortcuts.ToList();
+        var fontFamily = Str(root, "font_family");
+        int? fontSize = root.TryGetProperty("font_size", out var sizeValue) && sizeValue.TryGetInt32(out var parsedSize)
+            ? parsedSize
+            : null;
+        var keybinds = result.Keybinds;
 
         result.ApplySettings = settings =>
         {
             if (theme.Length > 0)
             {
+                // 1.x themes were "Light Blue", "Dark Green", "Light Pink", …
                 settings.Theme = theme.StartsWith("Dark", StringComparison.OrdinalIgnoreCase) ? AppThemeMode.Dark : AppThemeMode.Light;
+                settings.Accent = theme.EndsWith("Green", StringComparison.OrdinalIgnoreCase) ? AppAccent.Green
+                    : theme.EndsWith("Pink", StringComparison.OrdinalIgnoreCase) ? AppAccent.Pink
+                    : AppAccent.Blue;
+            }
+
+            if (fontFamily.Length > 0)
+            {
+                // Segoe UI was the 1.x default; here the default is the built-in font.
+                settings.FontFamily = fontFamily.Equals("Segoe UI", StringComparison.OrdinalIgnoreCase) ? "" : fontFamily;
+            }
+
+            if (fontSize is { } size)
+            {
+                // The 1.x default (12) corresponds to the default here.
+                settings.FontSize = AppSettings.ClampFontSize(size - 12 + AppSettings.DefaultFontSize);
+            }
+
+            if (keybinds.Count > 0)
+            {
+                settings.Keybinds = Shortcuts.ShortcutCatalog.Clean(keybinds);
             }
 
             if (exportFolder.Length > 0)

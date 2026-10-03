@@ -18,8 +18,8 @@
       <Border Background="{DynamicResource SidebarBackground}">
         <DockPanel>
           <StackPanel DockPanel.Dock="Top" Margin="18,18,18,14" Spacing="2">
-            <TextBlock Text="CleanCutPDF" FontSize="20" FontWeight="SemiBold" />
-            <TextBlock Text="Preview build" Classes="muted" FontSize="12" />
+            <TextBlock Text="CleanCutPDF" FontSize="{DynamicResource AppFontSizeBrand}" FontWeight="SemiBold" />
+            <TextBlock Text="Preview build" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" />
           </StackPanel>
           <ListBox Classes="nav"
                    Background="Transparent"
@@ -48,7 +48,7 @@
               <ItemsControl ItemsSource="{Binding Updates.BannerNotes}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="x:String">
-                    <TextBlock Text="{Binding StringFormat='• {0}'}" Classes="muted" FontSize="12"
+                    <TextBlock Text="{Binding StringFormat='• {0}'}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}"
                                TextWrapping="Wrap" />
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
@@ -70,7 +70,7 @@
     <Border IsVisible="{Binding License.IsLocked}" Background="#B0000000">
       <Border Classes="card" Width="480" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24">
         <StackPanel Spacing="12">
-          <TextBlock Text="{Binding License.Headline}" FontSize="20" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding License.Headline}" FontSize="{DynamicResource AppFontSizeBrand}" FontWeight="SemiBold" />
           <TextBlock Text="{Binding License.Explanation}" TextWrapping="Wrap" Classes="muted" />
 
           <StackPanel Spacing="8" IsVisible="{Binding License.ShowKeyEntry}">
@@ -103,7 +103,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10">
         <ProgressBar IsIndeterminate="True" Width="80" Height="4" MinWidth="0"
                      VerticalAlignment="Center" IsVisible="{Binding Activity.IsBusy}" />
-        <TextBlock Text="{Binding Activity.StatusText}" Classes="muted" FontSize="12"
+        <TextBlock Text="{Binding Activity.StatusText}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}"
                    VerticalAlignment="Center" />
       </StackPanel>
     </Border>
