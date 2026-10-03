@@ -27,6 +27,12 @@ public sealed partial class SplitRenameViewModel : ObservableObject
     private readonly IShellService _shell;
     private readonly ExportService _export;
     private readonly ClientSuggestions _clients;
+    private readonly ToolsService _tools;
+
+    public bool CanUndoLastExport => _tools.CanUndo;
+
+    [RelayCommand]
+    private Task UndoLastExportAsync() => _tools.UndoLastExportAsync();
     private readonly ActivityService _activity;
     private readonly CrashLog _crashLog;
     private readonly AppLog _log;
@@ -36,8 +42,10 @@ public sealed partial class SplitRenameViewModel : ObservableObject
 
     public SplitRenameViewModel(DocumentStore store, NavigationService navigation, PagePreviewService previews,
         WorkspaceStore workspaces, ISettingsService settings, IDialogService dialogs, IShellService shell,
-        ExportService export, ActivityService activity, CrashLog crashLog, AppLog log, ClientSuggestions clients)
+        ExportService export, ActivityService activity, CrashLog crashLog, AppLog log, ClientSuggestions clients,
+        ToolsService tools)
     {
+        _tools = tools;
         _clients = clients;
         _store = store;
         _navigation = navigation;
@@ -49,7 +57,14 @@ public sealed partial class SplitRenameViewModel : ObservableObject
         _activity = activity;
         _crashLog = crashLog;
         _log = log;
-        Preview = new PdfPreviewViewModel(previews, crashLog, log);
+        Preview = new PdfPreviewViewModel(previews, crashLog, log, tools.OpenZoom);
+        _store.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(DocumentStore.LastExportedFiles))
+            {
+                OnPropertyChanged(nameof(CanUndoLastExport));
+            }
+        };
 
         _store.PropertyChanged += OnStoreChanged;
         _store.CapturingSession += (_, _) => CaptureForm();

@@ -89,6 +89,7 @@
             <Button Content="← Prev" Command="{Binding Preview.PreviousPageCommand}" />
             <TextBlock Text="{Binding Preview.PageLabel}" VerticalAlignment="Center" />
             <Button Content="Next →" Command="{Binding Preview.NextPageCommand}" />
+            <Button Content="🔍 Zoom" Command="{Binding Preview.ZoomCommand}" />
           </StackPanel>
           <Grid Background="{DynamicResource PreviewBackground}">
             <Border x:Name="PreviewViewport" Padding="12">

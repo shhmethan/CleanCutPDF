@@ -15,6 +15,16 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        // Ctrl+Alt+D opens the debug console from anywhere (1.x shortcut).
+        AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (e.Key == Key.D && e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.KeyModifiers.HasFlag(KeyModifiers.Alt)
+                && DataContext is MainWindowViewModel vm)
+            {
+                vm.OpenDebugConsole();
+                e.Handled = true;
+            }
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(DragDrop.DropEvent, OnDrop);
         Opened += async (_, _) =>
         {

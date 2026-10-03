@@ -19,12 +19,12 @@ Legend for the "Plan" column:
 
 Done and tested: **Phase 1** (shell, background PDF engine, preview, settings, themes,
 licensing, updates), **diagnostic logging**, **Phase 2** (Split & Rename core: detection,
-fields, autofill, export, Inbox folders, sessions) and **Phase 3** (Rename Only, Quick
-Split, workspace and field editors, 1.x import, folder shortcuts, client suggestions).
+fields, autofill, export, Inbox folders, sessions), **Phase 3** (Rename Only, Quick
+Split, workspace and field editors, 1.x import, folder shortcuts, client suggestions) and
+**Phase 4** (Logs page, Undo Last Export, zoom window, SPLIT HERE sheet, Ctrl+Alt+D debug console).
 
 Rows below still say which phase each feature was planned for; everything listed for
-Phases 1–3 is implemented. Remaining: Phase 4 (Logs page, undo last export, zoom window,
-SPLIT HERE template), Phase 5 (color palettes, fonts, keybinds, settings reset),
+Phases 1–4 is implemented. Remaining: Phase 5 (color palettes, fonts, keybinds, settings reset),
 Phase 6 (Workspace Layout Designer), Phase 7 (tutorial, help, packaging, in-app updates).
 
 Deliberate differences from 1.x:
@@ -35,6 +35,10 @@ Deliberate differences from 1.x:
 - Quick Split asks for a folder when no export folder is set (1.x wrote next to the program).
 - Rename Only records renamed files in the export history (so they appear in client suggestions).
 - The visual drag-and-drop filename editor is a text box with field buttons and a live preview.
+- Undo Last Export and Clear Log move files to the Recycle Bin/Trash instead of deleting them.
+- History export uses the current search and filters (1.x had a separate filter form), and PDF
+  export needs no extra library (1.x required reportlab).
+- The debug console's developer stress tests from 1.x were not carried over.
 
 ## 1. Project layout of the current application
 

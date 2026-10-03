@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CleanCutPDF.App.ViewModels"
+        x:Class="CleanCutPDF.App.Views.ZoomWindow"
+        x:DataType="vm:ZoomViewModel"
+        Title="{Binding Title}"
+        Icon="/Assets/favicon.ico"
+        Width="1100" Height="800"
+        WindowState="Maximized"
+        WindowStartupLocation="CenterOwner">
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Background="{DynamicResource SidebarBackground}" Padding="12,8"
+            BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Button Content="← Prev" Command="{Binding PreviousPageCommand}" />
+          <Button Content="Next →" Command="{Binding NextPageCommand}" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Text="Ctrl + scroll to zoom · scroll to move · Shift + scroll to move sideways · Esc to close"
+                   Classes="muted" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+          <Button Content="−" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out" AutomationProperties.Name="Zoom out" />
+          <TextBlock Text="{Binding ZoomText}" VerticalAlignment="Center" MinWidth="48" TextAlignment="Center" />
+          <Button Content="+" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in" AutomationProperties.Name="Zoom in" />
+          <Button Content="100%" Command="{Binding ActualSizeCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid Background="{DynamicResource PreviewBackground}">
+      <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <Image Source="{Binding PageImage}" Width="{Binding DisplayWidth}" Height="{Binding DisplayHeight}"
+               Stretch="Fill" Margin="20" HorizontalAlignment="Center" VerticalAlignment="Top"
+               RenderOptions.BitmapInterpolationMode="HighQuality" />
+      </ScrollViewer>
+      <ProgressBar IsIndeterminate="True" VerticalAlignment="Top" Height="3" MinWidth="0" IsVisible="{Binding IsLoading}" />
+      <TextBlock Text="{Binding ErrorMessage}" Classes="error" HorizontalAlignment="Center" VerticalAlignment="Center"
+                 IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </Grid>
+  </DockPanel>
+</Window>

@@ -20,6 +20,9 @@
       <TextBlock Text="Double-click a PDF in the Inbox to open it here." Classes="muted"
                  HorizontalAlignment="Center" />
       <Button Content="Go to Inbox" Command="{Binding BackToInboxCommand}" HorizontalAlignment="Center" />
+      <Button Content="↶ Undo Last Export" Command="{Binding UndoLastExportCommand}" HorizontalAlignment="Center"
+              IsVisible="{Binding CanUndoLastExport}"
+              ToolTip.Tip="Moves the files from the most recent export to the Recycle Bin" />
     </StackPanel>
 
     <!-- Editor -->
@@ -172,6 +175,7 @@
                 <TextBlock Text="{Binding Preview.PageCount, StringFormat='of {0}'}" VerticalAlignment="Center" />
                 <Button Content="Go" Command="{Binding Preview.GoToPageCommand}" />
                 <Button Content="Next →" Command="{Binding Preview.NextPageCommand}" />
+                <Button Content="🔍 Zoom" Command="{Binding Preview.ZoomCommand}" ToolTip.Tip="Open this page in a large, zoomable window" />
               </StackPanel>
               <TextBlock Text="{Binding Preview.ErrorMessage}" Classes="error" TextWrapping="Wrap"
                          HorizontalAlignment="Center"

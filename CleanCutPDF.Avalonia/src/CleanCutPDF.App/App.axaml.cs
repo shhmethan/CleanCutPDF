@@ -96,7 +96,10 @@ public partial class App : Application
         services.AddSingleton<PagePreviewService>();
         services.AddSingleton(sp => new WorkspaceStore(sp.GetRequiredService<AppPaths>(), sp.GetRequiredService<AppLog>()));
         services.AddSingleton<SessionStore>();
-        services.AddSingleton<ExportHistory>();
+        services.AddSingleton<IRecycleBin, SystemRecycleBin>();
+        services.AddSingleton(sp => new ExportHistory(sp.GetRequiredService<AppPaths>(), sp.GetRequiredService<IRecycleBin>()));
+        services.AddSingleton(sp => new CleanCutPDF.Core.History.ExportUndo(sp.GetRequiredService<IRecycleBin>(),
+            sp.GetRequiredService<ExportHistory>(), sp.GetRequiredService<AppLog>()));
         services.AddSingleton<ClientNameIndex>();
         services.AddSingleton<LegacyImporter>();
         services.AddSingleton(sp => new RenameService(sp.GetRequiredService<ExportHistory>(), sp.GetRequiredService<AppLog>()));
@@ -125,6 +128,7 @@ public partial class App : Application
         services.AddSingleton<NavigationService>();
         services.AddSingleton<AppLifetimeService>();
         services.AddSingleton<ClientSuggestions>();
+        services.AddSingleton<ToolsService>();
 
         // View-models (pages are long-lived so their state survives navigation)
         services.AddSingleton<MainWindowViewModel>();
@@ -135,6 +139,7 @@ public partial class App : Application
         services.AddSingleton<LicenseViewModel>();
         services.AddSingleton<UpdatesViewModel>();
         services.AddSingleton<QuickSplitViewModel>();
+        services.AddSingleton<LogsViewModel>();
         services.AddSingleton<WorkspacesViewModel>();
         services.AddSingleton<FolderShortcutsViewModel>();
         services.AddSingleton<LegacyImportViewModel>();

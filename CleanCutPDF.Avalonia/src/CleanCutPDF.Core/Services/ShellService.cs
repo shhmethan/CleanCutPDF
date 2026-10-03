@@ -9,6 +9,9 @@ public interface IShellService
 
     /// <summary>Opens an https link in the default browser. Returns a user-facing error, or null on success.</summary>
     string? OpenUrl(Uri url);
+
+    /// <summary>Opens a local file with its default program (PDF viewer, browser for print pages).</summary>
+    string? OpenFile(string path);
 }
 
 public sealed class ShellService : IShellService
@@ -45,6 +48,36 @@ public sealed class ShellService : IShellService
         catch (Exception error)
         {
             return $"Could not open this folder:\n\n{error.Message}";
+        }
+    }
+
+    public string? OpenFile(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return $"The file no longer exists:\n\n{path}";
+        }
+
+        try
+        {
+            if (OperatingSystem.IsMacOS())
+            {
+                Process.Start("open", [path]);
+            }
+            else if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            }
+            else
+            {
+                Process.Start("xdg-open", [path]);
+            }
+
+            return null;
+        }
+        catch (Exception error)
+        {
+            return $"Could not open the file:\n\n{error.Message}";
         }
     }
 

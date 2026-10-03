@@ -99,6 +99,46 @@ internal static unsafe class PdfiumNative
         public IntPtr StreamHandle;
     }
 
+    // ───── Creating content (log PDF export, SPLIT HERE template) ─────
+
+    [DllImport(Library)]
+    public static extern IntPtr FPDFPage_New(IntPtr document, int pageIndex, double width, double height);
+
+    [DllImport(Library, CharSet = CharSet.Ansi, BestFitMapping = false)]
+    public static extern IntPtr FPDFText_LoadStandardFont(IntPtr document, string font);
+
+    [DllImport(Library)]
+    public static extern void FPDFFont_Close(IntPtr font);
+
+    [DllImport(Library)]
+    public static extern IntPtr FPDFPageObj_CreateTextObj(IntPtr document, IntPtr font, float fontSize);
+
+    [DllImport(Library)]
+    public static extern int FPDFText_SetText(IntPtr textObject, ushort* text);
+
+    [DllImport(Library)]
+    public static extern IntPtr FPDFPageObj_CreateNewRect(float x, float y, float width, float height);
+
+    [DllImport(Library)]
+    public static extern int FPDFPath_SetDrawMode(IntPtr path, int fillMode, int stroke);
+
+    [DllImport(Library)]
+    public static extern int FPDFPageObj_SetFillColor(IntPtr pageObject, uint r, uint g, uint b, uint a);
+
+    [DllImport(Library)]
+    public static extern int FPDFPageObj_GetBounds(IntPtr pageObject, float* left, float* bottom, float* right, float* top);
+
+    [DllImport(Library)]
+    public static extern void FPDFPageObj_Transform(IntPtr pageObject, double a, double b, double c, double d, double e, double f);
+
+    [DllImport(Library)]
+    public static extern void FPDFPage_InsertObject(IntPtr page, IntPtr pageObject);
+
+    [DllImport(Library)]
+    public static extern int FPDFPage_GenerateContent(IntPtr page);
+
+    public const int FPDF_FILLMODE_ALTERNATE = 1;
+
     [DllImport(Library)]
     public static extern IntPtr FPDFText_LoadPage(IntPtr page);
 

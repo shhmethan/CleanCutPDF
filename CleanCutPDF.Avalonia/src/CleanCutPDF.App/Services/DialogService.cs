@@ -22,6 +22,9 @@ public interface IDialogService
     Task<string?> ChooseAsync(string title, string message, IReadOnlyList<string> options, string? initial,
         string confirmText = "OK");
 
+    /// <summary>Choose where to save a file. Returns null when cancelled.</summary>
+    Task<string?> SaveFileAsync(string title, string suggestedName, string extension, string typeName);
+
     /// <summary>Ask for a line of text. Returns null when cancelled.</summary>
     Task<string?> PromptAsync(string title, string message, string initial = "", string confirmText = "OK");
 }
@@ -58,6 +61,19 @@ public sealed class WindowDialogService : IDialogService
             AllowMultiple = false
         });
         return folders.Select(f => f.TryGetLocalPath()).OfType<string>().FirstOrDefault();
+    }
+
+    public async Task<string?> SaveFileAsync(string title, string suggestedName, string extension, string typeName)
+    {
+        var file = await RequireOwner().StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggestedName,
+            DefaultExtension = extension,
+            ShowOverwritePrompt = true,
+            FileTypeChoices = [new FilePickerFileType(typeName) { Patterns = [$"*.{extension}"] }]
+        });
+        return file?.TryGetLocalPath();
     }
 
     public async Task ShowMessageAsync(string title, string message) =>

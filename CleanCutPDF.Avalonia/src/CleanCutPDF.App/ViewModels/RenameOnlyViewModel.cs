@@ -64,7 +64,7 @@ public sealed partial class RenameOnlyViewModel : ObservableObject
 
     public RenameOnlyViewModel(IPdfEngine engine, PagePreviewService previews, WorkspaceStore workspaces,
         ISettingsService settings, IDialogService dialogs, RenameService rename, ClientSuggestions clients,
-        ActivityService activity, CrashLog crashLog, AppLog log)
+        ActivityService activity, CrashLog crashLog, AppLog log, ToolsService tools)
     {
         _engine = engine;
         _previews = previews;
@@ -76,7 +76,7 @@ public sealed partial class RenameOnlyViewModel : ObservableObject
         _activity = activity;
         _crashLog = crashLog;
         _log = log;
-        Preview = new PdfPreviewViewModel(previews, crashLog, log);
+        Preview = new PdfPreviewViewModel(previews, crashLog, log, tools.OpenZoom);
         OutputFolder = settings.Current.ExportFolder;
         var lastExportFolder = OutputFolder;
         settings.Changed += (_, current) =>

@@ -6,6 +6,7 @@ public enum AppPage
     SplitRename,
     RenameOnly,
     QuickSplit,
+    Logs,
     Workspaces,
     Settings
 }

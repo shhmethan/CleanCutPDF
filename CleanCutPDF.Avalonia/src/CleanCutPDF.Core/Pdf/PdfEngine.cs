@@ -31,6 +31,9 @@ public interface IPdfEngine : IDisposable
     /// <summary>Copies the given pages (0-based, in order) into a new PDF and returns its bytes.</summary>
     Task<byte[]> ExtractPagesAsync(string path, IReadOnlyList<int> pageIndices, CancellationToken cancellationToken = default);
 
+    /// <summary>Creates a new PDF from simple text/rectangle page descriptions (built-in fonts only).</summary>
+    Task<byte[]> CreateDocumentAsync(IReadOnlyList<PdfPageSpec> pages, CancellationToken cancellationToken = default);
+
     /// <summary>Releases the native handle and file buffer for a document.</summary>
     Task CloseAsync(string path);
 }
@@ -122,6 +125,9 @@ public sealed class PdfiumEngine : IPdfEngine
         CancellationToken cancellationToken = default) =>
         WithDocumentAsync(path, document => CopyPagesOnWorker(document, pageIndices), PdfWorkPriority.High,
             cancellationToken);
+
+    public Task<byte[]> CreateDocumentAsync(IReadOnlyList<PdfPageSpec> pages, CancellationToken cancellationToken = default) =>
+        _worker.InvokeAsync(() => CreateOnWorker(pages), PdfWorkPriority.High, cancellationToken);
 
     /// <summary>
     /// Runs work against an open document on the PDF thread. A document can be
@@ -321,8 +327,6 @@ public sealed class PdfiumEngine : IPdfEngine
             throw new PdfOpenException("A new PDF could not be created.");
         }
 
-        var output = new MemoryStream();
-        var handle = GCHandle.Alloc(output);
         try
         {
             var indices = pageIndices.ToArray();
@@ -335,13 +339,93 @@ public sealed class PdfiumEngine : IPdfEngine
                 }
             }
 
+            return SaveToBytes(destination);
+        }
+        finally
+        {
+            PdfiumNative.FPDF_CloseDocument(destination);
+        }
+    }
+
+    private static unsafe byte[] CreateOnWorker(IReadOnlyList<PdfPageSpec> pages)
+    {
+        var document = PdfiumNative.FPDF_CreateNewDocument();
+        if (document == IntPtr.Zero)
+        {
+            throw new PdfOpenException("A new PDF could not be created.");
+        }
+
+        var regular = PdfiumNative.FPDFText_LoadStandardFont(document, "Helvetica");
+        var bold = PdfiumNative.FPDFText_LoadStandardFont(document, "Helvetica-Bold");
+        try
+        {
+            for (var index = 0; index < pages.Count; index++)
+            {
+                var spec = pages[index];
+                var page = PdfiumNative.FPDFPage_New(document, index, spec.Width, spec.Height);
+                try
+                {
+                    foreach (var rect in spec.Rects)
+                    {
+                        var path = PdfiumNative.FPDFPageObj_CreateNewRect((float)rect.X, (float)rect.Y, (float)rect.Width, (float)rect.Height);
+                        PdfiumNative.FPDFPageObj_SetFillColor(path, rect.R, rect.G, rect.B, 255);
+                        PdfiumNative.FPDFPath_SetDrawMode(path, PdfiumNative.FPDF_FILLMODE_ALTERNATE, 0);
+                        PdfiumNative.FPDFPage_InsertObject(page, path);
+                    }
+
+                    foreach (var run in spec.Texts.Where(t => t.Text.Length > 0))
+                    {
+                        var text = PdfiumNative.FPDFPageObj_CreateTextObj(document, run.Bold ? bold : regular, run.Size);
+                        var chars = (run.Text + "\0").ToCharArray();
+                        fixed (char* pointer = chars)
+                        {
+                            PdfiumNative.FPDFText_SetText(text, (ushort*)pointer);
+                        }
+
+                        PdfiumNative.FPDFPageObj_SetFillColor(text, run.Gray, run.Gray, run.Gray, 255);
+                        var x = run.X;
+                        if (run.CenterX)
+                        {
+                            float left, bottom, right, top;
+                            PdfiumNative.FPDFPageObj_GetBounds(text, &left, &bottom, &right, &top);
+                            x = (spec.Width - (right - left)) / 2 - left;
+                        }
+
+                        PdfiumNative.FPDFPageObj_Transform(text, 1, 0, 0, 1, x, run.Y);
+                        PdfiumNative.FPDFPage_InsertObject(page, text);
+                    }
+
+                    PdfiumNative.FPDFPage_GenerateContent(page);
+                }
+                finally
+                {
+                    PdfiumNative.FPDF_ClosePage(page);
+                }
+            }
+
+            return SaveToBytes(document);
+        }
+        finally
+        {
+            PdfiumNative.FPDFFont_Close(regular);
+            PdfiumNative.FPDFFont_Close(bold);
+            PdfiumNative.FPDF_CloseDocument(document);
+        }
+    }
+
+    private static unsafe byte[] SaveToBytes(IntPtr document)
+    {
+        var output = new MemoryStream();
+        var handle = GCHandle.Alloc(output);
+        try
+        {
             var writer = new PdfiumNative.FileWrite
             {
                 Version = 1,
                 WriteBlock = &WriteBlock,
                 StreamHandle = GCHandle.ToIntPtr(handle)
             };
-            if (PdfiumNative.FPDF_SaveAsCopy(destination, &writer, new CULong(0)) == 0)
+            if (PdfiumNative.FPDF_SaveAsCopy(document, &writer, new CULong(0)) == 0)
             {
                 throw new PdfOpenException("The new PDF could not be saved.");
             }
@@ -351,7 +435,6 @@ public sealed class PdfiumEngine : IPdfEngine
         finally
         {
             handle.Free();
-            PdfiumNative.FPDF_CloseDocument(destination);
         }
     }
 

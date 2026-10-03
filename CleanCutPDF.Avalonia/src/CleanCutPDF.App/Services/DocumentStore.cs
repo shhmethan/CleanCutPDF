@@ -68,8 +68,9 @@ public sealed partial class DocumentStore : ObservableObject
     [ObservableProperty]
     public partial DocumentItemViewModel? ActiveDocument { get; set; }
 
-    /// <summary>Files written by the most recent export (for Undo Last Export, Phase 4).</summary>
-    public IReadOnlyList<string> LastExportedFiles { get; set; } = [];
+    /// <summary>Files written by the most recent Split &amp; Rename export (for Undo Last Export).</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<string> LastExportedFiles { get; set; } = [];
 
     /// <summary>Raised before saving so the open editor can copy its field values into the document.</summary>
     public event EventHandler? CapturingSession;

@@ -1,8 +1,18 @@
 {
-  "version": "2.0.0-alpha.2",
+  "version": "2.0.0-alpha.3",
   "download_url": "https://github.com/shhmethan/CleanCutPDF/releases",
   "sha256": "",
   "changelog": {
+    "2.0.0-alpha.3": [
+      "New Logs page: every exported or renamed file grouped by day and client, with search, workspace and date filters, and sorting. It stays fast with long histories.",
+      "Export the history to CSV, TSV, text, or PDF, or print it.",
+      "Undo Last Export moves the files from the most recent export to the Recycle Bin, so they can be restored.",
+      "Clear Log also moves the old history to the Recycle Bin instead of deleting it.",
+      "New 🔍 Zoom button opens the page in a large window: fit to width, Ctrl+scroll to zoom from 50% to 500%.",
+      "Save a printable SPLIT HERE sheet from the Inbox or Quick Split page.",
+      "Ctrl+Alt+D opens the debug console, which shows everything the app logs as it happens.",
+      "Fixed the Workspaces lists and editor resizing while scrolling or typing."
+    ],
     "2.0.0-alpha.2": [
       "Split & Rename now works end to end: SPLIT HERE pages are found in the background (including colored separator sheets with no text), each Part gets the workspace fields, and Export PDFs saves one file per Part.",
       "All field types are back: text, number, currency, date, dropdown (with Other), checkbox, and toggle, plus autofill, Today buttons, Payment Method → Check Number, notes, and the Aa button.",

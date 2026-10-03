@@ -7,7 +7,9 @@
              x:DataType="vm:SettingsViewModel">
 
   <ScrollViewer>
-    <StackPanel Margin="24" Spacing="14" MaxWidth="900" HorizontalAlignment="Left">
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="900" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+    <StackPanel Margin="24" Spacing="14">
       <TextBlock Text="Settings" Classes="page-title" />
 
       <Border Classes="card">
@@ -185,5 +187,6 @@
         </StackPanel>
       </Border>
     </StackPanel>
+    </Grid>
   </ScrollViewer>
 </UserControl>

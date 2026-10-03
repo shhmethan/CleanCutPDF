@@ -18,6 +18,8 @@
       <Button Content="Move to Folder…" Command="{Binding MoveToFolderCommand}" />
       <Button Content="Close Selected" Command="{Binding CloseSelectedCommand}" />
       <Button Content="Cancel Loading" Command="{Binding CancelImportCommand}" IsVisible="{Binding IsImporting}" />
+      <Button Content="📄 SPLIT HERE Sheet…" Command="{Binding SaveSplitHereSheetCommand}"
+              ToolTip.Tip="Save a printable SPLIT HERE separator page" />
     </WrapPanel>
 
     <TextBlock DockPanel.Dock="Top" Text="{Binding SelectionSummary}" Classes="muted"

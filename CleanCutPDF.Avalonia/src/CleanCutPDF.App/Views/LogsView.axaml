@@ -1,0 +1,86 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CleanCutPDF.App.ViewModels"
+             xmlns:history="using:CleanCutPDF.Core.History"
+             x:Class="CleanCutPDF.App.Views.LogsView"
+             x:DataType="vm:LogsViewModel">
+
+  <DockPanel Margin="24">
+    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+      <TextBlock Text="Logs" Classes="page-title" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="Every file exported or renamed, grouped by day and client. Search and filters update as you type." />
+    </StackPanel>
+
+    <WrapPanel DockPanel.Dock="Top" ItemSpacing="8" LineSpacing="8" Margin="0,0,0,8">
+      <TextBox Text="{Binding Search}" PlaceholderText="Search clients, files, agencies…" Width="280"
+               AutomationProperties.Name="Search history" />
+      <TextBox Text="{Binding WorkspaceFilter}" PlaceholderText="Workspace" Width="140"
+               AutomationProperties.Name="Workspace filter" />
+      <CalendarDatePicker SelectedDate="{Binding FromDate}" PlaceholderText="From date" Width="140"
+                          AutomationProperties.Name="Export date from" />
+      <CalendarDatePicker SelectedDate="{Binding ToDate}" PlaceholderText="To date" Width="140"
+                          AutomationProperties.Name="Export date through" />
+      <ComboBox ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}" MinWidth="180"
+                AutomationProperties.Name="Sort" />
+      <Button Content="Clear Filters" Command="{Binding ClearFiltersCommand}" />
+    </WrapPanel>
+
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+      <TextBlock Text="{Binding Summary}" Classes="muted" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <Button Content="↶ Undo Last Export" Command="{Binding UndoLastExportCommand}"
+                ToolTip.Tip="Moves the files from the most recent Split &amp; Rename export to the Recycle Bin" />
+        <Button Content="Export…" Command="{Binding ExportCommand}" />
+        <Button Content="Print…" Command="{Binding PrintCommand}" />
+        <Button Content="Clear Log…" Command="{Binding ClearLogCommand}" />
+      </StackPanel>
+    </Grid>
+
+    <Grid>
+      <ListBox ItemsSource="{Binding Groups}" Background="Transparent" SelectionMode="Single"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:HistoryGroupRow">
+            <StackPanel Spacing="4" Margin="0,0,0,8">
+              <TextBlock Text="{Binding DateHeading}" IsVisible="{Binding ShowDateHeading}" FontWeight="SemiBold"
+                         Classes="muted" Margin="4,10,0,2" />
+              <Border Classes="card" Padding="12,8">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="15" />
+                  <ItemsControl ItemsSource="{Binding Entries}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="history:HistoryEntry">
+                        <Grid ColumnDefinitions="70,*" Margin="0,2" ToolTip.Tip="{Binding Raw}">
+                          <TextBlock Text="{Binding Time}" Classes="muted" FontSize="12" VerticalAlignment="Top" />
+                          <StackPanel Grid.Column="1">
+                            <SelectableTextBlock Text="{Binding File}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Details}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+                          </StackPanel>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <TextBlock Text="Nothing matches the current search and filters." Classes="muted"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+        <TextBlock.IsVisible>
+          <MultiBinding Converter="{x:Static BoolConverters.And}">
+            <Binding Path="IsEmpty" />
+            <Binding Path="!IsBusy" />
+          </MultiBinding>
+        </TextBlock.IsVisible>
+      </TextBlock>
+    </Grid>
+  </DockPanel>
+</UserControl>

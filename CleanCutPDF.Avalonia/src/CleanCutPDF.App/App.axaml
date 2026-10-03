@@ -21,6 +21,9 @@
     <DataTemplate DataType="vm:QuickSplitViewModel">
       <views:QuickSplitView />
     </DataTemplate>
+    <DataTemplate DataType="vm:LogsViewModel">
+      <views:LogsView />
+    </DataTemplate>
     <DataTemplate DataType="vm:WorkspacesViewModel">
       <views:WorkspacesView />
     </DataTemplate>

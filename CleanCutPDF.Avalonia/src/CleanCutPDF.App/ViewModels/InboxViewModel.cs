@@ -46,13 +46,18 @@ public sealed partial class InboxViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly WorkspaceStore _workspaces;
     private readonly AppLog _log;
+    private readonly ToolsService _tools;
+
+    [RelayCommand]
+    private Task SaveSplitHereSheetAsync() => _tools.SaveSplitHereTemplateAsync();
     private readonly Dictionary<string, FolderRowViewModel> _folderRows = new();
     private CancellationTokenSource? _importCts;
     private bool _rebuilding;
 
     public InboxViewModel(DocumentStore store, IDialogService dialogs, ActivityService activity,
-        NavigationService navigation, ISettingsService settings, WorkspaceStore workspaces, AppLog log)
+        NavigationService navigation, ISettingsService settings, WorkspaceStore workspaces, AppLog log, ToolsService tools)
     {
+        _tools = tools;
         _store = store;
         _dialogs = dialogs;
         _activity = activity;

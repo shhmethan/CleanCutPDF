@@ -1,0 +1,47 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CleanCutPDF.App.ViewModels"
+        xmlns:diag="using:CleanCutPDF.Core.Diagnostics"
+        x:Class="CleanCutPDF.App.Views.DebugConsoleWindow"
+        x:DataType="vm:DebugConsoleViewModel"
+        Title="CleanCutPDF Debug Console"
+        Icon="/Assets/favicon.ico"
+        Width="1000" Height="620"
+        WindowStartupLocation="CenterOwner">
+
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Background="{DynamicResource SidebarBackground}" Padding="10,8"
+            BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
+      <WrapPanel ItemSpacing="8" LineSpacing="6">
+        <ComboBox ItemsSource="{Binding Levels}" SelectedItem="{Binding SelectedLevel}" MinWidth="200"
+                  AutomationProperties.Name="Level" />
+        <TextBox Text="{Binding Search}" PlaceholderText="Filter text or category" Width="220"
+                 AutomationProperties.Name="Filter" />
+        <CheckBox Content="Auto-scroll" IsChecked="{Binding AutoScroll}" />
+        <CheckBox Content="Pause" IsChecked="{Binding IsPaused}" />
+        <Button Content="Copy All" Click="OnCopyAll" />
+        <Button Content="Clear View" Command="{Binding ClearViewCommand}" />
+        <Button Content="Open Logs Folder" Command="{Binding OpenLogsFolderCommand}" />
+        <Button Content="Write Test Entry" Command="{Binding WriteTestEntryCommand}" />
+      </WrapPanel>
+    </Border>
+
+    <TextBlock DockPanel.Dock="Bottom" Margin="10,4" Classes="muted" FontSize="11" TextWrapping="Wrap"
+               Text="Shows everything the app logs, including Debug detail that is only written to the log files when Settings › Diagnostics › Detailed logging is on." />
+
+    <ListBox x:Name="EntryList" ItemsSource="{Binding Entries}" FontFamily="Consolas,Menlo,monospace" FontSize="12"
+             ScrollViewer.HorizontalScrollBarVisibility="Auto">
+      <ListBox.Styles>
+        <Style Selector="ListBoxItem">
+          <Setter Property="Padding" Value="8,1" />
+          <Setter Property="MinHeight" Value="0" />
+        </Style>
+      </ListBox.Styles>
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="diag:LogEntry">
+          <SelectableTextBlock Text="{Binding Text}" TextWrapping="NoWrap" />
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</Window>

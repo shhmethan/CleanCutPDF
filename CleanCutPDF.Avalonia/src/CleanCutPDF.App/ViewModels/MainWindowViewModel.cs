@@ -26,6 +26,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly DocumentStore _documents;
     private readonly RenameOnlyViewModel _renameOnly;
     private readonly QuickSplitViewModel _quickSplit;
+    private readonly ToolsService _tools;
+
+    /// <summary>Ctrl+Alt+D (as in 1.x).</summary>
+    public void OpenDebugConsole() => _tools.OpenDebugConsole();
     private readonly ClientSuggestions _clientSuggestions;
 
     public MainWindowViewModel(
@@ -33,6 +37,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SplitRenameViewModel splitRename,
         RenameOnlyViewModel renameOnly,
         QuickSplitViewModel quickSplit,
+        LogsViewModel logs,
+        ToolsService tools,
         WorkspacesViewModel workspacesPage,
         ClientSuggestions clientSuggestions,
         SettingsViewModel settingsPage,
@@ -52,6 +58,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _documents = documents;
         _renameOnly = renameOnly;
         _quickSplit = quickSplit;
+        _tools = tools;
         _clientSuggestions = clientSuggestions;
         _ = themeService; // Constructed here so it subscribes to settings changes.
         _inbox = inbox;
@@ -69,6 +76,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             new(AppPage.SplitRename, "Split & Rename", "✂", splitRename),
             new(AppPage.RenameOnly, "Rename Only", "📝", renameOnly),
             new(AppPage.QuickSplit, "Quick Split", "⚡", quickSplit),
+            new(AppPage.Logs, "Logs", "📜", logs),
             new(AppPage.Workspaces, "Workspaces", "🧩", workspacesPage),
             new(AppPage.Settings, "Settings", "⚙", settingsPage)
         ];

@@ -43,13 +43,18 @@ public sealed partial class QuickSplitViewModel : ObservableObject
     private readonly IShellService _shell;
     private readonly ActivityService _activity;
     private readonly CrashLog _crashLog;
+    private readonly ToolsService _tools;
+
+    [RelayCommand]
+    private Task SaveSplitHereSheetAsync() => _tools.SaveSplitHereTemplateAsync();
     private readonly SemaphoreSlim _queue = new(1, 1);
     private CancellationTokenSource _cts = new();
     private bool _syncing;
 
     public QuickSplitViewModel(QuickSplitService service, ISettingsService settings, IDialogService dialogs,
-        IShellService shell, ActivityService activity, CrashLog crashLog)
+        IShellService shell, ActivityService activity, CrashLog crashLog, ToolsService tools)
     {
+        _tools = tools;
         _service = service;
         _settings = settings;
         _dialogs = dialogs;

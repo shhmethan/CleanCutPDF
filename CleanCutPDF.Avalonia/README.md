@@ -111,8 +111,10 @@ Avalonia 12 ships SkiaSharp 3.x.
    token buttons and live preview, field assignment/order, per-workspace defaults, notes, custom
    field library with every 1.x option); read-only import of 1.x data; folder shortcuts;
    client-name suggestions from export folders and history.
-4. **Logs** (virtualized, filtered off-thread, CSV/TSV/TXT/PDF export), undo last
-   export, zoom window, SPLIT HERE template.
+4. **Logs and tools** (done): Logs page (grouped by day and client, search, workspace and
+   date filters, sorting, export to CSV/TSV/Text/PDF, Print, Clear Log to the Recycle Bin);
+   Undo Last Export (files go to the Recycle Bin/Trash); zoom window (fit to width, Ctrl+scroll
+   50-500%); printable SPLIT HERE sheet; debug console (Ctrl+Alt+D) showing every log entry live.
 5. **Personalization**: color palettes, fonts, keybinds, settings reset.
 6. **Workspace Layout Designer**.
 7. **Tutorial, help, packaging** (Windows installer, macOS bundle) and installing updates in-app.

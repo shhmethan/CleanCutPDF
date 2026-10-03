@@ -247,13 +247,30 @@ public sealed class ExportService(IPdfEngine engine, ExportHistory history, AppL
 }
 
 /// <summary>export-history.log: one line per exported file, bounded like 1.x (2,500 lines once over 4 MB).</summary>
-public sealed class ExportHistory(AppPaths paths)
+public sealed class ExportHistory(AppPaths paths, IRecycleBin? recycleBin = null)
 {
     private const long MaxBytes = 4L * 1024 * 1024;
     private const int KeepLines = 2500;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public string FilePath => paths.ExportHistoryFile;
+
+    /// <summary>Raised after the history changes (export, rename, import, undo, clear).</summary>
+    public event EventHandler? Changed;
+
+    /// <summary>All history lines, read off the UI thread.</summary>
+    public async Task<IReadOnlyList<string>> ReadLinesAsync(CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            return File.Exists(FilePath) ? await File.ReadAllLinesAsync(FilePath, cancellationToken) : [];
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
 
     /// <summary>Puts older lines (e.g. imported 1.x history) before the existing ones, skipping duplicates.</summary>
     public async Task PrependAsync(IReadOnlyList<string> olderLines, CancellationToken cancellationToken = default)
@@ -271,6 +288,8 @@ public sealed class ExportHistory(AppPaths paths)
         {
             _gate.Release();
         }
+
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public async Task AppendAsync(IReadOnlyList<string> lines, CancellationToken cancellationToken = default)
@@ -291,5 +310,30 @@ public sealed class ExportHistory(AppPaths paths)
         {
             _gate.Release();
         }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Clear Log: the old history goes to the Recycle Bin (so it can be restored), and a new one starts.</summary>
+    public async Task<string?> ClearAsync()
+    {
+        string? problem = null;
+        await _gate.WaitAsync();
+        try
+        {
+            if (File.Exists(FilePath))
+            {
+                var stamped = Path.Combine(Path.GetDirectoryName(FilePath)!, $"export-history {DateTime.Now:yyyy-MM-dd HHmmss}.log");
+                File.Move(FilePath, stamped);
+                problem = (recycleBin ?? new SystemRecycleBin()).Recycle(stamped);
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+        return problem;
     }
 }

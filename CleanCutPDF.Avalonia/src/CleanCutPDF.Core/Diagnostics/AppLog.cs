@@ -16,6 +16,9 @@ public enum LogLevel
 
 public sealed record LogEntry(DateTimeOffset Time, LogLevel Level, string Category, string Message, Exception? Error)
 {
+    /// <summary>The formatted line (for display).</summary>
+    public string Text => Format();
+
     public string Format()
     {
         var builder = new StringBuilder()
@@ -65,6 +68,9 @@ public sealed class AppLog : IAsyncDisposable, IDisposable
         _writer = Task.Run(WriteLoopAsync);
     }
 
+    /// <summary>Every entry, including Debug, as it is written (any thread).</summary>
+    public event Action<LogEntry>? EntryWritten;
+
     /// <summary>When true, Debug entries are also written to disk.</summary>
     public bool Verbose { get; set; }
 
@@ -93,6 +99,9 @@ public sealed class AppLog : IAsyncDisposable, IDisposable
         {
             _channel.Writer.TryWrite(entry);
         }
+
+        // Live feed for the debug console (Ctrl+Alt+D). Raised on the caller's thread.
+        EntryWritten?.Invoke(entry);
 
         System.Diagnostics.Debug.WriteLine(entry.Format());
     }

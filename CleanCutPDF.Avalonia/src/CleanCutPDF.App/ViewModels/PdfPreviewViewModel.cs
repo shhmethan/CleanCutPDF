@@ -16,8 +16,19 @@ namespace CleanCutPDF.App.ViewModels;
 /// a new render cancels the previous one, the previous page stays visible
 /// until the new one is ready (no flicker), and neighbours are prefetched.
 /// </summary>
-public sealed partial class PdfPreviewViewModel(PagePreviewService previews, CrashLog crashLog, AppLog log) : ObservableObject
+public sealed partial class PdfPreviewViewModel(PagePreviewService previews, CrashLog crashLog, AppLog log,
+    Action<IPreviewDocument, int>? openZoom = null) : ObservableObject
 {
+    /// <summary>Opens the current page in the zoom window.</summary>
+    [RelayCommand]
+    private void Zoom()
+    {
+        if (_document is not null)
+        {
+            openZoom?.Invoke(_document, PageIndex);
+        }
+    }
+
     private static readonly TimeSpan ResizeDebounce = TimeSpan.FromMilliseconds(150);
 
     private CancellationTokenSource? _renderCts;
