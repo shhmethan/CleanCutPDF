@@ -5,6 +5,8 @@ public enum AppPage
     Inbox,
     SplitRename,
     RenameOnly,
+    QuickSplit,
+    Workspaces,
     Settings
 }
 

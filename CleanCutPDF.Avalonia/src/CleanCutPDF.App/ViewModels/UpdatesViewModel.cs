@@ -1,4 +1,5 @@
 using CleanCutPDF.App.Services;
+using CleanCutPDF.Core.Diagnostics;
 using CleanCutPDF.Core.Infrastructure;
 using CleanCutPDF.Core.Services;
 using CleanCutPDF.Core.Updates;
@@ -20,11 +21,13 @@ public sealed partial class UpdatesViewModel : ObservableObject
     private readonly IDialogService _dialogs;
     private readonly ActivityService _activity;
     private readonly CrashLog _crashLog;
+    private readonly AppLog _log;
     private bool _syncing;
 
     public UpdatesViewModel(UpdateService updates, ISettingsService settings, IShellService shell,
-        IDialogService dialogs, ActivityService activity, CrashLog crashLog)
+        IDialogService dialogs, ActivityService activity, CrashLog crashLog, AppLog log)
     {
+        _log = log;
         _updates = updates;
         _settings = settings;
         _shell = shell;
@@ -127,6 +130,8 @@ public sealed partial class UpdatesViewModel : ObservableObject
         {
             using var _ = _activity.Begin("Checking for updates");
             var result = await _updates.CheckAsync();
+            _log.Info("Updates", $"{(userInitiated ? "Manual" : "Launch")} check: {result.Outcome}" +
+                                 (result.LatestVersion is null ? "" : $" (latest {result.LatestVersion})"));
             StatusText = result.Message;
             ReleaseNotes = _updates.AllReleaseNotes();
             OnPropertyChanged(nameof(LastCheckedText));

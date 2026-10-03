@@ -17,6 +17,9 @@ dotnet run --project src/CleanCutPDF.App
 
 PDF paths passed on the command line are imported into the Inbox at startup.
 
+Files the app keeps in its data folder: `settings.json`, `workspaces.json`, `sessions.json`,
+`export-history.log`, `license.json`, `update-cache.json`, `logs/`, and `crash.log`.
+
 Requires the .NET 10 SDK. User data lives in `~/.cleancutpdf-next/`
 (`settings.json`, `license.json`, `update-cache.json`, `crash.log`); set
 `CLEANCUTPDF_DATA_DIR` to use a different folder for testing. The 1.x folder
@@ -95,12 +98,19 @@ Avalonia 12 ships SkiaSharp 3.x.
    Also done: **licensing** (local at startup; online recheck weekly in the background;
    30-day offline grace; carries over the 1.x activation) and **update checks** (every
    launch, in the background).
-2. **Split & Rename core**: SPLIT HERE detection (text + visual fallback) in the
-   background, part cards, workspace fields, autofill, Today/date/currency rules,
-   filename builder, export with blank-page removal, export log, Inbox folders,
-   bulk workspace changes, session save/restore.
-3. **Rename Only, Quick Split, workspaces & custom fields editor**, read-only import
-   of 1.x settings/sessions, folder shortcuts, client suggestions index.
+2. **Split & Rename core** (done): diagnostic logging (daily log files, crash reports with
+   recent activity, UI binding problems recorded); SPLIT HERE detection (text + image-only
+   separator sheets) in the background with progress; Part cards with all seven field types,
+   autofill, Today/auto-today, currency formatting, conditional fields (Payment Method → Check
+   Number), notes, Aa title case; export with validation, blank-page removal, client folders,
+   non-overwriting names, and the 1.x export-history format; Inbox folders, bulk workspace
+   changes, batch workspace prompt; session save/restore with cached detection.
+3. **Rename Only, Quick Split, workspace editing** (done): Rename Only (copies or in place,
+   name shown before renaming); Quick Split (dated folder, 4 filename orders); Workspaces &
+   Fields editor (create/rename/delete workspaces, client label, summary, filename format with
+   token buttons and live preview, field assignment/order, per-workspace defaults, notes, custom
+   field library with every 1.x option); read-only import of 1.x data; folder shortcuts;
+   client-name suggestions from export folders and history.
 4. **Logs** (virtualized, filtered off-thread, CSV/TSV/TXT/PDF export), undo last
    export, zoom window, SPLIT HERE template.
 5. **Personalization**: color palettes, fonts, keybinds, settings reset.

@@ -1,4 +1,5 @@
 using CleanCutPDF.App.Services;
+using CleanCutPDF.Core.Diagnostics;
 using CleanCutPDF.Core.Infrastructure;
 using CleanCutPDF.Core.Licensing;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,7 +16,8 @@ public sealed partial class LicenseViewModel(
     IDialogService dialogs,
     ActivityService activity,
     AppLifetimeService lifetime,
-    CrashLog crashLog) : ObservableObject
+    CrashLog crashLog,
+    AppLog log) : ObservableObject
 {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLocked), nameof(Headline), nameof(Explanation), nameof(ShowKeyEntry),
@@ -88,6 +90,8 @@ public sealed partial class LicenseViewModel(
 
         IsLoaded = true;
         StateChanged?.Invoke(this, EventArgs.Empty);
+        log.Info("License", $"Loaded: {State.Status}, last verified {State.LastVerifiedUtc:yyyy-MM-dd}, " +
+                            $"online check due: {State.OnlineCheckDue}");
 
         if (State.Status == LicenseStatus.VerificationOverdue)
         {
@@ -108,6 +112,7 @@ public sealed partial class LicenseViewModel(
         {
             using var _ = activity.Begin("Activating license");
             var result = await licenses.ActivateAsync(KeyInput);
+            log.Info("License", $"Activation attempt: {result.Outcome}");
             Message = result.Message;
             if (result.Outcome == LicenseCheckOutcome.Verified)
             {
@@ -148,6 +153,7 @@ public sealed partial class LicenseViewModel(
         }
 
         await licenses.RemoveAsync();
+        log.Info("License", "License removed by user");
         Message = null;
         ApplyState(licenses.Current);
     }
@@ -167,6 +173,7 @@ public sealed partial class LicenseViewModel(
         {
             using var _ = activity.Begin("Checking license");
             var result = await licenses.VerifyOnlineAsync();
+            log.Info("License", $"Online check: {result.Outcome}; status now {result.State.Status}");
             ApplyState(result.State);
 
             if (result.Outcome == LicenseCheckOutcome.Verified)

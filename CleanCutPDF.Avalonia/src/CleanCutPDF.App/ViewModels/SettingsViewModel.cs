@@ -1,5 +1,6 @@
 using CleanCutPDF.App.Services;
 using CleanCutPDF.Core;
+using CleanCutPDF.Core.Diagnostics;
 using CleanCutPDF.Core.Infrastructure;
 using CleanCutPDF.Core.Models;
 using CleanCutPDF.Core.Services;
@@ -23,8 +24,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _syncing;
 
     public SettingsViewModel(ISettingsService settings, IDialogService dialogs, IShellService shell,
-        LegacyDataLocator legacy, AppPaths paths, LicenseViewModel license, UpdatesViewModel updates)
+        LegacyDataLocator legacy, AppPaths paths, LicenseViewModel license, UpdatesViewModel updates, AppLog log,
+        FolderShortcutsViewModel shortcuts, LegacyImportViewModel legacyImport)
     {
+        Shortcuts = shortcuts;
+        LegacyImport = legacyImport;
+        LogsFolder = log.Directory;
         License = license;
         Updates = updates;
         _settings = settings;
@@ -43,6 +48,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         new(AppThemeMode.System, "Match system")
     ];
 
+    public FolderShortcutsViewModel Shortcuts { get; }
+
+    public LegacyImportViewModel LegacyImport { get; }
+
     public LicenseViewModel License { get; }
 
     public UpdatesViewModel Updates { get; }
@@ -50,6 +59,85 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string VersionText => $"{AppInfo.ProductName} {AppInfo.Version} (preview, modeled on v{AppInfo.ReferenceLegacyVersion})";
 
     public string DataFolder { get; }
+
+    public string LogsFolder { get; }
+
+    [ObservableProperty]
+    public partial bool RemoveBlankPages { get; set; }
+
+    partial void OnRemoveBlankPagesChanged(bool value)
+    {
+        if (!_syncing)
+        {
+            _settings.Update(s => s.RemoveBlankPages = value);
+        }
+    }
+
+    [ObservableProperty]
+    public partial bool WarnOnFutureDates { get; set; }
+
+    partial void OnWarnOnFutureDatesChanged(bool value)
+    {
+        if (!_syncing)
+        {
+            _settings.Update(s => s.WarnOnFutureDates = value);
+        }
+    }
+
+    [ObservableProperty]
+    public partial bool WarnWhenNoSplitMarkers { get; set; }
+
+    partial void OnWarnWhenNoSplitMarkersChanged(bool value)
+    {
+        if (!_syncing)
+        {
+            _settings.Update(s => s.WarnWhenNoSplitMarkers = value);
+        }
+    }
+
+    [ObservableProperty]
+    public partial bool AutoRestoreSession { get; set; }
+
+    partial void OnAutoRestoreSessionChanged(bool value)
+    {
+        if (!_syncing)
+        {
+            _settings.Update(s => s.AutoRestoreSession = value);
+        }
+    }
+
+    [ObservableProperty]
+    public partial bool MakeClientFolder { get; set; }
+
+    partial void OnMakeClientFolderChanged(bool value)
+    {
+        if (!_syncing)
+        {
+            _settings.Update(s => s.MakeClientFolder = value);
+        }
+    }
+
+    [ObservableProperty]
+    public partial bool VerboseLogging { get; set; }
+
+    partial void OnVerboseLoggingChanged(bool value)
+    {
+        if (!_syncing)
+        {
+            _settings.Update(s => s.VerboseLogging = value);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenLogsFolderAsync()
+    {
+        Directory.CreateDirectory(LogsFolder);
+        var error = _shell.OpenFolder(LogsFolder, "Logs folder");
+        if (error is not null)
+        {
+            await _dialogs.ShowMessageAsync("Open Folder", error);
+        }
+    }
 
     [ObservableProperty]
     public partial ThemeOption? SelectedTheme { get; set; }
@@ -71,7 +159,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             ? $"Found CleanCutPDF 1.x data in {summary.Directory} " +
               $"(settings: {(summary.HasSettings ? "yes" : "no")}, sessions: {(summary.HasSessions ? "yes" : "no")}, " +
               $"export log: {(summary.HasExportLog ? $"{summary.ExportLogBytes / 1024:N0} KB" : "no")}). " +
-              "It is left untouched; a read-only import is planned for Phase 3."
+              "Importing only reads it; it is never changed."
             : "No CleanCutPDF 1.x data was found on this computer.";
     }
 
@@ -123,6 +211,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             SelectedTheme = ThemeOptions.FirstOrDefault(o => o.Mode == current.Theme) ?? ThemeOptions[0];
             ExportFolder = current.ExportFolder;
+            VerboseLogging = current.VerboseLogging;
+            RemoveBlankPages = current.RemoveBlankPages;
+            WarnOnFutureDates = current.WarnOnFutureDates;
+            WarnWhenNoSplitMarkers = current.WarnWhenNoSplitMarkers;
+            AutoRestoreSession = current.AutoRestoreSession;
+            MakeClientFolder = current.MakeClientFolder;
         }
         finally
         {

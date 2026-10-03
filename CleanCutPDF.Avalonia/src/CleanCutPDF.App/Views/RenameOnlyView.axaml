@@ -4,24 +4,100 @@
              x:Class="CleanCutPDF.App.Views.RenameOnlyView"
              x:DataType="vm:RenameOnlyViewModel">
 
-  <StackPanel Margin="24" Spacing="14" MaxWidth="900" HorizontalAlignment="Left">
-    <StackPanel Spacing="4">
+  <DockPanel Margin="24">
+    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
       <TextBlock Text="Rename Only" Classes="page-title" />
       <TextBlock Classes="muted" TextWrapping="Wrap"
-                 Text="Rename each PDF with the normal workspace fields. Each PDF is treated as one document; no SPLIT HERE markers are used." />
+                 Text="Rename each PDF with the normal workspace fields. Each PDF is treated as one document; no SPLIT HERE markers are used. Drop PDFs here while this page is open." />
     </StackPanel>
 
-    <Border Classes="card">
-      <StackPanel Spacing="8">
-        <TextBlock Text="Planned for Phase 3" FontWeight="SemiBold" />
-        <ItemsControl ItemsSource="{Binding PlannedFeatures}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="x:String">
-              <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" Margin="0,2" />
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </StackPanel>
-    </Border>
-  </StackPanel>
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+      <Button Content="➕ Add PDFs…" Classes="accent" Command="{Binding AddPdfsCommand}" />
+      <Button Grid.Column="1" Content="Clear" Command="{Binding ClearCommand}" IsEnabled="{Binding HasFiles}" />
+      <ComboBox Grid.Column="2" ItemsSource="{Binding Actions}" SelectedItem="{Binding SelectedAction}" MinWidth="220"
+                AutomationProperties.Name="Rename action" />
+      <TextBox Grid.Column="3" Text="{Binding OutputFolder}" PlaceholderText="Output folder for renamed copies"
+               IsEnabled="{Binding IsCopy}" AutomationProperties.Name="Output folder" />
+      <Button Grid.Column="4" Content="Browse…" Command="{Binding BrowseOutputCommand}" IsEnabled="{Binding IsCopy}" />
+    </Grid>
+
+    <Grid ColumnDefinitions="260,*,6,*" ColumnSpacing="10">
+      <!-- File list -->
+      <Border Classes="card" Padding="4">
+        <Grid>
+          <ListBox ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}" Background="Transparent"
+                   ScrollViewer.HorizontalScrollBarVisibility="Auto">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:RenameFileViewModel">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel>
+                    <TextBlock Text="{Binding FileName}" TextWrapping="NoWrap" />
+                    <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="12" TextWrapping="NoWrap" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="✕" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center"
+                          ToolTip.Tip="Remove from the list (the file is not changed)"
+                          AutomationProperties.Name="{Binding FileName, StringFormat='Remove {0}'}"
+                          Command="{Binding $parent[UserControl].((vm:RenameOnlyViewModel)DataContext).RemoveCommand}"
+                          CommandParameter="{Binding}" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <TextBlock Text="Add one or more PDFs to begin." Classes="muted" HorizontalAlignment="Center"
+                     VerticalAlignment="Center" IsVisible="{Binding !HasFiles}" IsHitTestVisible="False" />
+        </Grid>
+      </Border>
+
+      <!-- Fields -->
+      <Border Grid.Column="1" Classes="card" Padding="0">
+        <DockPanel>
+          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,1,0,0" Padding="14,10">
+            <StackPanel Spacing="6">
+              <TextBlock Text="{Binding ProposedName}" TextWrapping="Wrap" FontWeight="SemiBold" />
+              <Button Content="Rename PDF" Classes="accent" Command="{Binding RenameCommand}" />
+            </StackPanel>
+          </Border>
+          <ScrollViewer Padding="14,12">
+            <StackPanel Spacing="10" IsVisible="{Binding Form, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <TextBlock Text="Workspace:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding WorkspaceNames}" SelectedItem="{Binding SelectedWorkspace}"
+                          HorizontalAlignment="Stretch" AutomationProperties.Name="Workspace" />
+              </Grid>
+              <StackPanel Spacing="3">
+                <TextBlock Text="{Binding ClientLabel}" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                  <AutoCompleteBox Text="{Binding ClientName}" ItemsSource="{Binding ClientSuggestions}"
+                                   FilterMode="None" MinimumPrefixLength="1" MinimumPopulateDelay="0"
+                                   PlaceholderText="Client name (leave blank to omit)" AutomationProperties.Name="Client name" />
+                  <Button Grid.Column="1" Content="Aa" Command="{Binding TitleCaseClientCommand}"
+                          ToolTip.Tip="Convert the client name to title case" />
+                </Grid>
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding Parts}" />
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+
+      <GridSplitter Grid.Column="2" Background="Transparent" ResizeDirection="Columns" />
+
+      <!-- Preview -->
+      <Border Grid.Column="3" Classes="card" Padding="0">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6" Margin="12,10">
+            <Button Content="← Prev" Command="{Binding Preview.PreviousPageCommand}" />
+            <TextBlock Text="{Binding Preview.PageLabel}" VerticalAlignment="Center" />
+            <Button Content="Next →" Command="{Binding Preview.NextPageCommand}" />
+          </StackPanel>
+          <Grid Background="{DynamicResource PreviewBackground}">
+            <Border x:Name="PreviewViewport" Padding="12">
+              <Image Source="{Binding Preview.PageImage}" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="HighQuality" />
+            </Border>
+            <ProgressBar IsIndeterminate="True" VerticalAlignment="Top" Height="3" MinWidth="0" IsVisible="{Binding Preview.IsLoading}" />
+          </Grid>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </DockPanel>
 </UserControl>

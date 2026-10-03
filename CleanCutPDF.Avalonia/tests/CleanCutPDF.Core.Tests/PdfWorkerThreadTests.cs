@@ -44,8 +44,14 @@ public sealed class PdfWorkerThreadTests
     {
         var worker = new PdfWorkerThread();
         using var gate = new ManualResetEventSlim(false);
-        var blocker = worker.InvokeAsync(() => gate.Wait(TimeSpan.FromSeconds(2)));
+        using var running = new ManualResetEventSlim(false);
+        var blocker = worker.InvokeAsync(() =>
+        {
+            running.Set();
+            gate.Wait(TimeSpan.FromSeconds(2));
+        });
         var queued = worker.InvokeAsync(() => 42);
+        Assert.True(running.Wait(TimeSpan.FromSeconds(5)));
 
         var disposeTask = Task.Run(worker.Dispose);
         Assert.True(SpinWait.SpinUntil(() => worker.IsDisposed, TimeSpan.FromSeconds(5)));

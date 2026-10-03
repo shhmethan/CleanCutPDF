@@ -2,6 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:CleanCutPDF.App.ViewModels"
              xmlns:views="using:CleanCutPDF.App.Views"
+             xmlns:ed="using:CleanCutPDF.App.ViewModels.Editor"
+             xmlns:controls="using:CleanCutPDF.App.Controls"
              x:Class="CleanCutPDF.App.App"
              RequestedThemeVariant="Light">
 
@@ -16,10 +18,117 @@
     <DataTemplate DataType="vm:RenameOnlyViewModel">
       <views:RenameOnlyView />
     </DataTemplate>
+    <DataTemplate DataType="vm:QuickSplitViewModel">
+      <views:QuickSplitView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:WorkspacesViewModel">
+      <views:WorkspacesView />
+    </DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel">
       <views:SettingsView />
     </DataTemplate>
-  </Application.DataTemplates>
+
+    <!-- Workspace form (shared by Split & Rename and Rename Only) -->
+    <!-- Text, number, currency and date fields -->
+    <DataTemplate DataType="ed:TextFieldViewModel">
+      <StackPanel Spacing="3" Margin="0,4" IsVisible="{Binding IsVisible}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding !HasAccent}" />
+          <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding HasAccent}" Foreground="{Binding Accent}" />
+          <TextBlock Text="ⓘ" Classes="muted" IsVisible="{Binding HasTooltip}" ToolTip.Tip="{Binding Tooltip}" />
+        </StackPanel>
+        <ItemsControl ItemsSource="{Binding Notes}" IsVisible="{Binding HasNotes}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="note" Text="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Grid ColumnDefinitions="Auto,*">
+          <Button Content="Today" Command="{Binding TodayCommand}" IsVisible="{Binding IsDate}" Margin="0,0,8,0" />
+          <controls:FieldTextBox Grid.Column="1" Text="{Binding Text}" PlaceholderText="{Binding Placeholder}"
+                   AutomationProperties.Name="{Binding Definition.Label}" />
+        </Grid>
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- Dropdown with optional Other -->
+    <DataTemplate DataType="ed:ChoiceFieldViewModel">
+      <StackPanel Spacing="3" Margin="0,4" IsVisible="{Binding IsVisible}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding !HasAccent}" />
+          <TextBlock Text="{Binding DisplayLabel}" IsVisible="{Binding HasAccent}" Foreground="{Binding Accent}" />
+          <TextBlock Text="ⓘ" Classes="muted" IsVisible="{Binding HasTooltip}" ToolTip.Tip="{Binding Tooltip}" />
+        </StackPanel>
+        <ItemsControl ItemsSource="{Binding Notes}" IsVisible="{Binding HasNotes}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="note" Text="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+          <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}"
+                    HorizontalAlignment="Stretch" AutomationProperties.Name="{Binding Definition.Label}" />
+          <TextBox Grid.Column="1" Text="{Binding OtherText}" PlaceholderText="Other…"
+                   IsVisible="{Binding ShowOther}" AutomationProperties.Name="Other value" />
+        </Grid>
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- Checkbox / toggle -->
+    <DataTemplate DataType="ed:BooleanFieldViewModel">
+      <StackPanel Margin="0,4" IsVisible="{Binding IsVisible}">
+        <ToggleSwitch IsVisible="{Binding IsToggle}" IsChecked="{Binding IsChecked}"
+                      OnContent="{Binding Definition.Label}" OffContent="{Binding Definition.Label}" />
+        <CheckBox IsVisible="{Binding !IsToggle}" IsChecked="{Binding IsChecked}"
+                  Content="{Binding Definition.Label}" />
+        <ItemsControl ItemsSource="{Binding Notes}" IsVisible="{Binding HasNotes}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Classes="note" Text="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- One Part -->
+    <DataTemplate DataType="ed:PartViewModel">
+      <Border Classes="part">
+        <StackPanel Spacing="4">
+          <Grid ColumnDefinitions="*,Auto">
+            <Button Content="{Binding Title}" Command="{Binding ShowInPreviewCommand}"
+                    Background="Transparent" Padding="0" FontWeight="SemiBold" FontSize="15"
+                    Foreground="{DynamicResource AccentText}" Cursor="Hand"
+                    ToolTip.Tip="Show this Part's first page in the preview" />
+            <ItemsControl Grid.Column="1" ItemsSource="{Binding HeaderFields}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="12" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+            </ItemsControl>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding TopNotes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Classes="note" Text="{Binding}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ItemsControl ItemsSource="{Binding BodyFields}" />
+          <ItemsControl ItemsSource="{Binding EndNotes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Classes="note" Text="{Binding}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+    </Application.DataTemplates>
 
   <Application.Styles>
     <FluentTheme />

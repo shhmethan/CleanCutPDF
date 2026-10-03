@@ -15,6 +15,27 @@ Legend for the "Plan" column:
 
 ---
 
+## Status (2.0.0-alpha.1)
+
+Done and tested: **Phase 1** (shell, background PDF engine, preview, settings, themes,
+licensing, updates), **diagnostic logging**, **Phase 2** (Split & Rename core: detection,
+fields, autofill, export, Inbox folders, sessions) and **Phase 3** (Rename Only, Quick
+Split, workspace and field editors, 1.x import, folder shortcuts, client suggestions).
+
+Rows below still say which phase each feature was planned for; everything listed for
+Phases 1–3 is implemented. Remaining: Phase 4 (Logs page, undo last export, zoom window,
+SPLIT HERE template), Phase 5 (color palettes, fonts, keybinds, settings reset),
+Phase 6 (Workspace Layout Designer), Phase 7 (tutorial, help, packaging, in-app updates).
+
+Deliberate differences from 1.x:
+- Title case no longer turns "Machado" into "MacHado" (the automatic "Mac" rule was dropped).
+- Warnings (no SPLIT HERE pages, future dates) appear in the window, with "Don't show again".
+- If every page of a Part looks blank, all pages are kept instead of writing an empty PDF.
+- Exports are all-or-nothing: a failed or cancelled export leaves no partial files.
+- Quick Split asks for a folder when no export folder is set (1.x wrote next to the program).
+- Rename Only records renamed files in the export history (so they appear in client suggestions).
+- The visual drag-and-drop filename editor is a text box with field buttons and a live preview.
+
 ## 1. Project layout of the current application
 
 | Item | Location | Notes |

@@ -20,6 +20,17 @@ public interface IPdfEngine : IDisposable
     /// <summary>Extracts the text layer of one page (empty for image-only scans).</summary>
     Task<string> ExtractPageTextAsync(string path, int pageIndex, CancellationToken cancellationToken = default);
 
+    /// <summary>Text, annotation count, and size of a page, in one call.</summary>
+    Task<PageAnalysis> AnalyzePageAsync(string path, int pageIndex, PdfWorkPriority priority,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Renders a page into exactly width × height pixels (used by the visual checks).</summary>
+    Task<RenderedPage> RenderPageSizedAsync(string path, int pageIndex, int width, int height, bool grayscale,
+        PdfWorkPriority priority, CancellationToken cancellationToken = default);
+
+    /// <summary>Copies the given pages (0-based, in order) into a new PDF and returns its bytes.</summary>
+    Task<byte[]> ExtractPagesAsync(string path, IReadOnlyList<int> pageIndices, CancellationToken cancellationToken = default);
+
     /// <summary>Releases the native handle and file buffer for a document.</summary>
     Task CloseAsync(string path);
 }
@@ -72,35 +83,60 @@ public sealed class PdfiumEngine : IPdfEngine
             () => LoadOnWorker(fullPath, signature, bytes), PdfWorkPriority.High, cancellationToken);
     }
 
-    public async Task<RenderedPage> RenderPageAsync(string path, int pageIndex, int targetWidth,
-        PdfWorkPriority priority = PdfWorkPriority.High, CancellationToken cancellationToken = default)
-    {
-        // A document can be evicted from the LRU between Open and Render when
-        // many files are busy at once; reopen it once in that case.
-        for (var attempt = 0; ; attempt++)
+    public Task<RenderedPage> RenderPageAsync(string path, int pageIndex, int targetWidth,
+        PdfWorkPriority priority = PdfWorkPriority.High, CancellationToken cancellationToken = default) =>
+        WithDocumentAsync(path, document =>
         {
-            var info = await OpenAsync(path, cancellationToken);
-            try
+            cancellationToken.ThrowIfCancellationRequested();
+            return RenderOnWorker(document, pageIndex, (pageWidth, pageHeight) =>
             {
-                return await _worker.InvokeAsync(
-                    () => RenderOnWorker(info.Path, pageIndex, targetWidth, cancellationToken),
-                    priority, cancellationToken);
-            }
-            catch (DocumentNotOpenException) when (attempt == 0)
-            {
-            }
-        }
-    }
+                var width = Math.Clamp(targetWidth, 16, MaxRenderDimension);
+                var height = Math.Clamp((int)Math.Round(width * pageHeight / pageWidth), 16, MaxRenderDimension);
+                return (width, height);
+            }, PdfiumNative.FPDF_ANNOT);
+        }, priority, cancellationToken);
 
-    public async Task<string> ExtractPageTextAsync(string path, int pageIndex, CancellationToken cancellationToken = default)
+    public Task<RenderedPage> RenderPageSizedAsync(string path, int pageIndex, int width, int height, bool grayscale,
+        PdfWorkPriority priority, CancellationToken cancellationToken = default) =>
+        WithDocumentAsync(path, document =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return RenderOnWorker(document, pageIndex,
+                (_, _) => (Math.Clamp(width, 1, MaxRenderDimension), Math.Clamp(height, 1, MaxRenderDimension)),
+                PdfiumNative.FPDF_ANNOT | (grayscale ? PdfiumNative.FPDF_GRAYSCALE : 0));
+        }, priority, cancellationToken);
+
+    public Task<string> ExtractPageTextAsync(string path, int pageIndex, CancellationToken cancellationToken = default) =>
+        WithDocumentAsync(path, document => WithPage(document, pageIndex, ReadText), PdfWorkPriority.High, cancellationToken);
+
+    public Task<PageAnalysis> AnalyzePageAsync(string path, int pageIndex, PdfWorkPriority priority,
+        CancellationToken cancellationToken = default) =>
+        WithDocumentAsync(path, document => WithPage(document, pageIndex, page => new PageAnalysis(
+            pageIndex,
+            ReadText(page),
+            PdfiumNative.FPDFPage_GetAnnotCount(page),
+            PdfiumNative.FPDF_GetPageWidthF(page),
+            PdfiumNative.FPDF_GetPageHeightF(page))), priority, cancellationToken);
+
+    public Task<byte[]> ExtractPagesAsync(string path, IReadOnlyList<int> pageIndices,
+        CancellationToken cancellationToken = default) =>
+        WithDocumentAsync(path, document => CopyPagesOnWorker(document, pageIndices), PdfWorkPriority.High,
+            cancellationToken);
+
+    /// <summary>
+    /// Runs work against an open document on the PDF thread. A document can be
+    /// evicted from the LRU between Open and the work when many files are busy;
+    /// it is reopened once in that case.
+    /// </summary>
+    private async Task<T> WithDocumentAsync<T>(string path, Func<OpenDocument, T> work, PdfWorkPriority priority,
+        CancellationToken cancellationToken)
     {
         for (var attempt = 0; ; attempt++)
         {
             var info = await OpenAsync(path, cancellationToken);
             try
             {
-                return await _worker.InvokeAsync(
-                    () => ExtractTextOnWorker(info.Path, pageIndex), PdfWorkPriority.High, cancellationToken);
+                return await _worker.InvokeAsync(() => work(Get(info.Path)), priority, cancellationToken);
             }
             catch (DocumentNotOpenException) when (attempt == 0)
             {
@@ -184,16 +220,12 @@ public sealed class PdfiumEngine : IPdfEngine
         return info;
     }
 
-    private RenderedPage RenderOnWorker(string fullPath, int pageIndex, int targetWidth, CancellationToken cancellationToken)
+    private static T WithPage<T>(OpenDocument document, int pageIndex, Func<IntPtr, T> work)
     {
-        var document = Get(fullPath);
-        var pageCount = document.Info.PageCount;
-        if (pageIndex < 0 || pageIndex >= pageCount)
+        if (pageIndex < 0 || pageIndex >= document.Info.PageCount)
         {
             throw new ArgumentOutOfRangeException(nameof(pageIndex), $"Page {pageIndex + 1} does not exist.");
         }
-
-        cancellationToken.ThrowIfCancellationRequested();
 
         var page = PdfiumNative.FPDF_LoadPage(document.Handle, pageIndex);
         if (page == IntPtr.Zero)
@@ -203,10 +235,21 @@ public sealed class PdfiumEngine : IPdfEngine
 
         try
         {
+            return work(page);
+        }
+        finally
+        {
+            PdfiumNative.FPDF_ClosePage(page);
+        }
+    }
+
+    private static RenderedPage RenderOnWorker(OpenDocument document, int pageIndex,
+        Func<float, float, (int Width, int Height)> size, int flags) =>
+        WithPage(document, pageIndex, page =>
+        {
             var pageWidth = Math.Max(1f, PdfiumNative.FPDF_GetPageWidthF(page));
             var pageHeight = Math.Max(1f, PdfiumNative.FPDF_GetPageHeightF(page));
-            var width = Math.Clamp(targetWidth, 16, MaxRenderDimension);
-            var height = Math.Clamp((int)Math.Round(width * pageHeight / pageWidth), 16, MaxRenderDimension);
+            var (width, height) = size(pageWidth, pageHeight);
 
             var bitmap = PdfiumNative.FPDFBitmap_Create(width, height, 1);
             if (bitmap == IntPtr.Zero)
@@ -217,65 +260,113 @@ public sealed class PdfiumEngine : IPdfEngine
             try
             {
                 PdfiumNative.FPDFBitmap_FillRect(bitmap, 0, 0, width, height, new CULong(0xFFFFFFFF));
-                PdfiumNative.FPDF_RenderPageBitmap(bitmap, page, 0, 0, width, height, 0, PdfiumNative.FPDF_ANNOT);
+                PdfiumNative.FPDF_RenderPageBitmap(bitmap, page, 0, 0, width, height, 0, flags);
 
                 var stride = PdfiumNative.FPDFBitmap_GetStride(bitmap);
                 var pixels = new byte[stride * height];
                 Marshal.Copy(PdfiumNative.FPDFBitmap_GetBuffer(bitmap), pixels, 0, pixels.Length);
-                return new RenderedPage(pageIndex, pageCount, width, height, stride, pixels);
+                return new RenderedPage(pageIndex, document.Info.PageCount, width, height, stride, pixels);
             }
             finally
             {
                 PdfiumNative.FPDFBitmap_Destroy(bitmap);
             }
-        }
-        finally
-        {
-            PdfiumNative.FPDF_ClosePage(page);
-        }
-    }
+        });
 
-    private unsafe string ExtractTextOnWorker(string fullPath, int pageIndex)
+    private static unsafe string ReadText(IntPtr page)
     {
-        var document = Get(fullPath);
-        var page = PdfiumNative.FPDF_LoadPage(document.Handle, pageIndex);
-        if (page == IntPtr.Zero)
+        var textPage = PdfiumNative.FPDFText_LoadPage(page);
+        if (textPage == IntPtr.Zero)
         {
             return string.Empty;
         }
 
         try
         {
-            var textPage = PdfiumNative.FPDFText_LoadPage(page);
-            if (textPage == IntPtr.Zero)
+            var count = PdfiumNative.FPDFText_CountChars(textPage);
+            if (count <= 0)
             {
                 return string.Empty;
             }
 
-            try
+            var buffer = new ushort[count + 1];
+            fixed (ushort* pointer = buffer)
             {
-                var count = PdfiumNative.FPDFText_CountChars(textPage);
-                if (count <= 0)
-                {
-                    return string.Empty;
-                }
-
-                var buffer = new ushort[count + 1];
-                fixed (ushort* pointer = buffer)
-                {
-                    var written = PdfiumNative.FPDFText_GetText(textPage, 0, count, pointer);
-                    var length = Math.Max(0, written - 1); // written includes the terminator
-                    return new string((char*)pointer, 0, length);
-                }
-            }
-            finally
-            {
-                PdfiumNative.FPDFText_ClosePage(textPage);
+                var written = PdfiumNative.FPDFText_GetText(textPage, 0, count, pointer);
+                var length = Math.Max(0, written - 1); // written includes the terminator
+                return new string((char*)pointer, 0, length);
             }
         }
         finally
         {
-            PdfiumNative.FPDF_ClosePage(page);
+            PdfiumNative.FPDFText_ClosePage(textPage);
+        }
+    }
+
+    private static unsafe byte[] CopyPagesOnWorker(OpenDocument source, IReadOnlyList<int> pageIndices)
+    {
+        if (pageIndices.Count == 0)
+        {
+            throw new ArgumentException("At least one page is required.", nameof(pageIndices));
+        }
+
+        if (pageIndices.Any(i => i < 0 || i >= source.Info.PageCount))
+        {
+            throw new ArgumentOutOfRangeException(nameof(pageIndices), "A page number is outside the document.");
+        }
+
+        var destination = PdfiumNative.FPDF_CreateNewDocument();
+        if (destination == IntPtr.Zero)
+        {
+            throw new PdfOpenException("A new PDF could not be created.");
+        }
+
+        var output = new MemoryStream();
+        var handle = GCHandle.Alloc(output);
+        try
+        {
+            var indices = pageIndices.ToArray();
+            fixed (int* pointer = indices)
+            {
+                if (PdfiumNative.FPDF_ImportPagesByIndex(destination, source.Handle, pointer,
+                        new CULong((uint)indices.Length), 0) == 0)
+                {
+                    throw new PdfOpenException($"Pages could not be copied from {Path.GetFileName(source.Info.Path)}.");
+                }
+            }
+
+            var writer = new PdfiumNative.FileWrite
+            {
+                Version = 1,
+                WriteBlock = &WriteBlock,
+                StreamHandle = GCHandle.ToIntPtr(handle)
+            };
+            if (PdfiumNative.FPDF_SaveAsCopy(destination, &writer, new CULong(0)) == 0)
+            {
+                throw new PdfOpenException("The new PDF could not be saved.");
+            }
+
+            return output.ToArray();
+        }
+        finally
+        {
+            handle.Free();
+            PdfiumNative.FPDF_CloseDocument(destination);
+        }
+    }
+
+    [System.Runtime.InteropServices.UnmanagedCallersOnly(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    private static unsafe int WriteBlock(PdfiumNative.FileWrite* self, void* data, CULong size)
+    {
+        try
+        {
+            var stream = (MemoryStream)GCHandle.FromIntPtr(self->StreamHandle).Target!;
+            stream.Write(new ReadOnlySpan<byte>(data, checked((int)size.Value)));
+            return 1;
+        }
+        catch
+        {
+            return 0;
         }
     }
 

@@ -20,6 +20,10 @@ public sealed class AppPaths
 
     public string SettingsFile => Path.Combine(DataDirectory, "settings.json");
     public string CrashLogFile => Path.Combine(DataDirectory, "crash.log");
+    public string LogsDirectory => Path.Combine(DataDirectory, "logs");
+    public string WorkspacesFile => Path.Combine(DataDirectory, "workspaces.json");
+    public string SessionsFile => Path.Combine(DataDirectory, "sessions.json");
+    public string ExportHistoryFile => Path.Combine(DataDirectory, "export-history.log");
     public string LicenseFile => Path.Combine(DataDirectory, "license.json");
     public string UpdateCacheFile => Path.Combine(DataDirectory, "update-cache.json");
 

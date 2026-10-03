@@ -1,17 +1,29 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 
 namespace CleanCutPDF.App.Services;
 
-/// <summary>File pickers and message boxes, abstracted so view-models stay testable.</summary>
+/// <summary>File pickers and small dialogs, abstracted so view-models stay testable.</summary>
 public interface IDialogService
 {
     Task<IReadOnlyList<string>> PickPdfFilesAsync(string title);
     Task<string?> PickFolderAsync(string title);
     Task ShowMessageAsync(string title, string message);
-    Task<bool> ConfirmAsync(string title, string message, string confirmText = "OK");
+    Task<bool> ConfirmAsync(string title, string message, string confirmText = "OK", string cancelText = "Cancel");
+
+    /// <summary>Confirm with a "Don't show this again" checkbox.</summary>
+    Task<(bool Confirmed, bool DontAskAgain)> ConfirmWithOptOutAsync(string title, string message, string confirmText,
+        string optOutText = "Don't show this again");
+
+    /// <summary>Pick one option from a list. Returns null when cancelled.</summary>
+    Task<string?> ChooseAsync(string title, string message, IReadOnlyList<string> options, string? initial,
+        string confirmText = "OK");
+
+    /// <summary>Ask for a line of text. Returns null when cancelled.</summary>
+    Task<string?> PromptAsync(string title, string message, string initial = "", string confirmText = "OK");
 }
 
 public sealed class WindowDialogService : IDialogService
@@ -29,8 +41,7 @@ public sealed class WindowDialogService : IDialogService
 
     public async Task<IReadOnlyList<string>> PickPdfFilesAsync(string title)
     {
-        var owner = RequireOwner();
-        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        var files = await RequireOwner().StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = title,
             AllowMultiple = true,
@@ -41,8 +52,7 @@ public sealed class WindowDialogService : IDialogService
 
     public async Task<string?> PickFolderAsync(string title)
     {
-        var owner = RequireOwner();
-        var folders = await owner.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        var folders = await RequireOwner().StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
             Title = title,
             AllowMultiple = false
@@ -50,23 +60,57 @@ public sealed class WindowDialogService : IDialogService
         return folders.Select(f => f.TryGetLocalPath()).OfType<string>().FirstOrDefault();
     }
 
-    public Task ShowMessageAsync(string title, string message) =>
-        ShowDialogAsync(title, message, "OK", cancelText: null);
+    public async Task ShowMessageAsync(string title, string message) =>
+        await ShowAsync(title, message, "OK", cancelText: null);
 
-    public Task<bool> ConfirmAsync(string title, string message, string confirmText = "OK") =>
-        ShowDialogAsync(title, message, confirmText, cancelText: "Cancel");
+    public async Task<bool> ConfirmAsync(string title, string message, string confirmText = "OK",
+        string cancelText = "Cancel") =>
+        await ShowAsync(title, message, confirmText, cancelText);
 
-    private async Task<bool> ShowDialogAsync(string title, string message, string confirmText, string? cancelText)
+    public async Task<(bool Confirmed, bool DontAskAgain)> ConfirmWithOptOutAsync(string title, string message,
+        string confirmText, string optOutText = "Don't show this again")
+    {
+        var optOut = new CheckBox { Content = optOutText };
+        var confirmed = await ShowAsync(title, message, confirmText, "Cancel", optOut);
+        return (confirmed, confirmed && optOut.IsChecked == true);
+    }
+
+    public async Task<string?> ChooseAsync(string title, string message, IReadOnlyList<string> options, string? initial,
+        string confirmText = "OK")
+    {
+        var combo = new ComboBox
+        {
+            ItemsSource = options,
+            SelectedItem = initial is not null && options.Contains(initial) ? initial : options.FirstOrDefault(),
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        return await ShowAsync(title, message, confirmText, "Cancel", combo) ? combo.SelectedItem as string : null;
+    }
+
+    public async Task<string?> PromptAsync(string title, string message, string initial = "", string confirmText = "OK")
+    {
+        var box = new TextBox { Text = initial };
+        box.AttachedToVisualTree += (_, _) =>
+        {
+            box.Focus();
+            box.SelectAll();
+        };
+        return await ShowAsync(title, message, confirmText, "Cancel", box) ? box.Text?.Trim() : null;
+    }
+
+    private async Task<bool> ShowAsync(string title, string message, string confirmText, string? cancelText,
+        Control? extra = null)
     {
         var owner = RequireOwner();
         var result = false;
-
         var dialog = new Window
         {
             Title = title,
             Width = 460,
             SizeToContent = SizeToContent.Height,
             CanResize = false,
+            CanMinimize = false,
+            CanMaximize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ShowInTaskbar = false
         };
@@ -85,7 +129,6 @@ public sealed class WindowDialogService : IDialogService
             Spacing = 8,
             Children = { confirm }
         };
-
         if (cancelText is not null)
         {
             var cancel = new Button { Content = cancelText, IsCancel = true, MinWidth = 90 };
@@ -93,14 +136,20 @@ public sealed class WindowDialogService : IDialogService
             buttons.Children.Add(cancel);
         }
 
-        dialog.Content = new StackPanel
+        var body = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 14 };
+        body.Children.Add(new SelectableTextBlock { Text = message, TextWrapping = TextWrapping.Wrap });
+        if (extra is not null)
         {
-            Margin = new Avalonia.Thickness(20),
-            Spacing = 18,
-            Children =
+            body.Children.Add(extra);
+        }
+
+        body.Children.Add(buttons);
+        dialog.Content = body;
+        dialog.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape)
             {
-                new SelectableTextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
-                buttons
+                dialog.Close();
             }
         };
 

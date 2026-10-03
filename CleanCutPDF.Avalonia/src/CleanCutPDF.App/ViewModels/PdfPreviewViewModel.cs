@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using CleanCutPDF.Core.Diagnostics;
 using CleanCutPDF.Core.Infrastructure;
 using CleanCutPDF.Core.Models;
 using CleanCutPDF.Core.Pdf;
@@ -15,13 +16,13 @@ namespace CleanCutPDF.App.ViewModels;
 /// a new render cancels the previous one, the previous page stays visible
 /// until the new one is ready (no flicker), and neighbours are prefetched.
 /// </summary>
-public sealed partial class PdfPreviewViewModel(PagePreviewService previews, CrashLog crashLog) : ObservableObject
+public sealed partial class PdfPreviewViewModel(PagePreviewService previews, CrashLog crashLog, AppLog log) : ObservableObject
 {
     private static readonly TimeSpan ResizeDebounce = TimeSpan.FromMilliseconds(150);
 
     private CancellationTokenSource? _renderCts;
     private CancellationTokenSource? _resizeCts;
-    private DocumentItemViewModel? _document;
+    private IPreviewDocument? _document;
     private int _renderWidth = PagePreviewService.BucketWidth(800);
 
     [ObservableProperty]
@@ -51,7 +52,7 @@ public sealed partial class PdfPreviewViewModel(PagePreviewService previews, Cra
 
     public string PageLabel => PageCount > 0 ? $"Page {PageIndex + 1} of {PageCount}" : string.Empty;
 
-    public void ShowDocument(DocumentItemViewModel? document)
+    public void ShowDocument(IPreviewDocument? document)
     {
         if (ReferenceEquals(_document, document))
         {
@@ -161,7 +162,10 @@ public sealed partial class PdfPreviewViewModel(PagePreviewService previews, Cra
         ErrorMessage = null;
         try
         {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var page = await previews.GetPageAsync(document.FilePath, pageIndex, width, token);
+            log.Debug("Preview", $"{document.FileName} page {pageIndex + 1} at {width}px ready in " +
+                                 $"{System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds:N0} ms");
             var bitmap = await Task.Run(() => ToBitmap(page), token);
             if (token.IsCancellationRequested || !ReferenceEquals(document, _document))
             {
@@ -179,6 +183,7 @@ public sealed partial class PdfPreviewViewModel(PagePreviewService previews, Cra
         }
         catch (PdfOpenException error)
         {
+            log.Warning("Preview", $"{document.FileName} page {pageIndex + 1}: {error.Message}");
             ErrorMessage = error.Message;
         }
         catch (Exception error)
@@ -221,4 +226,12 @@ public sealed partial class PdfPreviewViewModel(PagePreviewService previews, Cra
             pin.Free();
         }
     }
+}
+
+/// <summary>Anything the preview can show: an Inbox document or a Rename Only file.</summary>
+public interface IPreviewDocument
+{
+    string FilePath { get; }
+    string FileName { get; }
+    int PageCount { get; }
 }

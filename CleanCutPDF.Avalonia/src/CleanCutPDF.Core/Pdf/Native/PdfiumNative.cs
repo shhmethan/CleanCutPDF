@@ -78,6 +78,28 @@ internal static unsafe class PdfiumNative
         IntPtr bitmap, IntPtr page, int startX, int startY, int sizeX, int sizeY, int rotate, int flags);
 
     [DllImport(Library)]
+    public static extern int FPDFPage_GetAnnotCount(IntPtr page);
+
+    [DllImport(Library)]
+    public static extern IntPtr FPDF_CreateNewDocument();
+
+    [DllImport(Library)]
+    public static extern int FPDF_ImportPagesByIndex(IntPtr destDocument, IntPtr sourceDocument, int* pageIndices,
+        CULong length, int insertIndex);
+
+    [DllImport(Library)]
+    public static extern int FPDF_SaveAsCopy(IntPtr document, FileWrite* fileWrite, CULong flags);
+
+    /// <summary>FPDF_FILEWRITE plus a trailing GCHandle so the callback can find its stream.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FileWrite
+    {
+        public int Version;
+        public delegate* unmanaged[Cdecl]<FileWrite*, void*, CULong, int> WriteBlock;
+        public IntPtr StreamHandle;
+    }
+
+    [DllImport(Library)]
     public static extern IntPtr FPDFText_LoadPage(IntPtr page);
 
     [DllImport(Library)]

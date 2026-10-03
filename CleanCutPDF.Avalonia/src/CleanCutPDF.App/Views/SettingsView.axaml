@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:CleanCutPDF.App.ViewModels"
+             xmlns:models="using:CleanCutPDF.Core.Models"
              xmlns:updates="using:CleanCutPDF.Core.Updates"
              x:Class="CleanCutPDF.App.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
@@ -35,6 +36,19 @@
 
       <Border Classes="card">
         <StackPanel Spacing="8">
+          <TextBlock Text="Behavior" FontWeight="SemiBold" FontSize="16" />
+          <CheckBox Content="Remove blank pages automatically when exporting" IsChecked="{Binding RemoveBlankPages}" />
+          <TextBlock Classes="muted" FontSize="12" Margin="28,-4,0,4" TextWrapping="Wrap"
+                     Text="Checks every exported page, including blank pages between non-blank pages. Pages with text or annotations are always kept." />
+          <CheckBox Content="Make a client folder inside the export folder" IsChecked="{Binding MakeClientFolder}" />
+          <CheckBox Content="Warn me when I enter a future date" IsChecked="{Binding WarnOnFutureDates}" />
+          <CheckBox Content="Warn me when no SPLIT HERE pages are detected" IsChecked="{Binding WarnWhenNoSplitMarkers}" />
+          <CheckBox Content="Restore open PDFs and entered values when CleanCutPDF starts" IsChecked="{Binding AutoRestoreSession}" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
           <TextBlock Text="About" FontWeight="SemiBold" FontSize="16" />
           <TextBlock Text="{Binding VersionText}" />
           <Grid ColumnDefinitions="120,*,Auto" ColumnSpacing="8">
@@ -43,7 +57,67 @@
                                  TextWrapping="Wrap" />
             <Button Grid.Column="2" Content="Open" Command="{Binding OpenDataFolderCommand}" />
           </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Folder shortcuts" FontWeight="SemiBold" FontSize="16" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Folders you open often (for example Files to be Processed). They appear as buttons at the top of Split &amp; Rename." />
+          <ItemsControl ItemsSource="{Binding Shortcuts.Shortcuts}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:FolderShortcut">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6" Margin="0,2">
+                  <StackPanel>
+                    <TextBlock>
+                      <Run Text="{Binding Icon}" />
+                      <Run Text=" " />
+                      <Run Text="{Binding Label}" FontWeight="SemiBold" />
+                    </TextBlock>
+                    <TextBlock Text="{Binding Path}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="Open" VerticalAlignment="Center"
+                          Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).Shortcuts.OpenCommand}" CommandParameter="{Binding}" />
+                  <Button Grid.Column="2" Content="Edit…" VerticalAlignment="Center"
+                          Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).Shortcuts.EditShortcutCommand}" CommandParameter="{Binding}" />
+                  <Button Grid.Column="3" Content="Remove" VerticalAlignment="Center"
+                          Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).Shortcuts.RemoveCommand}" CommandParameter="{Binding}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="No shortcuts yet." Classes="muted" IsVisible="{Binding Shortcuts.IsEmpty}" />
+          <Button Content="+ Add Folder…" Command="{Binding Shortcuts.AddCommand}" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Import from CleanCutPDF 1.x" FontWeight="SemiBold" FontSize="16" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="Brings over your workspaces, custom fields, filename formats, notes, settings, folder shortcuts, open PDFs with their typed values, Inbox folders, and export history. CleanCutPDF 1.x data is only read, never changed." />
           <TextBlock Text="{Binding LegacyStatus}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Import…" Command="{Binding LegacyImport.ImportCommand}" />
+            <TextBlock Text="{Binding LegacyImport.LastImportText}" Classes="muted" VerticalAlignment="Center" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Diagnostics" FontWeight="SemiBold" FontSize="16" />
+          <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Text="CleanCutPDF keeps a daily log of what it did and any problems (file names and actions only; no client names or field values). Logs older than 14 days are deleted automatically. If something goes wrong, send the newest log file." />
+          <Grid ColumnDefinitions="120,*,Auto" ColumnSpacing="8">
+            <TextBlock Text="Logs folder" VerticalAlignment="Center" />
+            <SelectableTextBlock Grid.Column="1" Text="{Binding LogsFolder}" VerticalAlignment="Center"
+                                 TextWrapping="Wrap" />
+            <Button Grid.Column="2" Content="Open" Command="{Binding OpenLogsFolderCommand}" />
+          </Grid>
+          <CheckBox Content="Detailed logging (for troubleshooting; larger log files)"
+                    IsChecked="{Binding VerboseLogging}" />
         </StackPanel>
       </Border>
 

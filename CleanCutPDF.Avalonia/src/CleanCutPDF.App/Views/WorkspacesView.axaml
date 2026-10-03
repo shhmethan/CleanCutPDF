@@ -1,0 +1,221 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CleanCutPDF.App.ViewModels"
+             x:Class="CleanCutPDF.App.Views.WorkspacesView"
+             x:DataType="vm:WorkspacesViewModel">
+
+  <DockPanel Margin="24">
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+      <StackPanel Spacing="4">
+        <TextBlock Text="Workspaces &amp; Fields" Classes="page-title" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Accounting is permanent. Other workspaces can be created, renamed, or deleted. Changes save automatically and apply to open PDFs right away (values already typed are kept)." />
+      </StackPanel>
+      <TextBlock Grid.Column="1" Text="{Binding SaveStatus}" Classes="muted" VerticalAlignment="Bottom" />
+    </Grid>
+
+    <TabControl>
+      <!-- ───── Workspaces ───── -->
+      <TabItem Header="Workspaces">
+        <ScrollViewer>
+          <StackPanel Spacing="14" Margin="0,10,0,0" MaxWidth="1000" HorizontalAlignment="Left">
+            <Border Classes="card">
+              <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                <TextBlock Text="Workspace" VerticalAlignment="Center" FontWeight="SemiBold" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding WorkspaceNames}" SelectedItem="{Binding SelectedWorkspaceName}"
+                          HorizontalAlignment="Stretch" AutomationProperties.Name="Workspace to edit" />
+                <Button Grid.Column="2" Content="+ New…" Command="{Binding NewWorkspaceCommand}" />
+                <Button Grid.Column="3" Content="Rename…" Command="{Binding RenameWorkspaceCommand}" />
+                <Button Grid.Column="4" Content="Delete…" Command="{Binding DeleteWorkspaceCommand}" />
+              </Grid>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Details" FontWeight="SemiBold" FontSize="16" />
+                <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto" RowSpacing="8">
+                  <TextBlock Text="Client field label" VerticalAlignment="Center" />
+                  <TextBox Grid.Column="1" Text="{Binding ClientLabel}" AutomationProperties.Name="Client field label" />
+                  <TextBlock Grid.Row="1" Text="Summary" VerticalAlignment="Center" />
+                  <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Summary}" AutomationProperties.Name="Summary" />
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Filename format" FontWeight="SemiBold" FontSize="16" />
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                           Text="Type text and add fields as {tokens}. Blank fields disappear cleanly (extra underscores and spaces are removed)." />
+                <TextBox Text="{Binding FilenameTemplate}" FontFamily="Consolas,Menlo,monospace"
+                         AutomationProperties.Name="Filename format" />
+                <ItemsControl ItemsSource="{Binding Tokens}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel ItemSpacing="6" LineSpacing="6" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TokenButton">
+                      <Button Content="{Binding Label, StringFormat='+ {0}'}" FontSize="12"
+                              ToolTip.Tip="{Binding Token, StringFormat='Adds {{{0}}}'}"
+                              Command="{Binding $parent[UserControl].((vm:WorkspacesViewModel)DataContext).InsertTokenCommand}"
+                              CommandParameter="{Binding}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding FilenamePreview}" FontWeight="SemiBold" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Fields in this workspace" FontWeight="SemiBold" FontSize="16" />
+                <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="10">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="Assigned (in form order)" Classes="muted" />
+                    <ListBox ItemsSource="{Binding AssignedFields}" SelectedItem="{Binding SelectedAssigned}" Height="220">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:FieldRow">
+                          <TextBlock Text="{Binding Display}" />
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Button Content="↑ Up" Command="{Binding MoveFieldUpCommand}" IsEnabled="{Binding HasAssignedSelection}" />
+                      <Button Content="↓ Down" Command="{Binding MoveFieldDownCommand}" IsEnabled="{Binding HasAssignedSelection}" />
+                      <Button Content="Remove →" Command="{Binding UnassignFieldCommand}" IsEnabled="{Binding HasAssignedSelection}" />
+                    </StackPanel>
+                    <StackPanel Spacing="3" IsVisible="{Binding HasAssignedSelection}" Margin="0,6,0,0">
+                      <TextBlock Text="Default value in this workspace" Classes="muted" FontSize="12" />
+                      <TextBox Text="{Binding WorkspaceDefault}" AutomationProperties.Name="Default value in this workspace" />
+                    </StackPanel>
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="← Add" VerticalAlignment="Center" Command="{Binding AssignFieldCommand}" />
+                  <StackPanel Grid.Column="2" Spacing="4">
+                    <TextBlock Text="Available fields" Classes="muted" />
+                    <ListBox ItemsSource="{Binding AvailableFields}" SelectedItem="{Binding SelectedAvailable}" Height="220">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:FieldRow">
+                          <TextBlock Text="{Binding Display}" />
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="Create or edit fields on the Field Library tab." />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Notes and reminders" FontWeight="SemiBold" FontSize="16" />
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                           Text="Reminders appear in every Part: at the top, under a specific field, or at the end." />
+                <ListBox ItemsSource="{Binding Notes}" SelectedItem="{Binding SelectedNote}" MaxHeight="160">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:NoteRow">
+                      <TextBlock Text="{Binding Display}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Button Content="+ Add Note…" Command="{Binding AddNoteCommand}" />
+                  <Button Content="Edit…" Command="{Binding EditNoteCommand}" />
+                  <Button Content="Remove" Command="{Binding RemoveNoteCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- ───── Field library ───── -->
+      <TabItem Header="Field Library">
+        <Grid ColumnDefinitions="300,*" ColumnSpacing="14" Margin="0,10,0,0">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
+              <Button Content="+ New Field…" Command="{Binding NewFieldCommand}" />
+              <Button Content="Delete…" Command="{Binding DeleteFieldCommand}" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding LibraryFields}" SelectedItem="{Binding SelectedLibraryField}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:FieldRow">
+                  <TextBlock Text="{Binding Display}" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+
+          <ScrollViewer Grid.Column="1">
+            <Border Classes="card" DataContext="{Binding FieldEditor}" IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    x:DataType="vm:FieldEditorViewModel" MaxWidth="760" HorizontalAlignment="Left">
+              <StackPanel Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="16" />
+                  <TextBlock Text="(built-in: can be edited or unassigned, not deleted)" Classes="muted"
+                             VerticalAlignment="Bottom" IsVisible="{Binding IsBuiltIn}" />
+                </StackPanel>
+                <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                  <TextBlock Text="Field label" VerticalAlignment="Center" />
+                  <TextBox Grid.Column="1" Text="{Binding Label}" AutomationProperties.Name="Field label" />
+                  <TextBlock Grid.Row="1" Text="Data type" VerticalAlignment="Center" />
+                  <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding TypeLabels}" SelectedItem="{Binding TypeLabel}"
+                            HorizontalAlignment="Stretch" AutomationProperties.Name="Data type" />
+                  <TextBlock Grid.Row="2" Text="Placeholder" VerticalAlignment="Center" />
+                  <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Placeholder}" AutomationProperties.Name="Placeholder" />
+                  <TextBlock Grid.Row="3" Text="Default value" VerticalAlignment="Center" />
+                  <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Default}" AutomationProperties.Name="Default value"
+                           ToolTip.Tip="For checkbox and toggle fields, use true or false." />
+                  <TextBlock Grid.Row="4" Text="Color (hex)" VerticalAlignment="Center" />
+                  <StackPanel Grid.Row="4" Grid.Column="1" Spacing="2">
+                    <TextBox Text="{Binding Color}" PlaceholderText="#3B8ED0 (optional)" AutomationProperties.Name="Field color" />
+                    <TextBlock Text="{Binding ColorError}" Classes="error" FontSize="12"
+                               IsVisible="{Binding ColorError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <TextBlock Grid.Row="5" Text="Tooltip" VerticalAlignment="Center" />
+                  <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Tooltip}" AcceptsReturn="True"
+                           PlaceholderText="Optional help shown beside the label" AutomationProperties.Name="Tooltip" />
+                </Grid>
+
+                <WrapPanel ItemSpacing="16" LineSpacing="6">
+                  <CheckBox Content="Required" IsChecked="{Binding Required}" />
+                  <CheckBox Content="Autofill to following parts" IsChecked="{Binding Autofill}" />
+                  <CheckBox Content="Smart title case" IsChecked="{Binding TitleCase}" />
+                  <CheckBox Content="Show in the Part header" IsChecked="{Binding InHeader}" IsVisible="{Binding IsBoolean}" />
+                </WrapPanel>
+
+                <StackPanel Spacing="6" IsVisible="{Binding IsDate}">
+                  <Grid ColumnDefinitions="150,*">
+                    <TextBlock Text="Date output format" VerticalAlignment="Center" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding DateFormats}" SelectedItem="{Binding DateFormat}" MinWidth="180"
+                              AutomationProperties.Name="Date output format" />
+                  </Grid>
+                  <CheckBox Content="Fill this field with today's date automatically" IsChecked="{Binding AutoToday}" />
+                </StackPanel>
+
+                <StackPanel Spacing="4" IsVisible="{Binding IsChoice}">
+                  <TextBlock Text="Dropdown choices (one per line)" />
+                  <TextBox Text="{Binding OptionsText}" AcceptsReturn="True" Height="110" AutomationProperties.Name="Dropdown choices" />
+                  <TextBlock Classes="muted" FontSize="12" Text="If a choice named Other is present, selecting it shows a free-text box." />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                  <CheckBox Content="Conditional visibility" IsChecked="{Binding HasCondition}" />
+                  <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="8" IsVisible="{Binding HasCondition}">
+                    <TextBlock Text="Show when" VerticalAlignment="Center" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding ConditionFields}" SelectedItem="{Binding ConditionField}"
+                              HorizontalAlignment="Stretch" AutomationProperties.Name="Controlling field" />
+                    <TextBlock Grid.Column="2" Text="equals" VerticalAlignment="Center" />
+                    <TextBox Grid.Column="3" Text="{Binding ConditionEquals}" AutomationProperties.Name="Required value" />
+                  </Grid>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</UserControl>

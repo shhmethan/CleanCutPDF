@@ -1,8 +1,21 @@
 {
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "download_url": "https://github.com/shhmethan/CleanCutPDF/releases",
   "sha256": "",
   "changelog": {
+    "2.0.0-alpha.2": [
+      "Split & Rename now works end to end: SPLIT HERE pages are found in the background (including colored separator sheets with no text), each Part gets the workspace fields, and Export PDFs saves one file per Part.",
+      "All field types are back: text, number, currency, date, dropdown (with Other), checkbox, and toggle, plus autofill, Today buttons, Payment Method → Check Number, notes, and the Aa button.",
+      "Exports remove blank pages, can make a client folder, never overwrite files, and record each file in the export history.",
+      "The Inbox has folders, multi-select, right-click actions, and Change Workspace / Move to Folder for many PDFs at once.",
+      "Open PDFs and everything typed into them are restored when the app starts again.",
+      "New Rename Only and Quick Split pages.",
+      "Workspace editing is back: create, rename, and delete workspaces, change the filename format with a live preview, choose and order fields, add notes, and create custom fields.",
+      "Import your workspaces, fields, settings, open PDFs, folder shortcuts, and export history from CleanCutPDF 1.x (1.x data is only read, never changed).",
+      "Folder shortcuts and client-name suggestions are back.",
+      "A diagnostic log now records what happened if something goes wrong (Settings › Diagnostics › Logs folder).",
+      "Closing the app is now instant and always saves your open PDFs first."
+    ],
     "2.0.0-alpha.1": [
       "First preview of CleanCutPDF 2, rebuilt in C# with Avalonia for Windows and macOS.",
       "PDF loading and page previews run in the background so the window never freezes.",

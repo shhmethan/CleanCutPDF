@@ -1,8 +1,14 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:CleanCutPDF.App.ViewModels"
-             x:Class="CleanCutPDF.App.Views.SplitRenameView"
+             xmlns:models="using:CleanCutPDF.Core.Models"
+             xmlns:controls="using:CleanCutPDF.App.Controls"
+                          x:Class="CleanCutPDF.App.Views.SplitRenameView"
              x:DataType="vm:SplitRenameViewModel">
+
+
+
+
 
   <Grid Margin="24">
 
@@ -18,42 +24,134 @@
 
     <!-- Editor -->
     <DockPanel IsVisible="{Binding HasDocument}">
-      <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,14">
-        <TextBlock Text="Split &amp; Rename" Classes="page-title" />
-        <!-- Long names scroll horizontally instead of being cut off. -->
-        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-          <TextBlock Text="{Binding Document.FileName, FallbackValue=''}" FontWeight="SemiBold"
-                     TextWrapping="NoWrap" Classes="muted" />
-        </ScrollViewer>
+      <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
+        <Grid ColumnDefinitions="Auto,*">
+          <TextBlock Text="Split &amp; Rename" Classes="page-title" VerticalAlignment="Center" />
+          <!-- Folder shortcuts (1.x shortcut bar) -->
+          <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                        Margin="16,0,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+              <Button Content="📁 Open Output Folder" Command="{Binding OpenOutputFolderCommand}" />
+              <ItemsControl ItemsSource="{Binding FolderShortcuts}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="6" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="models:FolderShortcut">
+                    <Button Content="{Binding}" ToolTip.Tip="{Binding Path}"
+                            Background="{Binding Color, Converter={x:Static controls:HexToBrushConverter.Background}}"
+                            Foreground="{Binding Color, Converter={x:Static controls:HexToBrushConverter.Foreground}}"
+                            Command="{Binding $parent[UserControl].((vm:SplitRenameViewModel)DataContext).OpenShortcutCommand}"
+                            CommandParameter="{Binding}">
+                      <Button.ContentTemplate>
+                        <DataTemplate x:DataType="models:FolderShortcut">
+                          <TextBlock>
+                            <Run Text="{Binding Icon}" />
+                            <Run Text=" " />
+                            <Run Text="{Binding Label}" />
+                          </TextBlock>
+                        </DataTemplate>
+                      </Button.ContentTemplate>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+          <TextBlock Text="PDF:" VerticalAlignment="Center" FontWeight="SemiBold" />
+          <ComboBox Grid.Column="1" ItemsSource="{Binding OpenDocuments}" SelectedItem="{Binding SwitcherSelection}"
+                    HorizontalAlignment="Stretch" ToolTip.Tip="Switch between open PDFs">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:DocumentItemViewModel">
+                <TextBlock Text="{Binding DisplayText}" TextTrimming="CharacterEllipsis" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Grid.Column="2" Text="Workspace:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="8,0,0,0" />
+          <ComboBox Grid.Column="3" ItemsSource="{Binding WorkspaceNames}" SelectedItem="{Binding SelectedWorkspace}"
+                    MinWidth="170" IsEnabled="{Binding IsFormReady}" />
+        </Grid>
+        <TextBlock Text="{Binding WorkspaceSummary}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
       </StackPanel>
 
-      <Grid ColumnDefinitions="*,6,1.1*">
+      <Grid ColumnDefinitions="1.15*,6,*">
 
-        <!-- Left: workspace fields (Phase 2) -->
-        <Border Classes="card">
-          <DockPanel>
-            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
-              <Button Content="Export PDFs" IsEnabled="False" Classes="accent"
-                      ToolTip.Tip="Exporting arrives in Phase 2" />
-              <Button Content="Close PDF" Command="{Binding CloseDocumentCommand}" />
-              <Button Content="Back to Inbox" Command="{Binding BackToInboxCommand}" />
-            </StackPanel>
-            <StackPanel Spacing="10">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="Workspace:" FontWeight="SemiBold" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Document.Workspace, FallbackValue=''}" VerticalAlignment="Center" />
-              </StackPanel>
-              <TextBlock Text="{Binding Document.StatusText, FallbackValue=''}" Classes="muted" />
-              <Border BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="6"
-                      Padding="14" Margin="0,8,0,0">
-                <StackPanel Spacing="6">
-                  <TextBlock Text="Coming in Phase 2" FontWeight="SemiBold" />
-                  <TextBlock TextWrapping="Wrap" Classes="muted"
-                             Text="Background SPLIT HERE detection, Part cards, the optional client field, workspace fields (text, number, currency, date, dropdown, checkbox, toggle), description autofill, Today buttons, and exporting with blank-page removal." />
-                </StackPanel>
+        <!-- Left: client, Parts, actions -->
+        <Border Classes="card" Padding="0">
+          <Grid>
+            <DockPanel>
+              <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,1,0,0"
+                      Padding="14,10">
+                <WrapPanel ItemSpacing="8" LineSpacing="8">
+                  <CheckBox Content="Make Client Folder" IsChecked="{Binding MakeClientFolder}" Margin="0,0,8,0" />
+                  <Button Content="Export PDFs" Classes="accent" Command="{Binding ExportCommand}" />
+                  <Button Content="Reset Form" Command="{Binding ResetFormCommand}" />
+                  <Button Content="Close PDF" Command="{Binding CloseDocumentCommand}" />
+                </WrapPanel>
               </Border>
+
+              <!-- No SPLIT HERE pages (non-blocking; 1.x showed a modal popup) -->
+              <Border DockPanel.Dock="Top" IsVisible="{Binding ShowNoSplitWarning}" Margin="14,12,14,0"
+                      Padding="12,8" CornerRadius="6" Background="{DynamicResource SidebarBackground}"
+                      BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock TextWrapping="Wrap" FontSize="12"
+                             Text="No SPLIT HERE pages were detected, so this PDF is one Part. If separator sheets are visible in the preview, the scanner may not have created a readable text layer." />
+                  <Button Grid.Column="1" Content="Don't show again" Margin="8,0,0,0" VerticalAlignment="Center"
+                          Command="{Binding DisableNoSplitWarningCommand}" />
+                </Grid>
+              </Border>
+
+              <ScrollViewer Padding="14,12">
+                <StackPanel Spacing="10" IsVisible="{Binding IsFormReady}">
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="{Binding ClientLabel}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                      <AutoCompleteBox Text="{Binding ClientName}" ItemsSource="{Binding ClientSuggestions}"
+                                       FilterMode="None" MinimumPrefixLength="1" MinimumPopulateDelay="0"
+                                       PlaceholderText="Client name (leave blank to omit)"
+                                       AutomationProperties.Name="Client name"
+                                       ToolTip.Tip="Suggestions come from client folders in the export folder and your export history. Press Down, then Enter, to pick one." />
+                      <Button Grid.Column="1" Content="Aa" Command="{Binding TitleCaseClientCommand}"
+                              ToolTip.Tip="Convert the client name to title case (for pasted ALL CAPS names)" />
+                    </Grid>
+                  </StackPanel>
+                  <ItemsControl ItemsSource="{Binding Parts}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                  </ItemsControl>
+                </StackPanel>
+              </ScrollViewer>
+            </DockPanel>
+
+            <!-- Split detection in progress -->
+            <StackPanel IsVisible="{Binding IsDetecting}" VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Spacing="10" Width="320">
+              <TextBlock Text="Finding SPLIT HERE pages…" FontWeight="SemiBold" HorizontalAlignment="Center" />
+              <ProgressBar Maximum="100" Value="{Binding Document.DetectionPercent, FallbackValue=0}" Height="6" />
+              <TextBlock Text="{Binding Document.StatusText, FallbackValue=''}" Classes="muted" FontSize="12"
+                         HorizontalAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock Text="You can page through the preview while this runs." Classes="muted" FontSize="12"
+                         HorizontalAlignment="Center" />
             </StackPanel>
-          </DockPanel>
+
+            <!-- Export in progress -->
+            <Border IsVisible="{Binding IsExporting}" Background="{DynamicResource CardBackground}" Opacity="0.96"
+                    CornerRadius="8">
+              <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10" Width="320">
+                <TextBlock Text="{Binding ExportStatus}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <ProgressBar IsIndeterminate="True" Height="6" />
+                <Button Content="Cancel" Command="{Binding CancelExportCommand}" HorizontalAlignment="Center" />
+              </StackPanel>
+            </Border>
+          </Grid>
         </Border>
 
         <GridSplitter Grid.Column="1" Background="Transparent" ResizeDirection="Columns" />

@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CleanCutPDF.App.ViewModels"
+             x:Class="CleanCutPDF.App.Views.QuickSplitView"
+             x:DataType="vm:QuickSplitViewModel">
+
+  <DockPanel Margin="24">
+    <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,14" MaxWidth="900" HorizontalAlignment="Left">
+      <TextBlock Text="⚡ Quick Split" Classes="page-title" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="For batch scans where each client has only one document: place SPLIT HERE sheets between documents, scan everything in one pass, then open or drop the PDF here. Files are split automatically and saved to Quick Split Files/YYYY-MM-DD inside your export folder." />
+    </StackPanel>
+
+    <Border DockPanel.Dock="Top" Classes="card" Margin="0,0,0,12" MaxWidth="900" HorizontalAlignment="Left">
+      <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10" RowDefinitions="Auto,Auto" RowSpacing="6">
+        <Button Content="➕ Open PDFs…" Classes="accent" Command="{Binding OpenPdfsCommand}" Grid.RowSpan="2"
+                VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="Filename order:" VerticalAlignment="Center" />
+        <ComboBox Grid.Column="2" ItemsSource="{Binding FilenameOrders}" SelectedItem="{Binding FilenameOrder}" MinWidth="240"
+                  AutomationProperties.Name="Filename order" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Example}" Classes="muted" FontSize="12" />
+      </Grid>
+    </Border>
+
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8" IsVisible="{Binding HasJobs}">
+      <Button Content="Cancel" Command="{Binding CancelAllCommand}" />
+      <Button Content="Clear Finished" Command="{Binding ClearFinishedCommand}" />
+    </StackPanel>
+
+    <Grid>
+      <ItemsControl ItemsSource="{Binding Jobs}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:QuickSplitJobViewModel">
+            <Border Classes="card" Margin="0,0,0,8" Padding="12,8">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2">
+                  <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextWrapping="NoWrap" />
+                  <TextBlock Text="{Binding Status}" Classes="muted" Classes.error="{Binding IsFailed}" FontSize="12"
+                             TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Open Folder" IsVisible="{Binding IsDone}" VerticalAlignment="Center"
+                        Command="{Binding $parent[UserControl].((vm:QuickSplitViewModel)DataContext).OpenFolderCommand}"
+                        CommandParameter="{Binding}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <StackPanel IsVisible="{Binding !HasJobs}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"
+                  IsHitTestVisible="False">
+        <TextBlock Text="⚡" FontSize="42" HorizontalAlignment="Center" />
+        <TextBlock Text="Drop one or more PDFs here" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+        <TextBlock Text="or click Open PDFs…" Classes="muted" HorizontalAlignment="Center" />
+      </StackPanel>
+    </Grid>
+  </DockPanel>
+</UserControl>
