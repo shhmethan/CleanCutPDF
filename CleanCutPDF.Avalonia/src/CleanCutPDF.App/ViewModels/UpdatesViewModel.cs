@@ -11,7 +11,9 @@ namespace CleanCutPDF.App.ViewModels;
 /// <summary>
 /// Update banner on the main window and the Updates section in Settings.
 /// Checks run in the background on every launch; nothing is downloaded or
-/// installed automatically.
+/// installed until the user chooses Install Update. An installed copy then
+/// updates itself (download, verify, close, install, reopen); a copy run from
+/// a build folder only offers the download link.
 /// </summary>
 public sealed partial class UpdatesViewModel : ObservableObject
 {
@@ -22,11 +24,18 @@ public sealed partial class UpdatesViewModel : ObservableObject
     private readonly ActivityService _activity;
     private readonly CrashLog _crashLog;
     private readonly AppLog _log;
+    private readonly UpdateInstaller _installer;
+    private readonly AppLifetimeService _lifetime;
+    private CancellationTokenSource? _installCts;
+    private UpdatePackage? _package;
     private bool _syncing;
 
     public UpdatesViewModel(UpdateService updates, ISettingsService settings, IShellService shell,
-        IDialogService dialogs, ActivityService activity, CrashLog crashLog, AppLog log)
+        IDialogService dialogs, ActivityService activity, CrashLog crashLog, AppLog log,
+        UpdateInstaller installer, AppLifetimeService lifetime)
     {
+        _installer = installer;
+        _lifetime = lifetime;
         _log = log;
         _updates = updates;
         _settings = settings;
@@ -114,6 +123,87 @@ public sealed partial class UpdatesViewModel : ObservableObject
     [RelayCommand]
     private void DismissBanner() => IsBannerVisible = false;
 
+    // ───── Installing ─────
+
+    /// <summary>True when this copy can install the available update itself.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowInstall), nameof(ShowDownloadLink))]
+    public partial bool CanInstallUpdate { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowInstall))]
+    [NotifyCanExecuteChangedFor(nameof(InstallUpdateCommand))]
+    public partial bool IsInstalling { get; private set; }
+
+    [ObservableProperty]
+    public partial string InstallStatus { get; private set; } = "";
+
+    [ObservableProperty]
+    public partial int InstallPercent { get; private set; }
+
+    public bool ShowInstall => CanInstallUpdate && !IsInstalling;
+
+    public bool ShowDownloadLink => !CanInstallUpdate;
+
+    /// <summary>Download, verify, then hand over to the installer and close.</summary>
+    [RelayCommand(CanExecute = nameof(CanStartInstall))]
+    private async Task InstallUpdateAsync()
+    {
+        if (_package is not { } package ||
+            !await _dialogs.ConfirmAsync("Install Update",
+                $"CleanCutPDF {package.Version} will be downloaded and installed.\n\n" +
+                "CleanCutPDF closes for a moment and reopens by itself. Your open PDFs and everything typed into them are saved first.",
+                "Install Update"))
+        {
+            return;
+        }
+
+        IsInstalling = true;
+        InstallPercent = 0;
+        InstallStatus = $"Downloading CleanCutPDF {package.Version}…";
+        _installCts = new CancellationTokenSource();
+        try
+        {
+            string installer;
+            using (_activity.Begin($"Downloading CleanCutPDF {package.Version}"))
+            {
+                var progress = new Progress<DownloadProgress>(p =>
+                {
+                    if (p.Percent is { } percent)
+                    {
+                        InstallPercent = percent;
+                        InstallStatus = $"Downloading CleanCutPDF {package.Version}… {percent}%";
+                    }
+                });
+                installer = await _installer.DownloadAsync(package, progress, _installCts.Token);
+            }
+
+            InstallPercent = 100;
+            InstallStatus = "Installing… CleanCutPDF will close and reopen.";
+            _installer.Launch(installer);
+            _lifetime.Quit(); // Saves everything, then exits so the installer can replace the files.
+        }
+        catch (OperationCanceledException)
+        {
+            InstallStatus = "";
+            IsInstalling = false;
+            _activity.Report("The update was cancelled.");
+        }
+        catch (Exception error)
+        {
+            _crashLog.Write("Installing the update failed", error);
+            InstallStatus = "";
+            IsInstalling = false;
+            await _dialogs.ShowMessageAsync("Install Update",
+                $"The update could not be installed.\n\n{error.Message}\n\nNothing was changed. You can try again later.");
+        }
+    }
+
+    private bool CanStartInstall() => !IsInstalling;
+
+    [RelayCommand]
+    private void CancelInstall() => _installCts?.Cancel();
+
     partial void OnCheckAutomaticallyChanged(bool value)
     {
         if (!_syncing)
@@ -158,6 +248,8 @@ public sealed partial class UpdatesViewModel : ObservableObject
 
     private void ShowBanner(UpdateCheckResult result)
     {
+        _package = result.Package;
+        CanInstallUpdate = result.Package is not null && _installer.CanInstall(_updates.CachedManifest);
         _downloadPage = result.DownloadPage;
         BannerText = result.Message;
         BannerNotes = result.Notes;

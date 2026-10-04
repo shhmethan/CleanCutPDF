@@ -1,8 +1,16 @@
 {
-  "version": "2.0.0-alpha.5",
+  "version": "2.0.0-alpha.6",
   "download_url": "https://github.com/shhmethan/CleanCutPDF/releases",
   "sha256": "",
+  "legacy_upgrade": true,
   "changelog": {
+    "2.0.0-alpha.6": [
+      "CleanCutPDF now has an installer, and updates install themselves: when a new version is available, choose Install Update and the app downloads it, closes, updates, and reopens. Your open PDFs are saved first.",
+      "Every update is checked against its published fingerprint (SHA-256) before it is installed.",
+      "New Help page with tips for Split & Rename, Quick Split, Rename Only, printing and scanning SPLIT HERE sheets, and your current keyboard shortcuts.",
+      "New tour on first start that walks through each page. Reopen it any time from Help.",
+      "The first time CleanCutPDF 2 starts on a computer that has CleanCutPDF 1.x data, it offers to bring that data in."
+    ],
     "2.0.0-alpha.5": [
       "The Workspace Layout Designer is back: on the Workspaces page, choose Design Layout to drag fields anywhere and resize them, for example two short fields side by side.",
       "The designer opens showing the form as it looks now. Fields you do not move stay exactly as they were, and saving without changing anything leaves the form unchanged.",

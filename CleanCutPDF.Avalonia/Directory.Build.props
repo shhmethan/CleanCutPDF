@@ -6,7 +6,7 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <Version>2.0.0</Version>
-    <InformationalVersion>2.0.0-alpha.5</InformationalVersion>
+    <InformationalVersion>2.0.0-alpha.6</InformationalVersion>
     <Company>Ethan Brothers</Company>
     <Product>CleanCutPDF</Product>
   </PropertyGroup>

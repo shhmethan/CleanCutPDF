@@ -15,6 +15,13 @@ public sealed class UpdateManifest
 
     public string? Sha256 { get; set; }
 
+    /// <summary>
+    /// True once CleanCutPDF 1.x should offer this version as its upgrade (read
+    /// by the 1.x app, not by this one). Leave it off while 2.x is a preview.
+    /// </summary>
+    [JsonPropertyName("legacy_upgrade")]
+    public bool LegacyUpgrade { get; set; }
+
     public Dictionary<string, List<string>> Changelog { get; set; } = new();
 }
 
@@ -32,7 +39,8 @@ public sealed record UpdateCheckResult(
     string? LatestVersion,
     IReadOnlyList<string> Notes,
     Uri DownloadPage,
-    string Message);
+    string Message,
+    UpdatePackage? Package = null);
 
 /// <summary>
 /// Checks the release manifest in the background on every launch (when
@@ -136,13 +144,18 @@ public sealed class UpdateService(HttpClient http, ISettingsService settings, Ap
     {
         var latest = AppVersion.Parse(manifest.Version);
         var notes = manifest.Changelog.TryGetValue(manifest.Version, out var lines) ? lines : [];
+        var package = UpdateInstaller.PackageFrom(manifest);
+
+        // The link the Download button opens in a browser. A Windows installer is
+        // not a useful link on other systems, so those go to the releases page.
         var page = Uri.TryCreate(manifest.DownloadUrl, UriKind.Absolute, out var url) && url.Scheme == Uri.UriSchemeHttps
+                   && (package is null || OperatingSystem.IsWindows())
             ? url
             : RemoteEndpoints.ReleasesPage;
 
         return latest > CurrentVersion
             ? new UpdateCheckResult(UpdateCheckOutcome.UpdateAvailable, manifest.Version, notes, page,
-                $"CleanCutPDF {manifest.Version} is available (you have {CurrentVersion}).")
+                $"CleanCutPDF {manifest.Version} is available (you have {CurrentVersion}).", package)
             : new UpdateCheckResult(UpdateCheckOutcome.UpToDate, manifest.Version, notes, page,
                 $"CleanCutPDF {CurrentVersion} is up to date.");
     }

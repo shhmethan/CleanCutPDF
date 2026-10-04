@@ -26,7 +26,7 @@ Split, workspace and field editors, 1.x import, folder shortcuts, client suggest
 and **Phase 6** (Workspace Layout Designer, freeform form layout, 1.x layout import).
 
 Rows below still say which phase each feature was planned for; everything listed for
-Phases 1–6 is implemented. Remaining: Phase 7 (tutorial, help, packaging, in-app updates).
+Phases 1–7 is implemented (packaging and self-update on Windows; the macOS bundle script is untested).
 
 Deliberate differences from 1.x:
 - Title case no longer turns "Machado" into "MacHado" (the automatic "Mac" rule was dropped).
@@ -82,7 +82,7 @@ Pillow (image analysis/resizing), reportlab (optional log → PDF export).
 | Loading overlay | Full-screen overlay during startup / theme change | Redesign – non-blocking status bar + per-item progress |
 | Crash diagnostics | `crash.log`, `last_action.json`, faulthandler, Tk callback hook | Port – global exception handlers write `crash.log` (Phase 1) |
 | Debug console | Ctrl+Alt+D, live debug messages, dev stress tests | Defer (Phase 7) |
-| Tutorial | Multi-step guided tour on first PDF load; rerun from Settings | Defer (Phase 7) |
+| Tutorial | Multi-step guided tour on first PDF load; rerun from Settings | **Done** – tour on first start that switches to each page; rerun from Help |
 
 ### 2.2 Inbox / document explorer (Split & Rename sidebar)
 | Feature | Python behavior | Plan |
@@ -211,9 +211,9 @@ Pillow (image analysis/resizing), reportlab (optional log → PDF export).
 | Keybinds | 8 rebindable actions (Open, Close Tab, Export, Reset, Quit, Search Logs, Undo Export, Paste Clipboard) | **Done** – same defaults, plus Clear Log, Focus Client Name, Focus First Part, Select Export Folder (unassigned); stored in settings.json; Ctrl+Alt+D is fixed; text-editing keys (Ctrl+C/V/X/A/Z/Y) and keys without Ctrl/Alt are refused |
 | Reset settings | CAPTCHA-confirmed reset of settings.json only, then restart | **Done** – also resets workspaces.json, backs both files up first, keeps shortcuts, applies live |
 | SPLIT HERE template | Generates a one-page PDF | Port (Phase 4) |
-| Help tab | Usage, Quick Split, printing tips | Port (Phase 7) |
+| Help tab | Usage, Quick Split, printing tips | **Done** – Help page, plus Rename Only, workspaces, live shortcut list, troubleshooting |
 | About / release notes | Version + changelog from remote `version.json` | **Done** – cached manifest, refreshed in background each launch |
-| Update check | On startup (blocking 10 s timeout on UI thread) + manual; launches updater | **Done** – background check every launch + Check Now; banner instead of modal; in-app install Phase 7 |
+| Update check | On startup (blocking 10 s timeout on UI thread) + manual; launches updater | **Done** – background check every launch + Check Now; banner instead of modal; **Install Update** downloads the installer, verifies SHA-256 (required), installs silently and reopens, with no separate updater program |
 | License | SHA-256 hash compared with remote list; cached locally; network fetch on every launch, unverified SSL | **Done** – local check at startup, weekly online recheck, 30-day offline grace, TLS verified, expiry enforced, hash-only storage |
 | Export folder prompt on startup | If unset | Port (Phase 2) |
 

@@ -37,6 +37,9 @@ public interface IDialogService
 
     /// <summary>Opens the Workspace Layout Designer. Returns true when the layout was saved.</summary>
     Task<bool> ShowLayoutDesignerAsync(ViewModels.LayoutDesignerViewModel designer);
+
+    /// <summary>Opens the tour beside the main window (not modal, so each page can be seen and tried).</summary>
+    void ShowTutorial(ViewModels.TutorialViewModel tutorial);
 }
 
 public sealed class WindowDialogService : IDialogService
@@ -122,6 +125,30 @@ public sealed class WindowDialogService : IDialogService
             box.SelectAll();
         };
         return await ShowAsync(title, message, confirmText, "Cancel", box) ? box.Text?.Trim() : null;
+    }
+
+    private Window? _tutorial;
+
+    public void ShowTutorial(ViewModels.TutorialViewModel tutorial)
+    {
+        if (_tutorial is { } open)
+        {
+            open.Activate();
+            return;
+        }
+
+        var owner = RequireOwner();
+        var window = new Views.TutorialWindow { DataContext = tutorial };
+        window.Closed += (_, _) => _tutorial = null;
+        _tutorial = window;
+
+        // Bottom-right corner of the main window, clear of the navigation and most of each page.
+        var scale = owner.RenderScaling;
+        window.WindowStartupLocation = WindowStartupLocation.Manual;
+        window.Position = new Avalonia.PixelPoint(
+            owner.Position.X + (int)((owner.Bounds.Width - window.Width - 28) * scale),
+            owner.Position.Y + (int)((owner.Bounds.Height - window.Height - 56) * scale));
+        window.Show(owner);
     }
 
     public async Task<bool> ShowLayoutDesignerAsync(ViewModels.LayoutDesignerViewModel designer)

@@ -38,6 +38,31 @@ Requires the .NET 10 SDK. User data lives in `~/.cleancutpdf-next/`
   "not available" quietly. An available update shows a banner linking to the download
   page; nothing is installed automatically yet.
 
+## Releasing (Windows)
+
+1. Bump `<InformationalVersion>` in `Directory.Build.props` and add the changelog entry in `version.json`.
+2. `powershell -ExecutionPolicy Bypass -File packaging\build-installer.ps1 -WriteManifest`
+   publishes a self-contained build, builds `packaging\out\CleanCutPDF-<version>-Setup.exe`, and
+   writes its SHA-256 and download link into `version.json`.
+3. Create a GitHub release with the tag `v<version>` and attach that Setup.exe (the link in
+   `version.json` points there).
+4. Commit and push. Installed copies see the new `version.json` on their next start and offer
+   **Install Update**.
+
+The installer puts CleanCutPDF in `%LOCALAPPDATA%\Programs\CleanCutPDF` (no administrator prompt),
+the same folder and Installed-apps entry as 1.x, so installing 2.x replaces 1.x. User data is not
+touched (`~/.cleancutpdf` for 1.x, `~/.cleancutpdf-next` for 2.x).
+
+**Offering 2.x to 1.x users**: CleanCutPDF 1.10.2 reads this `version.json` too and offers the
+upgrade only when it contains `"legacy_upgrade": true` together with an installer link and
+SHA-256. Leave it `false` until 2.x should replace 1.x everywhere.
+
+**Rehearsing an update without publishing**: serve a folder containing a `version.json` and the
+installer from this computer (for example `python -m http.server 8765 --bind 127.0.0.1`), then
+start an installed copy with `CLEANCUTPDF_UPDATE_MANIFEST=http://127.0.0.1:8765/version.json`
+(for 1.x: `CLEANCUTPDF_UPGRADE_MANIFEST`). Installing with `/S /PORTABLE /D=<folder>` puts a copy
+in any folder without shortcuts or an Installed-apps entry.
+
 ## Layout
 
 ```
@@ -124,4 +149,8 @@ Avalonia 12 ships SkiaSharp 3.x.
    keyboard, optional snap), saved per workspace; the form places fields by their tiles and
    moves fields down rather than overlapping when content needs more height; Use Automatic
    Layout restores the stacked form; 1.x custom layouts are imported.
-7. **Tutorial, help, packaging** (Windows installer, macOS bundle) and installing updates in-app.
+7. **Tutorial, help, packaging, in-app updates** (done on Windows): Help page; first-start tour;
+   first-start offer to import 1.x data; NSIS installer (`packaging/build-installer.ps1`); the app
+   updates itself (download, SHA-256 check, silent install, reopen) with no separate updater
+   program; CleanCutPDF 1.10.2 can upgrade itself to 2.x. A macOS bundle script exists
+   (`packaging/build-macos.sh`) but has never been run.

@@ -1,0 +1,137 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CleanCutPDF.App.ViewModels"
+             x:Class="CleanCutPDF.App.Views.HelpView"
+             x:DataType="vm:HelpViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.tip">
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Margin" Value="0,1" />
+    </Style>
+    <Style Selector="TextBlock.lead">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <Grid>
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="900" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+      <StackPanel Margin="24" Spacing="14">
+        <TextBlock Text="Help" Classes="page-title" />
+
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Getting started" Classes="section-title" />
+            <TextBlock Classes="tip"
+                       Text="Scan a stack of documents with a SPLIT HERE sheet between each one, open the scan in the Inbox, and CleanCutPDF separates it into Parts for you to name and export." />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Show the Tour" Classes="accent" Command="{Binding ShowTutorialCommand}" />
+              <Button Content="📄 Save SPLIT HERE Sheet…" Command="{Binding SaveSplitHereSheetCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="4">
+            <TextBlock Text="✂ Using Split &amp; Rename" Classes="section-title" />
+            <TextBlock Classes="lead" Text="Best for: several documents per client" />
+            <TextBlock Classes="tip muted" Text="Example: scanning a large set of old legal files" />
+            <TextBlock Classes="tip" Text="• Use it when a client has more than one document that must be saved separately." />
+            <TextBlock Classes="tip" Text="• Group by client: stack each client’s documents together." />
+            <TextBlock Classes="tip" Text="• Place a SPLIT HERE sheet between each document in the client’s stack." />
+            <TextBlock Classes="tip" Text="• Scan the whole client stack in one go." />
+            <TextBlock Classes="lead" Margin="0,8,0,0" Text="In the app:" />
+            <TextBlock Classes="tip" Text="• The split points are found automatically, and each document becomes a Part." />
+            <TextBlock Classes="tip" Text="• Enter the client’s name once." />
+            <TextBlock Classes="tip" Text="• Fill in the fields for each Part (agency, description, date, …). Values carry down to the Parts below until you change them." />
+            <TextBlock Classes="tip" Text="• Export PDFs saves each document under its own name. Blank pages are removed if that setting is on." />
+            <TextBlock Classes="tip muted" Margin="0,8,0,0"
+                       Text="Why it helps: it replaces separating, reorienting, and renaming every file by hand." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="4">
+            <TextBlock Text="⚡ Using Quick Split" Classes="section-title" />
+            <TextBlock Classes="lead" Text="Best for: one document per client" />
+            <TextBlock Classes="tip muted" Text="Example: uploading 50 or more single POA revocations to the IRS" />
+            <TextBlock Classes="tip" Text="• Place a SPLIT HERE sheet between each client’s document." />
+            <TextBlock Classes="tip" Text="• Scan all the documents in one batch." />
+            <TextBlock Classes="tip" Text="• Drop the scan on Quick Split: it is split at every sheet and each part is saved with a numbered name in a dated folder." />
+            <TextBlock Classes="tip" Text="• Choose the filename order at the top of the Quick Split page." />
+            <TextBlock Classes="tip muted" Margin="0,8,0,0"
+                       Text="If some parts need proper names afterwards, add them to Rename Only." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="4">
+            <TextBlock Text="📝 Using Rename Only" Classes="section-title" />
+            <TextBlock Classes="lead" Text="Best for: PDFs that are already separate documents" />
+            <TextBlock Classes="tip" Text="• Add the files. Each one is treated as a complete document; SPLIT HERE sheets are not looked for." />
+            <TextBlock Classes="tip" Text="• Fill in the same workspace fields as Split &amp; Rename. The new name is shown before anything is renamed." />
+            <TextBlock Classes="tip" Text="• Rename in place, or copy the renamed files to another folder." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="4">
+            <TextBlock Text="🖨 Printing and scanning SPLIT HERE sheets" Classes="section-title" />
+            <TextBlock Classes="tip" Text="• Use brightly colored paper so the sheets stand out. Colored sheets are also found when the scanner makes no readable text." />
+            <TextBlock Classes="tip" Text="• Print SPLIT HERE in large, bold text (use Save SPLIT HERE Sheet above)." />
+            <TextBlock Classes="tip" Text="• Choose “Multiple Sized Originals” (mixed sizes) on the scanner." />
+            <TextBlock Classes="tip" Text="• Put sheets between documents, not between clients." />
+            <TextBlock Classes="tip" Text="• Sort into double-sided and single-sided batches before scanning." />
+            <TextBlock Classes="tip" Text="• Tabs or sticky notes make the sheets easier to pull out and reuse." />
+            <TextBlock Classes="tip" Text="• Keep the pages in order while scanning." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="4">
+            <TextBlock Text="🧩 Workspaces, fields, and layouts" Classes="section-title" />
+            <TextBlock Classes="tip" Text="• A workspace is a set of fields plus a filename format. Switch workspace for a PDF at the top of Split &amp; Rename, or for many at once from the Inbox." />
+            <TextBlock Classes="tip" Text="• On the Workspaces page: choose which fields a workspace has and their order, build the filename from field tokens (a live preview shows the result), and add reminder notes." />
+            <TextBlock Classes="tip" Text="• Design Layout… lets you place fields side by side. Fields you do not move stay as they are." />
+            <TextBlock Classes="tip" Text="• The Field Library tab is where fields are created: text, number, currency, date, dropdown, checkbox, and toggle, with defaults, required, autofill, and “show only when” conditions." />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="6">
+            <TextBlock Text="⌨ Keyboard shortcuts" Classes="section-title" />
+            <TextBlock Classes="tip muted" Text="These are your current shortcuts. Change them in Settings › Keyboard shortcuts." />
+            <ItemsControl ItemsSource="{Binding Shortcuts}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ShortcutLine">
+                  <Grid ColumnDefinitions="180,*" Margin="0,2">
+                    <TextBlock Text="{Binding Keys}" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="{Binding Action}" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="6">
+            <TextBlock Text="🛠 If something goes wrong" Classes="section-title" />
+            <TextBlock Classes="tip" Text="• No SPLIT HERE pages found: check the preview. If the sheets are visible but not detected, the scan may have no readable text; colored sheets or a higher scan quality help." />
+            <TextBlock Classes="tip" Text="• An export that fails or is cancelled keeps no files, so nothing is left half done." />
+            <TextBlock Classes="tip" Text="• Exported the wrong thing? Undo Last Export (Logs page) moves those files to the Recycle Bin." />
+            <TextBlock Classes="tip" Text="• CleanCutPDF keeps a daily log of what it did (file names and actions only, never client names or field values). If you need help, send the newest log file." />
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+              <Button Content="Open Logs Folder" Command="{Binding OpenLogsFolderCommand}" />
+              <Button Content="Open Debug Console" Command="{Binding OpenDebugConsoleCommand}"
+                      ToolTip.Tip="Shows what the app is doing as it happens (Ctrl+Alt+D)" />
+            </StackPanel>
+            <TextBlock Text="{Binding VersionText}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" Margin="0,6,0,0" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

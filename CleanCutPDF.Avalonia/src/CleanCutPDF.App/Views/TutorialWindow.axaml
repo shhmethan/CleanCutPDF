@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CleanCutPDF.App.ViewModels"
+        x:Class="CleanCutPDF.App.Views.TutorialWindow"
+        x:DataType="vm:TutorialViewModel"
+        Title="CleanCutPDF Tour"
+        Icon="/Assets/favicon.ico"
+        Width="440" Height="330"
+        CanResize="False" CanMinimize="False" CanMaximize="False"
+        ShowInTaskbar="False">
+
+  <DockPanel Margin="20">
+    <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="0,12,0,0">
+      <Button Content="Skip Tour" Command="{Binding FinishCommand}" IsVisible="{Binding !IsLast}" />
+      <Button Grid.Column="2" Content="Back" Command="{Binding BackCommand}" IsEnabled="{Binding !IsFirst}" MinWidth="76" />
+      <Button Grid.Column="3" Content="{Binding NextText}" Classes="accent" Command="{Binding NextCommand}" MinWidth="76"
+              IsDefault="True" AutomationProperties.Name="Next step" />
+    </Grid>
+
+    <StackPanel Spacing="8">
+      <TextBlock Text="{Binding Progress}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}"
+                 AutomationProperties.Name="Tour progress" />
+      <TextBlock Text="{Binding Current.Title}" Classes="page-title" TextWrapping="Wrap" />
+      <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="190">
+        <TextBlock Text="{Binding Current.Body}" TextWrapping="Wrap" />
+      </ScrollViewer>
+    </StackPanel>
+  </DockPanel>
+</Window>

@@ -29,6 +29,8 @@ public sealed class SettingsReset(AppPaths paths, ISettingsService settings, Wor
     {
         Keybinds = new Dictionary<string, string>(current.Keybinds),
         LegacyImportedUtc = current.LegacyImportedUtc,
+        LegacyImportOffered = current.LegacyImportOffered,
+        TutorialSeen = current.TutorialSeen,
         LastUpdateCheckUtc = current.LastUpdateCheckUtc
     };
 

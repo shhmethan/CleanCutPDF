@@ -11,7 +11,12 @@ internal sealed class FakeHttpHandler : HttpMessageHandler
     public bool Offline { get; set; }
     public int RequestCount { get; private set; }
 
+    private readonly Dictionary<string, byte[]> _files = new();
+
     public void Respond(Uri url, string json) => _responses[url.AbsoluteUri] = json;
+
+    /// <summary>A downloadable file (an installer).</summary>
+    public void RespondFile(Uri url, byte[] content) => _files[url.AbsoluteUri] = content;
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -19,6 +24,11 @@ internal sealed class FakeHttpHandler : HttpMessageHandler
         if (Offline)
         {
             throw new HttpRequestException("No network (simulated)");
+        }
+
+        if (_files.TryGetValue(request.RequestUri!.AbsoluteUri, out var file))
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(file) });
         }
 
         return Task.FromResult(_responses.TryGetValue(request.RequestUri!.AbsoluteUri, out var body)

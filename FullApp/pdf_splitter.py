@@ -37,9 +37,21 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.10.1"
+CURRENT_VERSION = "1.10.2"
 MAX_RENDERED_PDF_TABS = 3
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
+
+# CleanCutPDF 2.x has its own release manifest. Once that manifest sets
+# "legacy_upgrade": true, this app offers the upgrade: it downloads the 2.x
+# installer, checks its SHA-256, runs it, and closes. The installer replaces
+# this program in place; nothing in ~/.cleancutpdf is changed, and 2.x imports
+# it on first start.
+# CLEANCUTPDF_UPGRADE_MANIFEST points at another manifest for rehearsing the
+# upgrade before release (https, or http on this computer only).
+UPGRADE_URL = (
+    os.environ.get("CLEANCUTPDF_UPGRADE_MANIFEST")
+    or "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/CleanCutPDF.Avalonia/version.json"
+)
 
 BASE_DIR = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).parent
 USER_DATA_DIR = Path.home() / ".cleancutpdf"
@@ -627,6 +639,97 @@ def parse_version(version_str):
 
     return tuple(numbers)
 
+def _is_trusted_upgrade_link(url):
+    """https anywhere, or plain http only for this computer (upgrade rehearsals)."""
+    lowered = url.lower()
+    if lowered.startswith("https://"):
+        return True
+    return lowered.startswith(("http://127.0.0.1:", "http://127.0.0.1/", "http://localhost:", "http://localhost/"))
+
+
+def read_upgrade_offer(data):
+    """Return the CleanCutPDF 2 upgrade described by the 2.x manifest, or None.
+
+    The offer is made only when the manifest explicitly allows it
+    ("legacy_upgrade": true) and carries an installer link plus its SHA-256,
+    so a preview build of 2.x is never pushed to 1.x users by accident.
+    """
+    if not isinstance(data, dict) or data.get("legacy_upgrade") is not True:
+        return None
+
+    version = str(data.get("version", "")).strip()
+    url = str(data.get("download_url", "")).strip()
+    sha256 = str(data.get("sha256", "")).strip().lower()
+
+    if not version or parse_version(version) <= parse_version(CURRENT_VERSION):
+        return None
+    if not _is_trusted_upgrade_link(url) or not url.lower().split("?")[0].endswith(".exe"):
+        return None
+    if len(sha256) != 64 or any(char not in "0123456789abcdef" for char in sha256):
+        return None
+
+    changelog = data.get("changelog", {})
+    notes = changelog.get(version, []) if isinstance(changelog, dict) else []
+    return {
+        "version": version,
+        "download_url": url,
+        "sha256": sha256,
+        "notes": [str(line) for line in notes] if isinstance(notes, list) else []
+    }
+
+
+def download_verified(url, sha256, target, progress=None):
+    """Download url to target and verify its SHA-256.
+
+    A file that does not match is deleted and never run. progress, when
+    given, is called with (bytes_received, total_bytes_or_None).
+    """
+    target = Path(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    partial = target.with_name(target.name + ".part")
+    digest = hashlib.sha256()
+
+    try:
+        request = urllib.request.Request(url, headers={"User-Agent": "CleanCutPDF"})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            total = response.headers.get("Content-Length")
+            total = int(total) if total and total.isdigit() else None
+            received = 0
+            with open(partial, "wb") as output:
+                while True:
+                    chunk = response.read(1024 * 256)
+                    if not chunk:
+                        break
+                    output.write(chunk)
+                    digest.update(chunk)
+                    received += len(chunk)
+                    if progress:
+                        progress(received, total)
+
+        if digest.hexdigest().lower() != sha256.lower():
+            raise ValueError("The downloaded installer failed SHA-256 verification, so it was not run.")
+
+        if target.exists():
+            target.unlink()
+        partial.rename(target)
+        return target
+    finally:
+        if partial.exists():
+            try:
+                partial.unlink()
+            except OSError:
+                pass
+
+
+def upgrade_install_command(installer, install_dir):
+    """Command line that installs CleanCutPDF 2 over this copy and starts it.
+
+    One string, not a list: NSIS needs /D= last and unquoted even when the
+    folder has spaces, and a list would make Python add quotes.
+    """
+    return f'"{installer}" /S /RELAUNCH /D={str(install_dir).rstrip(chr(92))}'
+
+
 class CTkUndoEntry(ctk.CTkEntry):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -950,6 +1053,9 @@ class PDFSplitterApp(TkinterDnD.Tk):
                     "update"
                 )
 
+                # 1.x is current: see whether CleanCutPDF 2 is offered.
+                self.check_for_upgrade(manual=False)
+
 
         except Exception as e:
 
@@ -1019,6 +1125,10 @@ class PDFSplitterApp(TkinterDnD.Tk):
 
             else:
 
+                # 1.x is current: see whether CleanCutPDF 2 is offered.
+                if self.check_for_upgrade(manual=True):
+                    return
+
                 messagebox.showinfo(
                     "No Updates Available",
                     f"CleanCutPDF {CURRENT_VERSION} is up to date."
@@ -1042,6 +1152,125 @@ class PDFSplitterApp(TkinterDnD.Tk):
                 f"Manual update check failed: {e}",
                 "error"
             )
+    def check_for_upgrade(self, manual=False):
+        """Offer CleanCutPDF 2 when its manifest allows it. Returns True if it was offered."""
+        try:
+            with urllib.request.urlopen(UPGRADE_URL, timeout=10) as response:
+                offer = read_upgrade_offer(json.loads(response.read().decode("utf-8")))
+        except Exception as error:
+            # Like the update check, this must never interrupt normal use.
+            debug(f"CleanCutPDF 2 upgrade check failed: {error}", "error")
+            return False
+
+        if offer is None:
+            debug("CleanCutPDF 2 upgrade is not offered yet.", "update")
+            return False
+
+        version = offer["version"]
+
+        # At startup, ask once per version; Check for Updates always asks.
+        if not manual and self.settings.get("skipped_upgrade_version") == version:
+            debug(f"CleanCutPDF {version} upgrade was postponed earlier.", "update")
+            return False
+
+        notes = "\n".join(f"• {line}" for line in offer["notes"][:8])
+        confirm = messagebox.askyesno(
+            "CleanCutPDF 2 Is Available",
+
+            f"CleanCutPDF {version} is the new version of CleanCutPDF.\n\n"
+
+            + (f"What's new:\n{notes}\n\n" if notes else "")
+
+            + "Upgrading replaces this program. Your settings, workspaces, custom fields, "
+              "open PDFs, and export history are kept, and CleanCutPDF 2 offers to bring "
+              "them in the first time it starts.\n\n"
+
+              "Would you like to upgrade now?"
+        )
+
+        if not confirm:
+            debug(f"User postponed the CleanCutPDF {version} upgrade.", "update")
+            if not manual:
+                self.save_setting("skipped_upgrade_version", version)
+            return True
+
+        debug(f"User accepted the CleanCutPDF {version} upgrade.", "update")
+        self.start_upgrade(offer)
+        return True
+
+    def start_upgrade(self, offer):
+        """Download the CleanCutPDF 2 installer, verify it, run it, and close."""
+        if not getattr(sys, "frozen", False):
+            # Running from source (PyCharm): there is no installed program to replace.
+            messagebox.showinfo(
+                "CleanCutPDF 2",
+                "This copy is running from source, so it cannot be upgraded in place.\n\n"
+                f"Installer: {offer['download_url']}"
+            )
+            return
+
+        version = offer["version"]
+        install_dir = Path(sys.executable).parent
+        installer = Path(tempfile.gettempdir()) / "CleanCutPDFUpdate" / f"CleanCutPDF-{version}-Setup.exe"
+
+        popup = ctk.CTkToplevel(self)
+        popup.title("Upgrading CleanCutPDF")
+        popup.geometry("440x150")
+        popup.resizable(False, False)
+        popup.transient(self)
+        popup.protocol("WM_DELETE_WINDOW", lambda: None)  # The download is short; closing mid-way is not offered.
+
+        status = ctk.CTkLabel(
+            popup,
+            text=f"Downloading CleanCutPDF {version}...",
+            font=(self.font_family, self.font_size)
+        )
+        status.pack(pady=(24, 10))
+        bar = ctk.CTkProgressBar(popup, width=360)
+        bar.set(0)
+        bar.pack(pady=(0, 10))
+
+        def report(received, total):
+            if total:
+                fraction = min(1.0, received / total)
+                self.after(0, lambda: (
+                    bar.set(fraction),
+                    status.configure(text=f"Downloading CleanCutPDF {version}... {int(fraction * 100)}%")
+                ))
+
+        def finish():
+            try:
+                status.configure(text="Installing... CleanCutPDF will close and reopen.")
+                bar.set(1)
+                self.save_sessions()
+                subprocess.Popen(upgrade_install_command(installer, install_dir))
+                debug(f"CleanCutPDF {version} installer started.", "update")
+                # Close so the installer can replace this program.
+                self.after(300, self._on_close)
+            except Exception as error:
+                fail(error)
+
+        def fail(error):
+            debug(f"CleanCutPDF {version} upgrade failed: {error}", "error")
+            try:
+                popup.destroy()
+            except tk.TclError:
+                pass
+            messagebox.showerror(
+                "Upgrade Failed",
+                f"CleanCutPDF {version} could not be installed.\n\n{error}\n\n"
+                "Nothing was changed. You can keep working and try again later."
+            )
+
+        def worker():
+            try:
+                download_verified(offer["download_url"], offer["sha256"], installer, report)
+                self.after(0, finish)
+            except Exception as error:
+                self.after(0, lambda: fail(error))
+
+        threading.Thread(target=worker, daemon=True).start()
+
     def load_version_info(self):
 
         # The installed version ALWAYS comes

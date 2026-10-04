@@ -204,6 +204,14 @@
                     IsChecked="{Binding Updates.CheckAutomatically}" />
           <StackPanel Orientation="Horizontal" Spacing="10">
             <Button Content="Check Now" Command="{Binding Updates.CheckNowCommand}" />
+            <Button Content="Install Update" Classes="accent" Command="{Binding Updates.InstallUpdateCommand}">
+              <Button.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="Updates.IsBannerVisible" />
+                  <Binding Path="Updates.ShowInstall" />
+                </MultiBinding>
+              </Button.IsVisible>
+            </Button>
             <TextBlock Text="{Binding Updates.StatusText}" Classes="muted" VerticalAlignment="Center"
                        TextWrapping="Wrap" />
           </StackPanel>

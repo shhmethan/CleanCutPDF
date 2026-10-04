@@ -27,6 +27,9 @@
     <DataTemplate DataType="vm:WorkspacesViewModel">
       <views:WorkspacesView />
     </DataTemplate>
+    <DataTemplate DataType="vm:HelpViewModel">
+      <views:HelpView />
+    </DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel">
       <views:SettingsView />
     </DataTemplate>

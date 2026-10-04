@@ -39,6 +39,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly LogsViewModel _logs;
     private readonly NavigationService _navigation;
     private bool _shortcutRunning;
+    private readonly HelpViewModel _help;
+    private readonly LegacyDataLocator _legacyData;
 
     /// <summary>Asks the window to put the keyboard focus in a named control (or its first input).</summary>
     public event EventHandler<string>? FocusRequested;
@@ -160,8 +162,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         DocumentStore documents,
         KeybindsViewModel keybinds,
         AppLifetimeService lifetime,
-        IDialogService dialogs)
+        IDialogService dialogs,
+        HelpViewModel help,
+        LegacyDataLocator legacyData)
     {
+        _help = help;
+        _legacyData = legacyData;
         _keybinds = keybinds;
         _lifetime = lifetime;
         _dialogs = dialogs;
@@ -193,6 +199,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             new(AppPage.QuickSplit, "Quick Split", "⚡", quickSplit),
             new(AppPage.Logs, "Logs", "📜", logs),
             new(AppPage.Workspaces, "Workspaces", "🧩", workspacesPage),
+            new(AppPage.Help, "Help", "❓", help),
             new(AppPage.Settings, "Settings", "⚙", settingsPage)
         ];
         SelectedNavigationItem = NavigationItems[0];
@@ -260,11 +267,40 @@ public sealed partial class MainWindowViewModel : ObservableObject
             }
 
             await legacy;
+            await WelcomeAsync();
         }
         catch (Exception error)
         {
             _crashLog.Write("Startup initialization failed", error);
             Activity.Report("Some settings could not be loaded; defaults are in use.");
+        }
+    }
+
+    /// <summary>
+    /// First start only: offer to bring in CleanCutPDF 1.x data (so someone
+    /// upgraded from 1.x finds their workspaces and open PDFs), then show the tour.
+    /// </summary>
+    private async Task WelcomeAsync()
+    {
+        if (License.IsLocked)
+        {
+            return; // Activate first; this runs again on the next start.
+        }
+
+        var current = _settings.Current;
+        if (!current.LegacyImportOffered && current.LegacyImportedUtc is null)
+        {
+            _settings.Update(s => s.LegacyImportOffered = true);
+            if ((await _legacyData.InspectAsync()).Found)
+            {
+                // The import explains what it found and asks before changing anything.
+                await _settingsPage.LegacyImport.ImportCommand.ExecuteAsync(null);
+            }
+        }
+
+        if (!_settings.Current.TutorialSeen)
+        {
+            _help.ShowTutorialCommand.Execute(null);
         }
     }
 

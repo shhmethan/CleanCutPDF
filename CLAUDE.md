@@ -31,7 +31,7 @@ files from client/workspace fields).
 - A copy of the app is often running from **Visual Studio**. Don't kill it, and build test copies
   to a scratch folder (see Building).
 
-## Current status (latest pushed commit: `Working 2.0.0-alpha.4`)
+## Current status (latest pushed commit: `Working 2.0.0-alpha.5`)
 
 Done and tested:
 
@@ -92,7 +92,7 @@ Done and tested:
   - The 1.x importer also maps the accent, font family, font size (1.x 12 ↔ 2.x 14), and
     `keybinds.json`.
 
-- **Phase 6 (built and tested as `2.0.0-alpha.5`; not pushed until the user says so)**:
+- **Phase 6**:
   - Rule the user asked for: opening the designer and saving without changes must leave the
     form looking exactly like the default, and fields that were not moved must not change.
   - Model: `WorkspaceDefinition.Layout` (`Core/Workspaces/WorkspaceLayout.cs`), null = automatic
@@ -113,12 +113,35 @@ Done and tested:
   - 1.x import: `custom_layout` (freeform `elements`, or the first build's `field_positions`
     grid) is converted by `FreeformLayout.FromLegacy`. A 1.x tile for a header field is dropped.
 
-Tests: `tests/CleanCutPDF.Core.Tests` (197) + `tests/CleanCutPDF.App.Tests` (21), all passing.
+- **Phase 7 (built and tested as `2.0.0-alpha.6`; not pushed until the user says so)**:
+  - Packaging: `packaging/build-installer.ps1` publishes self-contained win-x64 and builds the
+    NSIS installer (`packaging/CleanCutPDF.nsi`) into `packaging/out/` (git-ignored).
+    `-WriteManifest` writes the SHA-256 and release link into `version.json`. Installs per user
+    into `%LOCALAPPDATA%\Programs\CleanCutPDF`, the same folder and uninstall key as 1.x (it
+    replaces 1.x in place; user data untouched). Switches: `/S`, `/RELAUNCH`, `/PORTABLE`
+    (files only: no shortcuts, registry, or uninstaller), `/D=` last and unquoted. It waits for
+    a running `CleanCutPDF.exe` to exit. It writes `install.marker` ("registered"/"portable").
+  - In-app update: `Core/Updates/UpdateInstaller` (download to `%TEMP%\CleanCutPDFUpdate`,
+    SHA-256 required and verified, then run the installer `/S /RELAUNCH /D=<own folder>` and
+    quit). No separate updater program. Only copies with `install.marker` self-update; build
+    folders show the Download link. `CLEANCUTPDF_UPDATE_MANIFEST` overrides the manifest URL
+    (https, or http on loopback) for rehearsals.
+  - 1.x handover: the user asked for this change to `FullApp/pdf_splitter.py` (now 1.10.2): when
+    1.x is up to date it reads the 2.x manifest and, only if `"legacy_upgrade": true` with an
+    .exe link and SHA-256, offers the upgrade, downloads and verifies the installer, runs it, and
+    closes. Nothing else in `FullApp/` or the root `version.json` was changed; the user builds
+    and releases 1.10.2 themselves.
+  - Help page (`HelpViewModel`/`HelpView`), tour (`TutorialViewModel`/`TutorialWindow`, not modal,
+    navigates to each step's page; `AppSettings.TutorialSeen`), and a one-time first-start offer
+    to import 1.x data (`LegacyImportOffered`). Both flags survive Reset Settings.
+  - `packaging/build-macos.sh` builds a .app bundle but has never been run.
 
-### Remaining phases
+Tests: `tests/CleanCutPDF.Core.Tests` (205) + `tests/CleanCutPDF.App.Tests` (24), all passing.
 
-- **Phase 7 (next, not started)**: tutorial, Help page, packaging (Windows installer, macOS
-  bundle), in-app update install (manifest has `sha256` for this).
+### Remaining
+
+- All seven phases are built. Left: drop the "alpha/preview" label, decide when 2.x replaces
+  1.x (`legacy_upgrade`), code signing (installers are unsigned), and a real macOS build.
 
 ## Repository layout (2.x)
 
@@ -242,6 +265,10 @@ User data for 2.x: `~/.cleancutpdf-next/`, containing `settings.json`, `workspac
   any clipboard test overwrite the user's clipboard.
 
 ## Loose ends to mention or ask about
+
+- Never run the 2.x installer on this computer without `/PORTABLE` and a scratch `/D=`: a normal
+  install would replace the user's production 1.x (same folder, shortcuts, and uninstall key).
+  The registered (non-portable) install path has therefore not been run here.
 
 - Importing 1.x data into a test profile brings the user's real open PDFs (client files) into
   that profile's Inbox and sets its export folder to the real one. Don't open or export them.

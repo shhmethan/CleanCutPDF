@@ -11,8 +11,19 @@ public static class RemoteEndpoints
     /// Release manifest for the 2.x app. Deliberately separate from the 1.x
     /// version.json, whose download_url points at the Python executable.
     /// </summary>
-    public static readonly Uri UpdateManifest =
-        new("https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/CleanCutPDF.Avalonia/version.json");
+    public static readonly Uri UpdateManifest = ManifestOverride()
+        ?? new("https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/CleanCutPDF.Avalonia/version.json");
+
+    /// <summary>
+    /// CLEANCUTPDF_UPDATE_MANIFEST points the update check at another manifest,
+    /// for rehearsing a release before it is published. Only https, or http on
+    /// this computer, is accepted.
+    /// </summary>
+    private static Uri? ManifestOverride() =>
+        Uri.TryCreate(Environment.GetEnvironmentVariable("CLEANCUTPDF_UPDATE_MANIFEST"), UriKind.Absolute, out var url)
+        && (url.Scheme == Uri.UriSchemeHttps || (url.Scheme == Uri.UriSchemeHttp && url.IsLoopback))
+            ? url
+            : null;
 
     public static readonly Uri ReleasesPage = new("https://github.com/shhmethan/CleanCutPDF/releases");
 

@@ -8,6 +8,7 @@ public enum AppPage
     QuickSplit,
     Logs,
     Workspaces,
+    Help,
     Settings
 }
 

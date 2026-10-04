@@ -121,6 +121,8 @@ public partial class App : Application
             sp.GetRequiredService<HttpClient>(), sp.GetRequiredService<ISettingsService>(),
             sp.GetRequiredService<AppPaths>(), sp.GetRequiredService<CrashLog>()));
 
+        services.AddSingleton(sp => new UpdateInstaller(sp.GetRequiredService<HttpClient>(), sp.GetRequiredService<AppLog>()));
+
         // App services
         services.AddSingleton<WindowDialogService>();
         services.AddSingleton<IDialogService>(sp => sp.GetRequiredService<WindowDialogService>());
@@ -145,6 +147,8 @@ public partial class App : Application
         services.AddSingleton<WorkspacesViewModel>();
         services.AddSingleton<FolderShortcutsViewModel>();
         services.AddSingleton<KeybindsViewModel>();
+        services.AddSingleton<HelpViewModel>();
+        services.AddSingleton<TutorialViewModel>();
         services.AddSingleton<LegacyImportViewModel>();
 
         return services.BuildServiceProvider();

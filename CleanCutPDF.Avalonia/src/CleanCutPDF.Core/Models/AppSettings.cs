@@ -57,6 +57,12 @@ public sealed class AppSettings
     /// <summary>When CleanCutPDF 1.x data was last imported (null = never).</summary>
     public DateTimeOffset? LegacyImportedUtc { get; set; }
 
+    /// <summary>The first-start offer to import 1.x data was made (it is made once).</summary>
+    public bool LegacyImportOffered { get; set; }
+
+    /// <summary>The first-start tour was shown (it can be reopened from Help).</summary>
+    public bool TutorialSeen { get; set; }
+
     public AppSettings Clone()
     {
         var copy = (AppSettings)MemberwiseClone();
