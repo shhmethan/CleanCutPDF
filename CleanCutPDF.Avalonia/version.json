@@ -2,7 +2,7 @@
   "version": "2.0.0-alpha.6",
   "download_url": "https://github.com/shhmethan/CleanCutPDF/releases/download/v2.0.0-alpha.6/CleanCutPDF-2.0.0-alpha.6-Setup.exe",
   "sha256": "11b0c8b418e4710040ff6373d55292536ef1881678d9ae88267599d95c8e2bdb",
-  "legacy_upgrade": false,
+  "legacy_upgrade": true,
   "changelog": {
     "2.0.0-alpha.6": [
       "CleanCutPDF now has an installer, and updates install themselves: when a new version is available, choose Install Update and the app downloads it, closes, updates, and reopens. Your open PDFs are saved first.",
