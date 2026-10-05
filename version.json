@@ -1,6 +1,9 @@
 {
-  "version": "1.10.0",
+  "version": "1.10.2",
   "changelog": {
+    "1.10.2": [
+    "Prepares CleanCutPDF for the upgrade to CleanCutPDF 2."
+    ],
     "1.10.1": [
       "Redesigned Rename Only to use the normal workspace fields and filename templates.",
       "Rename Only now treats each PDF as one complete document without using SPLIT HERE markers.",
