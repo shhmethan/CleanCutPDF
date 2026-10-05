@@ -37,7 +37,7 @@ import customtkinter as ctk
 from customtkinter import CTkImage
 
 # ───── CONSTANTS & CONFIG ─────
-CURRENT_VERSION = "1.10.2"
+CURRENT_VERSION = "1.10.3"
 MAX_RENDERED_PDF_TABS = 3
 VERSION_URL = "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/refs/heads/master1/version.json"
 
@@ -1213,35 +1213,56 @@ class PDFSplitterApp(TkinterDnD.Tk):
         install_dir = Path(sys.executable).parent
         installer = Path(tempfile.gettempdir()) / "CleanCutPDFUpdate" / f"CleanCutPDF-{version}-Setup.exe"
 
-        popup = ctk.CTkToplevel(self)
+        # Plain Tk widgets, like every other popup in this app. A CTkToplevel or
+        # CTkProgressBar must not be used here: the custom Pink theme files have
+        # no entry for them (KeyError), and creating a CTkToplevel switches the
+        # process to per-monitor DPI, which CustomTkinter cannot apply to this
+        # app's TkinterDnD root window (it was left 85% transparent).
+        dark = ctk.get_appearance_mode() == "Dark"
+        background = "#1e1e1e" if dark else "#f4f4f4"
+        foreground = "#f2f2f2" if dark else "#1e1e1e"
+
+        popup = tk.Toplevel(self)
         popup.title("Upgrading CleanCutPDF")
-        popup.geometry("440x150")
+        popup.configure(bg=background)
         popup.resizable(False, False)
         popup.transient(self)
         popup.protocol("WM_DELETE_WINDOW", lambda: None)  # The download is short; closing mid-way is not offered.
 
-        status = ctk.CTkLabel(
+        width, height = 440, 140
+        self.update_idletasks()
+        x = self.winfo_rootx() + max(0, (self.winfo_width() - width) // 2)
+        y = self.winfo_rooty() + max(0, (self.winfo_height() - height) // 3)
+        popup.geometry(f"{width}x{height}+{x}+{y}")
+
+        status = tk.Label(
             popup,
             text=f"Downloading CleanCutPDF {version}...",
-            font=(self.font_family, self.font_size)
+            font=(self.font_family, self.font_size),
+            bg=background,
+            fg=foreground
         )
-        status.pack(pady=(24, 10))
-        bar = ctk.CTkProgressBar(popup, width=360)
-        bar.set(0)
-        bar.pack(pady=(0, 10))
+        status.pack(pady=(28, 12))
+        bar = ttk.Progressbar(popup, orient="horizontal", length=360, mode="determinate", maximum=100)
+        bar.pack(pady=(0, 12))
 
         def report(received, total):
             if total:
-                fraction = min(1.0, received / total)
-                self.after(0, lambda: (
-                    bar.set(fraction),
-                    status.configure(text=f"Downloading CleanCutPDF {version}... {int(fraction * 100)}%")
-                ))
+                percent = min(100, int(received * 100 / total))
+
+                def show():
+                    try:
+                        bar.configure(value=percent)
+                        status.configure(text=f"Downloading CleanCutPDF {version}... {percent}%")
+                    except tk.TclError:
+                        pass  # The window is already gone.
+
+                self.after(0, show)
 
         def finish():
             try:
                 status.configure(text="Installing... CleanCutPDF will close and reopen.")
-                bar.set(1)
+                bar.configure(value=100)
                 self.save_sessions()
                 subprocess.Popen(upgrade_install_command(installer, install_dir))
                 debug(f"CleanCutPDF {version} installer started.", "update")

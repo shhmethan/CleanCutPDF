@@ -1,7 +1,7 @@
 {
-  "version": "1.10.2",
+  "version": "1.10.3",
   "changelog": {
-    "1.10.2": [
+    "1.10.3": [
     "Prepares CleanCutPDF for the upgrade to CleanCutPDF 2."
     ],
     "1.10.1": [
@@ -203,5 +203,5 @@
     ]
   },
   "download_url": "https://raw.githubusercontent.com/shhmethan/CleanCutPDF/master1/dist/CleanCutPDF.exe",
-  "sha256": "BFDECB69605CA376418073A14804BE5CDF2194990F8F6AB73ECC42BDBCF6568D"
+  "sha256": "8F9BE18021B06E409EF159C939803BEDC0B531E8A07A803D98EC1D3F1A8347D6"
 }

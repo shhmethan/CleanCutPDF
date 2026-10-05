@@ -6,7 +6,7 @@
 ; ─────────────────────────────────────────────
 
 !define APP_NAME "CleanCutPDF"
-!define APP_VERSION "1.10.2"
+!define APP_VERSION "1.10.3"
 !define APP_PUBLISHER "CleanCutPDF"
 
 !define APP_EXE "CleanCutPDF.exe"
