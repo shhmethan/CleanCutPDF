@@ -126,7 +126,7 @@ Done and tested:
     quit). No separate updater program. Only copies with `install.marker` self-update; build
     folders show the Download link. `CLEANCUTPDF_UPDATE_MANIFEST` overrides the manifest URL
     (https, or http on loopback) for rehearsals.
-  - 1.x handover: the user asked for this change to `FullApp/pdf_splitter.py` (now 1.10.2): when
+  - 1.x handover: the user asked for this change to `FullApp/pdf_splitter.py` (now 1.10.3; 1.10.2 had a broken upgrade window, see below): when
     1.x is up to date it reads the 2.x manifest and, only if `"legacy_upgrade": true` with an
     .exe link and SHA-256, offers the upgrade, downloads and verifies the installer, runs it, and
     closes. Nothing else in `FullApp/` or the root `version.json` was changed; the user builds
@@ -265,6 +265,14 @@ User data for 2.x: `~/.cleancutpdf-next/`, containing `settings.json`, `workspac
   any clipboard test overwrite the user's clipboard.
 
 ## Loose ends to mention or ask about
+
+- 1.x popups must be plain `tk.Toplevel` with `tk`/`ttk` widgets. `ctk.CTkToplevel` and
+  `ctk.CTkProgressBar` fail with the user's Pink theme files (no theme entry, KeyError) and a
+  CTkToplevel switches the process DPI mode, leaving the TkinterDnD root 85% transparent. That
+  broke the 2.x upgrade in 1.10.2. Test 1.x UI changes with the session's `upgrade_harness.py`
+  approach (TkinterDnD root + the user's theme file) before a release.
+- The root `README.md` now describes CleanCutPDF 2; update its "Latest Version" and example
+  installer name with each release.
 
 - Never run the 2.x installer on this computer without `/PORTABLE` and a scratch `/D=`: a normal
   install would replace the user's production 1.x (same folder, shortcuts, and uninstall key).

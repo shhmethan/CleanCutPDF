@@ -33,10 +33,10 @@ Requires the .NET 10 SDK. User data lives in `~/.cleancutpdf-next/`
   and revocations persist. Only the SHA-256 hash of the key is stored. An existing 1.x
   activation is carried over automatically (read-only).
 - **Updates:** checked in the background every time the app opens (or with Check Now),
-  using the separate manifest `CleanCutPDF.Avalonia/version.json`. That manifest only
-  becomes reachable after it is pushed to `master1`; until then the check reports
-  "not available" quietly. An available update shows a banner linking to the download
-  page; nothing is installed automatically yet.
+  using the separate manifest `CleanCutPDF.Avalonia/version.json` on `master1`. An
+  available update shows a banner. An installed copy offers **Install Update**: it
+  downloads the installer, verifies its SHA-256, installs silently, and reopens (see
+  Releasing). A copy run from a build folder only links to the download.
 
 ## Releasing (Windows)
 
@@ -53,7 +53,7 @@ The installer puts CleanCutPDF in `%LOCALAPPDATA%\Programs\CleanCutPDF` (no admi
 the same folder and Installed-apps entry as 1.x, so installing 2.x replaces 1.x. User data is not
 touched (`~/.cleancutpdf` for 1.x, `~/.cleancutpdf-next` for 2.x).
 
-**Offering 2.x to 1.x users**: CleanCutPDF 1.10.2 reads this `version.json` too and offers the
+**Offering 2.x to 1.x users**: CleanCutPDF 1.10.3 reads this `version.json` too and offers the
 upgrade only when it contains `"legacy_upgrade": true` together with an installer link and
 SHA-256. Leave it `false` until 2.x should replace 1.x everywhere.
 
@@ -152,5 +152,5 @@ Avalonia 12 ships SkiaSharp 3.x.
 7. **Tutorial, help, packaging, in-app updates** (done on Windows): Help page; first-start tour;
    first-start offer to import 1.x data; NSIS installer (`packaging/build-installer.ps1`); the app
    updates itself (download, SHA-256 check, silent install, reopen) with no separate updater
-   program; CleanCutPDF 1.10.2 can upgrade itself to 2.x. A macOS bundle script exists
+   program; CleanCutPDF 1.10.3 can upgrade itself to 2.x. A macOS bundle script exists
    (`packaging/build-macos.sh`) but has never been run.
