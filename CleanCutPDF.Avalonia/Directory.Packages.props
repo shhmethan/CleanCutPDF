@@ -10,12 +10,15 @@
     <PackageVersion Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Headless" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
     <!-- PDF: PDFium (render + text, native, cross-platform) and PDFsharp (write/split) -->
     <PackageVersion Include="bblanchon.PDFium.Win32" Version="$(PdfiumVersion)" />
     <PackageVersion Include="bblanchon.PDFium.macOS" Version="$(PdfiumVersion)" />
     <PackageVersion Include="PDFsharp" Version="6.2.4" />
+    <!-- PDFsharp 6.2.4 brings in Pkcs 8.0.1, which has known security advisories (NU1902/NU1903). -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />

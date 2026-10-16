@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="PDFsharp" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="bblanchon.PDFium.Win32" />
     <PackageReference Include="bblanchon.PDFium.macOS" />
   </ItemGroup>

@@ -27,7 +27,7 @@ Scan a stack of documents with a `SPLIT HERE` sheet between each one, and CleanC
 - A filename format for each workspace, with a live preview
 - Values carry down from one Part to the next until you change them
 - Use the **Aa** button beside Client Name to convert pasted names to title case
-- Client-name suggestions from your export folders and history
+- Client-name suggestions from your export history
 - Today button on Date fields, and Date fields that start with today's date
 - A notice for missing or future dates without blocking the export
 
@@ -80,7 +80,7 @@ Scan a stack of documents with a `SPLIT HERE` sheet between each one, and CleanC
 ### 🟦 Windows (64-bit)
 
 1. Go to the [Releases](https://github.com/shhmethan/CleanCutPDF/releases) page.
-2. Download the latest installer, such as `CleanCutPDF-2.0.0-alpha.6-Setup.exe`.
+2. Download the latest installer, such as `CleanCutPDF-2.0.0-alpha.8-Setup.exe`.
 3. Run it. No administrator rights are needed.
 4. Open CleanCutPDF and enter your license key on first launch.
 
@@ -128,6 +128,6 @@ For a batch where every client has one document, use **Quick Split** instead. Th
 
 ## 📌 Latest Version
 
-**v2.0.0-alpha.6** (preview)
+**v2.0.0-alpha.8** (preview)
 
 See the [Releases](https://github.com/shhmethan/CleanCutPDF/releases) page for the latest installer and full release notes. The last 1.x version is 1.10.3.

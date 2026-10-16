@@ -1,9 +1,29 @@
 {
-  "version": "2.0.0-alpha.6",
-  "download_url": "https://github.com/shhmethan/CleanCutPDF/releases/download/v2.0.0-alpha.6/CleanCutPDF-2.0.0-alpha.6-Setup.exe",
-  "sha256": "11b0c8b418e4710040ff6373d55292536ef1881678d9ae88267599d95c8e2bdb",
+  "version": "2.0.0-alpha.8",
+  "download_url": "https://github.com/shhmethan/CleanCutPDF/releases/download/v2.0.0-alpha.8/CleanCutPDF-2.0.0-alpha.8-Setup.exe",
+  "sha256": "6b1cfe60fd83f42ee034c7b654db66dfa67830ff690cfdc83c5916eaf9332cd1",
   "legacy_upgrade": true,
   "changelog": {
+    "2.0.0-alpha.8": [
+      "Client name suggestions now list every match instead of only three, with a scroll bar when there are many (for example several clients with the same last name).",
+      "You can stop a misspelled client name from being suggested: right-click it on the Logs page and choose Stop Suggesting, or hide it in Settings under Client name suggestions. Your log is not changed, Show Again brings a name back, and a hidden name comes back by itself if you export it again.",
+      "Fixed: Copy on the Logs page was greyed out. Right-click a file there to copy its file name, its details, the client name, or the whole log line.",
+      "Logs: tick the box next to one or more files to export or print only those. Tick All Shown and Clear Selection are at the top.",
+      "Date fields now have a calendar button. The calendar has month and year boxes (months are shown as 01 January, 02 February, and so on) to jump straight to a month, and the up and down arrows still step one month at a time. The Logs date filters use the same calendar.",
+      "Rename Only: add a file that CleanCutPDF exported earlier and its workspace, client name, and fields are filled back in, so fixing a mistake only takes a quick edit. The Logs page is checked first; otherwise the file name is read using your workspace's filename format. Choose Rename originals in place to fix the file itself.",
+      "Reminder: Rename Only never looks for SPLIT HERE sheets, so it is the quickest way to rename a batch of single documents."
+    ],
+    "2.0.0-alpha.7": [
+      "Fixed: a client name picked from the suggestions could be left out of the file names. Picking a suggestion with the mouse or with the arrow keys and Enter now always uses the name you see in the box.",
+      "Client name suggestions now come from your export log (the Logs page), so any client you have exported before is offered. Folders in the export folder are no longer used.",
+      "Fixed: Open Output Folder, Open Folder after an export, and the folder bookmarks opened Documents instead of the right folder.",
+      "Fixed: in the Accounting workspace the Revoked switch did nothing when the filename format had no Revoked in it. It is added after the client name once; you can still move or remove it on the Workspaces page.",
+      "The Workspaces page now tells you when a field in the workspace is not part of the filename format.",
+      "Split & Rename now lists your open PDFs on the left, so you can switch between them without going back to the Inbox.",
+      "After you export or close a PDF, the next one in the list opens by itself.",
+      "The page list on the left can be collapsed to icons with the new button at its top. Your choice is remembered.",
+      "Fixed: a folder bookmark without a color could not be read on the dark theme."
+    ],
     "2.0.0-alpha.6": [
       "CleanCutPDF now has an installer, and updates install themselves: when a new version is available, choose Install Update and the app downloads it, closes, updates, and reopens. Your open PDFs are saved first.",
       "Every update is checked against its published fingerprint (SHA-256) before it is installed.",

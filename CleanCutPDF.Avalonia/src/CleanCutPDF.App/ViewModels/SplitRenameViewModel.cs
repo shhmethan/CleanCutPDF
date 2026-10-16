@@ -82,7 +82,8 @@ public sealed partial class SplitRenameViewModel : ObservableObject
             CaptureForm();
             BuildForm();
         };
-        _store.Documents.CollectionChanged += (_, _) => OnPropertyChanged(nameof(OpenDocuments));
+        _store.Documents.CollectionChanged += OnDocumentsChanged;
+        _store.Folders.CollectionChanged += (_, _) => RefreshOpenDocuments();
         _settings.Changed += (_, current) =>
         {
             _syncing = true;
@@ -100,8 +101,14 @@ public sealed partial class SplitRenameViewModel : ObservableObject
 
     public bool HasDocument => Document is not null;
 
-    /// <summary>Documents that can be opened, for the quick switcher.</summary>
-    public IEnumerable<DocumentItemViewModel> OpenDocuments => _store.Documents.Where(d => d.IsReady);
+    /// <summary>The PDFs that can be opened, in Inbox order, for the list beside the editor.</summary>
+    public IReadOnlyList<DocumentItemViewModel> OpenDocuments => _store.DocumentsInOrder().Where(d => d.IsReady).ToList();
+
+    public bool HasOpenDocuments => _store.Documents.Any(d => d.IsReady);
+
+    public string EmptyHint => HasOpenDocuments
+        ? "Choose a PDF from the list on the left."
+        : "Add PDFs in the Inbox, or drag them onto the window.";
 
     public DocumentItemViewModel? SwitcherSelection
     {
@@ -169,8 +176,8 @@ public sealed partial class SplitRenameViewModel : ObservableObject
         _store.RequestSave();
     }
 
-    [ObservableProperty]
-    public partial IReadOnlyList<string> ClientSuggestions { get; private set; } = [];
+    /// <summary>Client-name suggestions, asked for by the box itself as the user types.</summary>
+    public Func<string?, CancellationToken, Task<IEnumerable<object>>> ClientPopulator => _clients.PopulateAsync;
 
     public IReadOnlyList<Core.Models.FolderShortcut> FolderShortcuts => _settings.Current.FolderShortcuts;
 
@@ -194,7 +201,6 @@ public sealed partial class SplitRenameViewModel : ObservableObject
 
     partial void OnClientNameChanged(string value)
     {
-        ClientSuggestions = _syncing ? [] : _clients.Suggest(value);
         if (!_syncing && Document is { } document)
         {
             document.ClientName = value;
@@ -241,7 +247,17 @@ public sealed partial class SplitRenameViewModel : ObservableObject
     {
         if (Document is { } document)
         {
-            _store.Close([document]);
+            CloseAndOpenNext(document);
+        }
+    }
+
+    /// <summary>Closes a finished PDF and moves on to the next one in the list, like closing a browser tab.</summary>
+    private void CloseAndOpenNext(DocumentItemViewModel document)
+    {
+        _store.Close([document], openNext: true);
+        if (Document is { } next)
+        {
+            _activity.Report($"Now showing {next.FileName}");
         }
     }
 
@@ -328,8 +344,8 @@ public sealed partial class SplitRenameViewModel : ObservableObject
                 await _dialogs.ShowMessageAsync("Open Folder", error);
             }
 
-            // Like 1.x, a finished document leaves the list.
-            _store.Close([document]);
+            // Like 1.x, a finished document leaves the list; the next PDF opens in its place.
+            CloseAndOpenNext(document);
         }
         catch (OperationCanceledException)
         {
@@ -377,11 +393,42 @@ public sealed partial class SplitRenameViewModel : ObservableObject
 
         OnPropertyChanged(nameof(Document));
         OnPropertyChanged(nameof(HasDocument));
-        OnPropertyChanged(nameof(OpenDocuments));
-        OnPropertyChanged(nameof(SwitcherSelection));
+        OnPropertyChanged(nameof(SwitcherSelection)); // The list itself is unchanged, so it keeps its scroll position.
         CloseDocumentCommand.NotifyCanExecuteChanged();
         Preview.ShowDocument(Document);
         BuildForm();
+    }
+
+    private void OnDocumentsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        foreach (DocumentItemViewModel item in e.OldItems ?? Array.Empty<DocumentItemViewModel>())
+        {
+            item.PropertyChanged -= OnListedDocumentChanged;
+        }
+
+        foreach (DocumentItemViewModel item in e.NewItems ?? Array.Empty<DocumentItemViewModel>())
+        {
+            item.PropertyChanged += OnListedDocumentChanged;
+        }
+
+        RefreshOpenDocuments();
+    }
+
+    /// <summary>A PDF finished loading or moved to another folder: the list beside the editor follows.</summary>
+    private void OnListedDocumentChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(DocumentItemViewModel.State) or nameof(DocumentItemViewModel.FolderId))
+        {
+            RefreshOpenDocuments();
+        }
+    }
+
+    private void RefreshOpenDocuments()
+    {
+        OnPropertyChanged(nameof(OpenDocuments));
+        OnPropertyChanged(nameof(HasOpenDocuments));
+        OnPropertyChanged(nameof(EmptyHint));
+        OnPropertyChanged(nameof(SwitcherSelection)); // A new list drops the selection; put it back.
     }
 
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs e)

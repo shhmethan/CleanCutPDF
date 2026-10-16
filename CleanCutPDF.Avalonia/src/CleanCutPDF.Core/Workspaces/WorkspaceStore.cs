@@ -20,6 +20,7 @@ public sealed class WorkspaceStore(AppPaths paths, AppLog? log = null)
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
         var catalog = WorkspaceCatalog.CreateDefault();
+        var loaded = false;
         try
         {
             if (File.Exists(paths.WorkspacesFile))
@@ -27,6 +28,7 @@ public sealed class WorkspaceStore(AppPaths paths, AppLog? log = null)
                 await using var stream = File.OpenRead(paths.WorkspacesFile);
                 catalog = await JsonSerializer.DeserializeAsync<WorkspaceCatalog>(stream, JsonOptions, cancellationToken)
                           ?? catalog;
+                loaded = true;
             }
         }
         catch (JsonException error)
@@ -43,8 +45,16 @@ public sealed class WorkspaceStore(AppPaths paths, AppLog? log = null)
         }
 
         catalog.Normalize();
+        var repaired = catalog.Upgrade();
         Catalog = catalog;
         log?.Info("Workspaces", $"Loaded {catalog.Workspaces.Count} workspace(s), {catalog.Fields.Count} field(s)");
+        if (repaired && loaded)
+        {
+            log?.Info("Workspaces", "Added {revoked} to the Accounting filename format (the Revoked toggle had no effect)");
+            await SaveAsync(cancellationToken); // Also raises Changed.
+            return;
+        }
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 

@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
@@ -40,6 +41,9 @@ public interface IDialogService
 
     /// <summary>Opens the tour beside the main window (not modal, so each page can be seen and tried).</summary>
     void ShowTutorial(ViewModels.TutorialViewModel tutorial);
+
+    /// <summary>Puts text on the clipboard.</summary>
+    Task CopyTextAsync(string text);
 }
 
 public sealed class WindowDialogService : IDialogService
@@ -54,6 +58,14 @@ public sealed class WindowDialogService : IDialogService
     private Window? _owner;
 
     public void Attach(Window owner) => _owner = owner;
+
+    public async Task CopyTextAsync(string text)
+    {
+        if (RequireOwner().Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(text);
+        }
+    }
 
     public async Task<IReadOnlyList<string>> PickPdfFilesAsync(string title)
     {

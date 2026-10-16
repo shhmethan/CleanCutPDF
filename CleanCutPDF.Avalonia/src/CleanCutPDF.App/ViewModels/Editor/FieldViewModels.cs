@@ -92,7 +92,27 @@ public sealed partial class TextFieldViewModel(FieldDefinition definition, IRead
         set => Value = value;
     }
 
-    protected override void OnValueChanged() => OnPropertyChanged(nameof(Text));
+    protected override void OnValueChanged()
+    {
+        OnPropertyChanged(nameof(Text));
+        if (IsDate)
+        {
+            OnPropertyChanged(nameof(PickedDate));
+        }
+    }
+
+    /// <summary>The calendar button's date: the typed date when it can be read, written back in this field's format.</summary>
+    public DateTime? PickedDate
+    {
+        get => IsDate && DateFieldFormat.TryParse(Value, out var date) ? date.ToDateTime(TimeOnly.MinValue) : null;
+        set
+        {
+            if (value is { } picked && picked.Date != PickedDate)
+            {
+                Value = DateFieldFormat.Format(DateOnly.FromDateTime(picked), Definition.DateFormat);
+            }
+        }
+    }
 
     /// <summary>The Today button (uses this field's date format).</summary>
     [RelayCommand]

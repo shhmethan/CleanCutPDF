@@ -206,64 +206,66 @@ public sealed partial class QuickSplitService(IPdfEngine engine, AppLog log, Tim
 }
 
 /// <summary>
-/// Remembered client names for suggestions: client folders in the export
-/// folder plus every "Client:" in the export history. Built in the background
-/// once and refreshed after exports (1.x re-read the whole log on every keystroke).
+/// Remembered client names for suggestions: every "Client:" in the export
+/// history (the Logs page), newest first. Built in the background and refreshed
+/// when the history changes (1.x re-read the whole log on every keystroke).
+/// Folders in the export folder are not used: the user asked for the log only.
 /// </summary>
 public sealed partial class ClientNameIndex(ExportHistory history)
 {
+    /// <summary>How many suggestions the client box lists (1.x showed 3; the list now scrolls).</summary>
+    public const int DefaultLimit = 25;
+
     private volatile IReadOnlyList<string> _names = [];
+    private volatile IReadOnlyDictionary<string, DateTime> _lastUsed = new Dictionary<string, DateTime>();
 
     public IReadOnlyList<string> Names => _names;
 
-    public Task RefreshAsync(string? exportFolder, CancellationToken cancellationToken = default) => Task.Run(() =>
+    /// <summary>When a name was last exported (local time from its history line), if it is in the history.</summary>
+    public DateTime? LastUsed(string name) => _lastUsed.TryGetValue(name, out var when) ? when : null;
+
+    public Task RefreshAsync(CancellationToken cancellationToken = default) => Task.Run(() =>
     {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var lastUsed = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
         var names = new List<string>();
-        void Add(string name)
-        {
-            name = name.Trim();
-            if (name.Length > 0 && seen.Add(name))
-            {
-                names.Add(name);
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(exportFolder) && Directory.Exists(exportFolder))
-        {
-            try
-            {
-                foreach (var directory in new DirectoryInfo(exportFolder).EnumerateDirectories().OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase))
-                {
-                    if (!directory.Name.StartsWith('.') && !directory.Name.Equals("Quick Split Files", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Add(directory.Name);
-                    }
-                }
-            }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-            {
-                // A network folder may be offline; history still works.
-            }
-        }
-
         if (File.Exists(history.FilePath))
         {
-            foreach (var line in File.ReadLines(history.FilePath))
+            // Newest first, so the spelling used most recently is the one kept.
+            foreach (var line in File.ReadLines(history.FilePath).Reverse())
             {
                 var match = ClientPattern().Match(line);
-                if (match.Success)
+                var name = match.Success ? match.Groups[1].Value.Trim() : "";
+                if (name.Length == 0)
                 {
-                    Add(match.Groups[1].Value);
+                    continue;
+                }
+
+                var stamp = Stamp().Match(line);
+                var when = stamp.Success && DateTime.TryParseExact(stamp.Groups[1].Value, "yyyy-MM-dd HH:mm:ss",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed) ? parsed : DateTime.MinValue;
+                if (!lastUsed.TryGetValue(name, out var known))
+                {
+                    names.Add(name);
+                    lastUsed[name] = when;
+                }
+                else if (when > known)
+                {
+                    lastUsed[name] = when;
                 }
             }
         }
 
+        _lastUsed = lastUsed;
         _names = names;
     }, cancellationToken);
 
-    /// <summary>1.x ranking: name starts with the text, then a word starts with it, then contains it.</summary>
-    public IReadOnlyList<string> Suggest(string? query, int limit = 3)
+    /// <summary>
+    /// 1.x ranking: name starts with the text, then a word starts with it, then contains it.
+    /// <paramref name="hidden"/> holds names the user removed from suggestions (name → when, local time);
+    /// a hidden name comes back only if it is exported again after it was hidden.
+    /// </summary>
+    public IReadOnlyList<string> Suggest(string? query, int limit = DefaultLimit,
+        IReadOnlyDictionary<string, DateTime>? hidden = null)
     {
         var text = (query ?? "").Trim();
         if (text.Length == 0)
@@ -271,8 +273,12 @@ public sealed partial class ClientNameIndex(ExportHistory history)
             return [];
         }
 
+        var hiddenNames = hidden is { Count: > 0 }
+            ? new Dictionary<string, DateTime>(hidden, StringComparer.OrdinalIgnoreCase)
+            : null;
         return Names
             .Where(n => n.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .Where(n => hiddenNames is null || !IsHidden(n, hiddenNames))
             .OrderBy(n => n.StartsWith(text, StringComparison.OrdinalIgnoreCase) ? 0
                 : Words().Matches(n).Any(w => w.Value.StartsWith(text, StringComparison.OrdinalIgnoreCase)) ? 1 : 2)
             .ThenBy(n => n.IndexOf(text, StringComparison.OrdinalIgnoreCase))
@@ -281,8 +287,14 @@ public sealed partial class ClientNameIndex(ExportHistory history)
             .ToList();
     }
 
+    private bool IsHidden(string name, Dictionary<string, DateTime> hidden) =>
+        hidden.TryGetValue(name, out var hiddenAt) && (LastUsed(name) ?? DateTime.MinValue) <= hiddenAt;
+
     [GeneratedRegex(@"\bClient:\s*([^|]+)", RegexOptions.IgnoreCase)]
     private static partial Regex ClientPattern();
+
+    [GeneratedRegex(@"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]")]
+    private static partial Regex Stamp();
 
     [GeneratedRegex("[A-Za-z0-9]+")]
     private static partial Regex Words();

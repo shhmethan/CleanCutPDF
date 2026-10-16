@@ -42,13 +42,15 @@ public sealed partial class TutorialViewModel : ObservableObject
             "Export PDFs saves one named file per Part. Values you type are kept if you close the app.",
             AppPage.SplitRename),
         new("Rename Only",
-            "For PDFs that are already separate documents. Add files, fill in the same fields, and each file is renamed (or copied with the new name) without looking for SPLIT HERE sheets.",
+            "For PDFs that are already separate documents. Add files, fill in the same fields, and each file is renamed (or copied with the new name) without looking for SPLIT HERE sheets.\n\n" +
+            "Made a mistake in an exported file name? Add that file here: its workspace, client, and fields are filled back in, ready for a quick fix.",
             AppPage.RenameOnly),
         new("Quick Split",
             "For batches with one document per client. Drop a PDF and it is split at every SPLIT HERE sheet and saved straight away with numbered names.",
             AppPage.QuickSplit),
         new("Logs",
-            "Every file you export or rename is listed here by day and client. Search it, export it, or use Undo Last Export to move the most recent export to the Recycle Bin.",
+            "Every file you export or rename is listed here by day and client. Search it, export it, or use Undo Last Export to move the most recent export to the Recycle Bin.\n\n" +
+            "Right-click a file to copy it or to stop suggesting a misspelled client name. Tick files to export or print only those.",
             AppPage.Logs),
         new("Workspaces",
             "A workspace is a set of fields and a filename format, such as Accounting or Legal. Change the fields, the filename format, or the form layout here, and add your own fields on the Field Library tab.",

@@ -120,6 +120,10 @@ public sealed partial class WorkspacesViewModel : ObservableObject
     [ObservableProperty]
     public partial string FilenamePreview { get; private set; } = "";
 
+    /// <summary>Names the assigned fields that the filename format leaves out ("" when there are none).</summary>
+    [ObservableProperty]
+    public partial string FilenameNote { get; private set; } = "";
+
     public ObservableCollection<TokenButton> Tokens { get; } = [];
 
     public ObservableCollection<FieldRow> AssignedFields { get; } = [];
@@ -707,8 +711,15 @@ public sealed partial class WorkspacesViewModel : ObservableObject
         if (Current is not { } workspace)
         {
             FilenamePreview = "";
+            FilenameNote = "";
             return;
         }
+
+        var unused = Catalog.FieldsMissingFromFilename(workspace.Name, FilenameTemplate);
+        FilenameNote = unused.Count == 0
+            ? ""
+            : $"Not in the file name: {string.Join(", ", unused)}. " +
+              "What you enter there is not added to exported file names; use the + buttons to add it.";
 
         try
         {

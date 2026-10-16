@@ -123,7 +123,7 @@ Pillow (image analysis/resizing), reportlab (optional log → PDF export).
 |---|---|---|
 | Header | Mode title, active filename, workspace selector, workspace summary | Port (Phase 2) |
 | Optional client field | Workspace-specific label + "(optional)"; export allowed without it | Port (Phase 2) |
-| Client suggestions | Top-3 matches from output-folder subfolders + `Client:` names in log; Tab/Enter/Up/Down | Port – **cached index** instead of reading the log on every keystroke (Phase 3) |
+| Client suggestions | Top-3 matches from output-folder subfolders + `Client:` names in log; Tab/Enter/Up/Down | Port – **cached index** instead of reading the log on every keystroke (Phase 3). From alpha.7 the names come from the log only (the user's request) |
 | Aa button | Force title case of pasted client name | Port (Phase 2) |
 | Part cards | "Part N — Pages a to b"; clicking title jumps preview | Port (Phase 2) |
 | Field rendering | Text, number, currency, date, choice (+Other free text), checkbox, toggle; header placement for toggles | Port (Phase 2) |
@@ -174,6 +174,7 @@ Pillow (image analysis/resizing), reportlab (optional log → PDF export).
 | File list + editor | Add PDFs, list with ✕, Clear; each PDF is one part (no markers) | Port (Phase 3) |
 | Action | "Create renamed copies" (to output folder) or "Rename originals in place" (confirm) | Port (Phase 3) |
 | Uses workspace fields/template | Same filename pipeline as Split & Rename | Port (Phase 3) |
+| Refill an exported file | (not in 1.x) | **New (alpha.8)** – a file found in the export history gets its workspace, client and fields back; otherwise the name is read with the workspaces' filename formats (`FilenameRecognizer`, only readings that rebuild the same name and are confirmed by a known client or a date/amount) |
 
 ### 2.10 Quick Split
 | Feature | Python behavior | Plan |
@@ -201,6 +202,7 @@ Pillow (image analysis/resizing), reportlab (optional log → PDF export).
 | Filters | Workspace (partial), export date from/to | Port (Phase 4) |
 | Export | CSV, TSV, TXT, PDF, Print; filters for client/agency/export date/part date | Port (Phase 4) |
 | Clear log | Confirm | Port (Phase 4) |
+| Copy / pick entries | (1.x: none) | **New (alpha.8)** – right-click menu copies file name, details, client, or the log line; tick entries so Export and Print use only those; Stop Suggesting a client name |
 | Bounded log | Trim to 2,500 lines when >4 MB | Port (Phase 4) |
 
 ### 2.13 Appearance, keybinds, misc

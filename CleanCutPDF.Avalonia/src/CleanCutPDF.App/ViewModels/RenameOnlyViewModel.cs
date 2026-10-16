@@ -3,6 +3,7 @@ using CleanCutPDF.App.Services;
 using CleanCutPDF.App.ViewModels.Editor;
 using CleanCutPDF.Core.Diagnostics;
 using CleanCutPDF.Core.Export;
+using CleanCutPDF.Core.History;
 using CleanCutPDF.Core.Infrastructure;
 using CleanCutPDF.Core.Naming;
 using CleanCutPDF.Core.Pdf;
@@ -29,6 +30,10 @@ public sealed partial class RenameFileViewModel(string filePath, string workspac
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText))]
     public partial bool IsLoaded { get; set; }
+
+    /// <summary>How the fields were filled in when the file was added (exported earlier), or null.</summary>
+    [ObservableProperty]
+    public partial string? RecognitionNote { get; set; }
 
     public string Workspace { get; set; } = workspace;
     public string ClientName { get; set; } = "";
@@ -59,13 +64,15 @@ public sealed partial class RenameOnlyViewModel : ObservableObject
     private readonly ActivityService _activity;
     private readonly CrashLog _crashLog;
     private readonly AppLog _log;
+    private readonly ExportHistory _history;
     private RenameFileViewModel? _formFile;
     private bool _syncing;
 
     public RenameOnlyViewModel(IPdfEngine engine, PagePreviewService previews, WorkspaceStore workspaces,
         ISettingsService settings, IDialogService dialogs, RenameService rename, ClientSuggestions clients,
-        ActivityService activity, CrashLog crashLog, AppLog log, ToolsService tools)
+        ActivityService activity, CrashLog crashLog, AppLog log, ToolsService tools, ExportHistory history)
     {
+        _history = history;
         _engine = engine;
         _previews = previews;
         _workspaces = workspaces;
@@ -120,14 +127,19 @@ public sealed partial class RenameOnlyViewModel : ObservableObject
     [ObservableProperty]
     public partial string? SelectedWorkspace { get; set; }
 
+    /// <summary>Shown above the form when the selected file's fields were filled in from its name.</summary>
+    public string? RecognitionNote => SelectedFile?.RecognitionNote;
+
+    public bool HasRecognitionNote => !string.IsNullOrEmpty(RecognitionNote);
+
     [ObservableProperty]
     public partial string ClientLabel { get; private set; } = "Client Name (optional):";
 
     [ObservableProperty]
     public partial string ClientName { get; set; } = "";
 
-    [ObservableProperty]
-    public partial IReadOnlyList<string> ClientSuggestions { get; private set; } = [];
+    /// <summary>Client-name suggestions, asked for by the box itself as the user types.</summary>
+    public Func<string?, CancellationToken, Task<IEnumerable<object>>> ClientPopulator => _clients.PopulateAsync;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCopy))]
@@ -175,12 +187,15 @@ public sealed partial class RenameOnlyViewModel : ObservableObject
 
         OnPropertyChanged(nameof(HasFiles));
         SelectedFile ??= added.FirstOrDefault();
+        IReadOnlyList<HistoryEntry>? history = null;
         foreach (var file in added)
         {
             try
             {
                 file.PageCount = (await _engine.OpenAsync(file.FilePath)).PageCount;
                 file.IsLoaded = true;
+                history ??= await ReadHistoryAsync();
+                Recognize(file, history);
             }
             catch (PdfOpenException error)
             {
@@ -194,6 +209,11 @@ public sealed partial class RenameOnlyViewModel : ObservableObject
 
             if (ReferenceEquals(file, SelectedFile))
             {
+                _syncing = true;
+                ClientName = file.ClientName;
+                _syncing = false;
+                OnPropertyChanged(nameof(RecognitionNote));
+                OnPropertyChanged(nameof(HasRecognitionNote));
                 BuildForm();
                 Preview.ShowDocument(null);
                 Preview.ShowDocument(file);
@@ -204,6 +224,51 @@ public sealed partial class RenameOnlyViewModel : ObservableObject
         {
             _log.Info("Rename", $"Added {added.Count} PDF(s) to Rename Only");
         }
+    }
+
+    private async Task<IReadOnlyList<HistoryEntry>> ReadHistoryAsync()
+    {
+        try
+        {
+            var lines = await _history.ReadLinesAsync();
+            return await Task.Run(() => HistoryLog.Parse(lines));
+        }
+        catch (Exception error)
+        {
+            _log.Warning("Rename", "The export history could not be read to fill in fields", error);
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// A file CleanCutPDF exported earlier gets its workspace, client, and fields back
+    /// (from the Logs page, or by reading its name), so a mistake is quick to fix.
+    /// </summary>
+    private void Recognize(RenameFileViewModel file, IReadOnlyList<HistoryEntry> history)
+    {
+        RecognizedName? found;
+        try
+        {
+            found = FilenameRecognizer.Recognize(file.FileName, _workspaces.Catalog, history, _clients.KnownNames, file.Workspace);
+        }
+        catch (Exception error)
+        {
+            _log.Warning("Rename", "Reading the fields from a file name failed", error);
+            return;
+        }
+
+        if (found is null)
+        {
+            return;
+        }
+
+        file.Workspace = found.Workspace;
+        file.ClientName = found.Client;
+        file.WorkspaceData[found.Workspace] = [new Dictionary<string, string>(found.Values)];
+        file.RecognitionNote = found.Source == RecognitionSource.ExportLog
+            ? $"Filled in from the Logs page (exported {found.ExportedAt:g}). Make your changes, then rename."
+            : $"Filled in by reading the file name with the {found.Workspace} filename format. Please check each field.";
+        _log.Info("Rename", $"Filled in fields for {file.FileName} ({found.Source})");
     }
 
     [RelayCommand]
@@ -334,6 +399,8 @@ public sealed partial class RenameOnlyViewModel : ObservableObject
         ClientName = value?.ClientName ?? "";
         _syncing = false;
         Preview.ShowDocument(value is { IsLoaded: true } ? value : null);
+        OnPropertyChanged(nameof(RecognitionNote));
+        OnPropertyChanged(nameof(HasRecognitionNote));
         BuildForm();
     }
 
@@ -357,7 +424,6 @@ public sealed partial class RenameOnlyViewModel : ObservableObject
             file.ClientName = value;
         }
 
-        ClientSuggestions = _clients.Suggest(value);
         UpdateProposedName();
     }
 

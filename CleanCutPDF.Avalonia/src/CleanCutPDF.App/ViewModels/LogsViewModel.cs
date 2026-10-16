@@ -13,12 +13,35 @@ using CommunityToolkit.Mvvm.Input;
 namespace CleanCutPDF.App.ViewModels;
 
 /// <summary>One client's files on one day, with a date heading when the day changes.</summary>
-public sealed record HistoryGroupRow(HistoryGroup Group, string? DateHeading)
+public sealed record HistoryGroupRow(HistoryGroup Group, string? DateHeading, IReadOnlyList<HistoryEntryRow> Entries)
 {
     public bool ShowDateHeading => DateHeading is not null;
     public string Heading => Group.Heading;
-    public IReadOnlyList<HistoryEntry> Entries => Group.Entries;
     public override string ToString() => $"{Group.Heading}, {Group.Entries.Count} file(s)";
+}
+
+/// <summary>One file on the Logs page; ticked rows are what Export and Print use.</summary>
+public sealed partial class HistoryEntryRow(HistoryEntry entry, bool isChecked, LogsViewModel owner)
+    : ObservableObject
+{
+    public HistoryEntry Entry { get; } = entry;
+
+    /// <summary>The page, for the right-click menu (a ContextMenu is outside the page's visual tree).</summary>
+    public LogsViewModel Owner { get; } = owner;
+
+    public string Time => Entry.Time;
+    public string File => Entry.File;
+    public string Details => Entry.Details;
+    public string Raw => Entry.Raw;
+    public bool HasClient => Entry.Client.Length > 0;
+    public string HideClientText => $"Stop Suggesting “{Entry.Client}”";
+
+    [ObservableProperty]
+    public partial bool IsChecked { get; set; } = isChecked;
+
+    partial void OnIsCheckedChanged(bool value) => Owner.OnRowChecked(this);
+
+    public override string ToString() => Entry.File;
 }
 
 public sealed record SortOption(HistorySort Sort, string Label)
@@ -52,6 +75,8 @@ public sealed partial class LogsViewModel : ObservableObject
     private readonly ActivityService _activity;
     private readonly CrashLog _crashLog;
     private readonly AppLog _log;
+    private readonly ClientSuggestions _clients;
+    private readonly HashSet<HistoryEntry> _checked = [];
     private IReadOnlyList<HistoryEntry> _all = [];
     private IReadOnlyList<HistoryEntry> _visible = [];
     private CancellationTokenSource? _filterCts;
@@ -59,8 +84,10 @@ public sealed partial class LogsViewModel : ObservableObject
     private int _generation;
 
     public LogsViewModel(ExportHistory history, IPdfEngine engine, IDialogService dialogs, IShellService shell,
-        ToolsService tools, DocumentStore documents, ActivityService activity, CrashLog crashLog, AppLog log)
+        ToolsService tools, DocumentStore documents, ActivityService activity, CrashLog crashLog, AppLog log,
+        ClientSuggestions clients)
     {
+        _clients = clients;
         _history = history;
         _engine = engine;
         _dialogs = dialogs;
@@ -121,6 +148,9 @@ public sealed partial class LogsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsBusy { get; private set; }
 
+    public bool HasChecked => _checked.Count > 0;
+    public string CheckedText => $"{_checked.Count} selected; Export and Print use only these";
+
     /// <summary>Called when the page is first shown.</summary>
     public async Task EnsureLoadedAsync()
     {
@@ -137,6 +167,8 @@ public sealed partial class LogsViewModel : ObservableObject
         {
             var lines = await _history.ReadLinesAsync();
             _all = await Task.Run(() => HistoryLog.Parse(lines));
+            _checked.IntersectWith(_all);
+            NotifyChecked();
             await ApplyFilterAsync(debounce: false);
         }
         catch (Exception error)
@@ -190,7 +222,8 @@ public sealed partial class LogsViewModel : ObservableObject
             {
                 var heading = group.Date != lastDate ? FormatDate(group.Date) : null;
                 lastDate = group.Date;
-                Groups.Add(new HistoryGroupRow(group, heading));
+                var rows = group.Entries.Select(e => new HistoryEntryRow(e, _checked.Contains(e), this)).ToList();
+                Groups.Add(new HistoryGroupRow(group, heading, rows));
             }
 
             IsEmpty = visible.Count == 0;
@@ -202,6 +235,91 @@ public sealed partial class LogsViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
+        }
+    }
+
+    internal void OnRowChecked(HistoryEntryRow row)
+    {
+        if (row.IsChecked)
+        {
+            _checked.Add(row.Entry);
+        }
+        else
+        {
+            _checked.Remove(row.Entry);
+        }
+
+        NotifyChecked();
+    }
+
+    private void NotifyChecked()
+    {
+        OnPropertyChanged(nameof(HasChecked));
+        OnPropertyChanged(nameof(CheckedText));
+    }
+
+    /// <summary>The ticked entries (in the current sort), or everything shown when nothing is ticked.</summary>
+    private IReadOnlyList<HistoryEntry> Chosen() =>
+        _checked.Count == 0
+            ? _visible
+            : HistoryLog.Filter(_all.Where(_checked.Contains).ToList(), new HistoryFilter(Sort: SelectedSort.Sort));
+
+    [RelayCommand]
+    private void ClearSelection()
+    {
+        foreach (var row in Groups.SelectMany(g => g.Entries))
+        {
+            row.IsChecked = false;
+        }
+
+        _checked.Clear(); // Also ticked entries hidden by the current filters.
+        NotifyChecked();
+    }
+
+    [RelayCommand]
+    private void SelectShown()
+    {
+        foreach (var row in Groups.SelectMany(g => g.Entries))
+        {
+            row.IsChecked = true;
+        }
+    }
+
+    // ───── Right-click menu ─────
+
+    [RelayCommand]
+    private Task CopyFileName(HistoryEntryRow? row) => row is null ? Task.CompletedTask : CopyAsync(row.Entry.File);
+
+    [RelayCommand]
+    private Task CopyDetails(HistoryEntryRow? row) =>
+        row is null ? Task.CompletedTask : CopyAsync($"{row.Entry.File}{Environment.NewLine}{row.Entry.Details}");
+
+    [RelayCommand]
+    private Task CopyClient(HistoryEntryRow? row) => row is null ? Task.CompletedTask : CopyAsync(row.Entry.Client);
+
+    [RelayCommand]
+    private Task CopyLogLine(HistoryEntryRow? row) => row is null ? Task.CompletedTask : CopyAsync(row.Entry.Raw);
+
+    private async Task CopyAsync(string text)
+    {
+        try
+        {
+            await _dialogs.CopyTextAsync(text);
+            _activity.Report("Copied to the clipboard");
+        }
+        catch (Exception error)
+        {
+            _log.Warning("Logs", "Copy to the clipboard failed", error);
+        }
+    }
+
+    [RelayCommand]
+    private void HideClient(HistoryEntryRow? row)
+    {
+        if (row is { HasClient: true })
+        {
+            _clients.Hide(row.Entry.Client);
+            _activity.Report($"“{row.Entry.Client}” will no longer be suggested (undo in Settings › Client name suggestions)");
         }
     }
 
@@ -220,14 +338,15 @@ public sealed partial class LogsViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportAsync()
     {
-        if (_visible.Count == 0)
+        var chosen = Chosen();
+        if (chosen.Count == 0)
         {
             await _dialogs.ShowMessageAsync("Export History", "No entries match the current search and filters.");
             return;
         }
 
         var choice = await _dialogs.ChooseAsync("Export History",
-            $"Export the {_visible.Count} entr{(_visible.Count == 1 ? "y" : "ies")} currently shown as:",
+            $"Export the {chosen.Count} {(_checked.Count > 0 ? "selected" : "currently shown")} entr{(chosen.Count == 1 ? "y" : "ies")} as:",
             Formats.Keys.ToList(), "CSV (Excel)", "Next");
         if (choice is null)
         {
@@ -246,10 +365,10 @@ public sealed partial class LogsViewModel : ObservableObject
         try
         {
             using var busy = _activity.Begin("Exporting history");
-            var bytes = await HistoryLog.ExportAsync(_visible, format, _engine);
+            var bytes = await HistoryLog.ExportAsync(chosen, format, _engine);
             await File.WriteAllBytesAsync(path, bytes);
-            _log.Info("Logs", $"Exported {_visible.Count} history entr(ies) as {format}");
-            if (await _dialogs.ConfirmAsync("Export History", $"Saved {_visible.Count} entr(ies) to:\n{path}", "Open It", "Close")
+            _log.Info("Logs", $"Exported {chosen.Count} history entr(ies) as {format}");
+            if (await _dialogs.ConfirmAsync("Export History", $"Saved {chosen.Count} entr(ies) to:\n{path}", "Open It", "Close")
                 && _shell.OpenFile(path) is { } error)
             {
                 await _dialogs.ShowMessageAsync("Open File", error);
@@ -270,7 +389,8 @@ public sealed partial class LogsViewModel : ObservableObject
     [RelayCommand]
     private async Task PrintAsync()
     {
-        if (_visible.Count == 0)
+        var chosen = Chosen();
+        if (chosen.Count == 0)
         {
             await _dialogs.ShowMessageAsync("Print History", "No entries match the current search and filters.");
             return;
@@ -279,7 +399,7 @@ public sealed partial class LogsViewModel : ObservableObject
         try
         {
             var path = Path.Combine(Path.GetTempPath(), $"CleanCutPDF history {DateTime.Now:yyyyMMdd-HHmmss}.html");
-            await File.WriteAllBytesAsync(path, await HistoryLog.ExportAsync(_visible, HistoryExportFormat.Html, _engine));
+            await File.WriteAllBytesAsync(path, await HistoryLog.ExportAsync(chosen, HistoryExportFormat.Html, _engine));
             if (_shell.OpenFile(path) is { } error)
             {
                 await _dialogs.ShowMessageAsync("Print History", error);

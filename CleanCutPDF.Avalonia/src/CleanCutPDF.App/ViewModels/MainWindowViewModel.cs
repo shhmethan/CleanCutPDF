@@ -6,6 +6,7 @@ using CleanCutPDF.Core.Services;
 using CleanCutPDF.Core.Shortcuts;
 using CleanCutPDF.Core.Workspaces;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace CleanCutPDF.App.ViewModels;
 
@@ -206,6 +207,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         navigation.NavigationRequested += (_, page) =>
             SelectedNavigationItem = NavigationItems.First(item => item.Page == page);
+
+        // Loaded settings, Reset Settings, and the 1.x import all arrive here.
+        settings.Changed += (_, current) => IsSidebarCollapsed = current.SidebarCollapsed;
     }
 
     public string Title => License.State.AllowsUse && License.LicensedTo is { } company
@@ -225,6 +229,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public partial NavigationItem? SelectedNavigationItem { get; set; }
 
     public ObservableObject? CurrentPage => SelectedNavigationItem?.Content;
+
+    /// <summary>The page list shows icons only, leaving more room for the page (remembered in settings).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SidebarWidth), nameof(SidebarToggleTip))]
+    public partial bool IsSidebarCollapsed { get; set; }
+
+    public double SidebarWidth => IsSidebarCollapsed ? 62 : 220;
+
+    public string SidebarToggleTip => IsSidebarCollapsed ? "Show the page names" : "Collapse the page list to icons";
+
+    [RelayCommand]
+    private void ToggleSidebar() => IsSidebarCollapsed = !IsSidebarCollapsed;
+
+    partial void OnIsSidebarCollapsedChanged(bool value)
+    {
+        if (_settings.Current.SidebarCollapsed != value)
+        {
+            _settings.Update(s => s.SidebarCollapsed = value);
+        }
+    }
 
     partial void OnSelectedNavigationItemChanged(NavigationItem? value)
     {

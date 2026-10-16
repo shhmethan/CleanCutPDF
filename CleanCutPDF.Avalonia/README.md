@@ -135,7 +135,7 @@ Avalonia 12 ships SkiaSharp 3.x.
    Fields editor (create/rename/delete workspaces, client label, summary, filename format with
    token buttons and live preview, field assignment/order, per-workspace defaults, notes, custom
    field library with every 1.x option); read-only import of 1.x data; folder shortcuts;
-   client-name suggestions from export folders and history.
+   client-name suggestions from the export history.
 4. **Logs and tools** (done): Logs page (grouped by day and client, search, workspace and
    date filters, sorting, export to CSV/TSV/Text/PDF, Print, Clear Log to the Recycle Bin);
    Undo Last Export (files go to the Recycle Bin/Trash); zoom window (fit to width, Ctrl+scroll

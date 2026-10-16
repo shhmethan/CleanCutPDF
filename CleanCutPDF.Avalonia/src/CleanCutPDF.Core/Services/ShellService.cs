@@ -30,9 +30,13 @@ public sealed class ShellService : IShellService
 
         try
         {
+            folder = NormalizeFolder(folder);
             if (OperatingSystem.IsWindows())
             {
-                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = true });
+                // The folder itself is opened through the shell. "explorer.exe <path>" shows
+                // Documents instead when the path has forward slashes (as paths saved by 1.x do)
+                // or a comma in a folder name.
+                Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true, Verb = "open" });
             }
             else if (OperatingSystem.IsMacOS())
             {
@@ -49,6 +53,16 @@ public sealed class ShellService : IShellService
         {
             return $"Could not open this folder:\n\n{error.Message}";
         }
+    }
+
+    /// <summary>
+    /// The full path with this system's separators and a trailing one, so the shell
+    /// can only take it as a folder (never as a program with the same name).
+    /// </summary>
+    public static string NormalizeFolder(string folder)
+    {
+        var full = Path.GetFullPath(folder.Trim());
+        return Path.EndsInDirectorySeparator(full) ? full : full + Path.DirectorySeparatorChar;
     }
 
     public string? OpenFile(string path)

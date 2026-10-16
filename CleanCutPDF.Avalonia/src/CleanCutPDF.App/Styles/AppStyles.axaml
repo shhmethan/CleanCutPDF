@@ -93,4 +93,9 @@
   <Style Selector="AutoCompleteBox /template/ TextBox#PART_TextBox">
     <Setter Property="AutomationProperties.Name" Value="{Binding $parent[AutoCompleteBox].(AutomationProperties.Name)}" />
   </Style>
+
+  <!-- Client suggestions: about seven rows, then the list scrolls. -->
+  <Style Selector="AutoCompleteBox">
+    <Setter Property="MaxDropDownHeight" Value="280" />
+  </Style>
 </Styles>

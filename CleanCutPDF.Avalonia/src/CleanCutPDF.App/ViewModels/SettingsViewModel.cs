@@ -35,13 +35,15 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly SettingsReset _reset;
     private readonly ActivityService _activity;
     private readonly CrashLog _crashLog;
+    private readonly ClientSuggestions _clients;
     private bool _syncing;
 
     public SettingsViewModel(ISettingsService settings, IDialogService dialogs, IShellService shell,
         LegacyDataLocator legacy, AppPaths paths, LicenseViewModel license, UpdatesViewModel updates, AppLog log,
         FolderShortcutsViewModel shortcuts, LegacyImportViewModel legacyImport, KeybindsViewModel keybinds,
-        SettingsReset reset, ActivityService activity, CrashLog crashLog)
+        SettingsReset reset, ActivityService activity, CrashLog crashLog, ClientSuggestions clients)
     {
+        _clients = clients;
         Keybinds = keybinds;
         _reset = reset;
         _activity = activity;
@@ -332,10 +334,50 @@ public sealed partial class SettingsViewModel : ObservableObject
             WarnWhenNoSplitMarkers = current.WarnWhenNoSplitMarkers;
             AutoRestoreSession = current.AutoRestoreSession;
             MakeClientFolder = current.MakeClientFolder;
+            var hidden = _clients.HiddenNames;
+            if (!hidden.SequenceEqual(HiddenClientNames))
+            {
+                HiddenClientNames.Clear();
+                foreach (var name in hidden)
+                {
+                    HiddenClientNames.Add(name);
+                }
+            }
+
+            OnPropertyChanged(nameof(HasHiddenClientNames));
         }
         finally
         {
             _syncing = false;
+        }
+    }
+
+    // ───── Client name suggestions ─────
+
+    /// <summary>Names left out of the client suggestions (A → Z).</summary>
+    public System.Collections.ObjectModel.ObservableCollection<string> HiddenClientNames { get; } = [];
+
+    public bool HasHiddenClientNames => HiddenClientNames.Count > 0;
+
+    [ObservableProperty]
+    public partial string NameToHide { get; set; } = "";
+
+    [RelayCommand]
+    private void HideClientName()
+    {
+        if (!string.IsNullOrWhiteSpace(NameToHide))
+        {
+            _clients.Hide(NameToHide);
+            NameToHide = "";
+        }
+    }
+
+    [RelayCommand]
+    private void UnhideClientName(string? name)
+    {
+        if (name is not null)
+        {
+            _clients.Unhide(name);
         }
     }
 }

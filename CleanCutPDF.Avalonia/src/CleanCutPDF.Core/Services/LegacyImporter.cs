@@ -189,6 +189,8 @@ public sealed class LegacyImporter(AppPaths paths)
         }
 
         catalog.Normalize();
+        catalog.Revision = 0; // 1.x data gets the same one-time repairs as an older 2.x file.
+        catalog.Upgrade();
         result.Catalog = catalog;
 
         if (root.TryGetProperty("folder_shortcuts", out var shortcuts) && shortcuts.ValueKind == JsonValueKind.Array)

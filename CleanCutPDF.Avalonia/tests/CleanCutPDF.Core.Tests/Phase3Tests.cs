@@ -129,23 +129,25 @@ public sealed class Phase3Tests : IAsyncDisposable
     // ───── Client suggestions ─────
 
     [Fact]
-    public async Task Client_suggestions_come_from_folders_and_history_ranked_like_1x()
+    public async Task Client_suggestions_come_from_the_export_log_only_ranked_like_1x()
     {
-        var exports = Path.Combine(_temp.Path, "out");
-        foreach (var folder in new[] { "Smithson LLC", "Quick Split Files", ".hidden", "Adam Smith" })
-        {
-            Directory.CreateDirectory(Path.Combine(exports, folder));
-        }
+        // Folders in the export folder are not a source (the user asked for the log only).
+        Directory.CreateDirectory(Path.Combine(_temp.Path, "out", "Smithfield Farms"));
 
         var history = new ExportHistory(_paths);
         await history.AppendAsync(["[2026-01-01 10:00:00] Workspace: Accounting | Client: Smith Family Trust | File: x.pdf",
-                                   "[2026-01-02 10:00:00] Workspace: Accounting | Client: adam smith | File: y.pdf"]);
+                                   "[2026-01-02 10:00:00] Workspace: Accounting | Client: adam smith | File: y.pdf",
+                                   "[2026-01-03 10:00:00] Export folder changed",
+                                   "[2026-01-04 10:00:00] Workspace: Legal | Client: Smithson LLC | File: z.pdf",
+                                   "[2026-01-05 10:00:00] Workspace: Accounting | Client: Adam Smith | File: w.pdf"]);
         var index = new ClientNameIndex(history);
 
-        await index.RefreshAsync(exports);
+        await index.RefreshAsync();
 
-        Assert.Equal(["Adam Smith", "Smithson LLC", "Smith Family Trust"], index.Names); // de-duplicated, case-insensitive
+        // Every client in the log, newest first; the latest spelling wins (case-insensitive).
+        Assert.Equal(["Adam Smith", "Smithson LLC", "Smith Family Trust"], index.Names);
         Assert.Equal(["Smith Family Trust", "Smithson LLC", "Adam Smith"], index.Suggest("smith"));
+        Assert.Empty(index.Suggest("smithfield"));
         Assert.Empty(index.Suggest(""));
     }
 

@@ -287,19 +287,47 @@ public sealed partial class DocumentStore : ObservableObject
 
     public DocumentItemViewModel? Find(string path) => Documents.FirstOrDefault(d => SamePath(d.FilePath, path));
 
-    /// <summary>Closes documents. The original files on disk are never touched.</summary>
-    public void Close(IEnumerable<DocumentItemViewModel> items)
+    /// <summary>The open PDFs in the order the Inbox lists them: folder by folder.</summary>
+    public IReadOnlyList<DocumentItemViewModel> DocumentsInOrder() =>
+        Folders.SelectMany(folder => Documents.Where(d => d.FolderId == folder.Id)).ToList();
+
+    /// <summary>
+    /// The PDF to show when <paramref name="current"/> is closed, like closing a
+    /// browser tab: the next one that can be opened, or the one before it when
+    /// it was the last. Null when nothing else is ready.
+    /// </summary>
+    public static DocumentItemViewModel? NextAfter(IReadOnlyList<DocumentItemViewModel> ordered,
+        DocumentItemViewModel current, IReadOnlyCollection<DocumentItemViewModel> closing)
     {
-        foreach (var item in items.ToList())
+        bool CanOpen(DocumentItemViewModel d) => d.IsReady && !ReferenceEquals(d, current) && !closing.Contains(d);
+        var index = ordered.ToList().IndexOf(current);
+        if (index < 0)
+        {
+            return ordered.FirstOrDefault(CanOpen);
+        }
+
+        return ordered.Skip(index + 1).FirstOrDefault(CanOpen) ?? ordered.Take(index).LastOrDefault(CanOpen);
+    }
+
+    /// <summary>Closes documents. The original files on disk are never touched.</summary>
+    /// <param name="openNext">When the PDF being edited is closed, open the next one instead of leaving the editor empty.</param>
+    public void Close(IEnumerable<DocumentItemViewModel> items, bool openNext = false)
+    {
+        var closing = items.ToList();
+        var next = openNext && ActiveDocument is { } active && closing.Contains(active)
+            ? NextAfter(DocumentsInOrder(), active, closing)
+            : null;
+
+        foreach (var item in closing)
         {
             _log.Info("Documents", $"Closed {item.FileName}");
             item.DetectionCts?.Cancel();
             Documents.Remove(item);
             if (ReferenceEquals(ActiveDocument, item))
             {
-                // Clearing the active document clears the preview immediately,
+                // Replacing the active document clears the preview immediately,
                 // so a closed PDF can never remain visible.
-                ActiveDocument = null;
+                ActiveDocument = next;
             }
 
             _ = ForgetAsync(item.FilePath);

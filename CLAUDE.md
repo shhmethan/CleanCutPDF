@@ -31,7 +31,7 @@ files from client/workspace fields).
 - A copy of the app is often running from **Visual Studio**. Don't kill it, and build test copies
   to a scratch folder (see Building).
 
-## Current status (latest pushed commit: `Working 2.0.0-alpha.5`)
+## Current status (latest pushed 2.x release commit: `Working 2.0.0-alpha.6 installer`)
 
 Done and tested:
 
@@ -88,7 +88,8 @@ Done and tested:
     Ctrl+A/C/V/X/Y/Z.
   - Reset Settings: `Core/Services/SettingsReset` (6-character code without 0/O/1/I). Copies
     `settings.json` and `workspaces.json` to `backups/reset-<timestamp>/`, then resets both live.
-    Kept: keybinds, `LegacyImportedUtc`, `LastUpdateCheckUtc`, license, history, sessions, logs.
+    Kept: keybinds, hidden client names, `LegacyImportedUtc`, `LastUpdateCheckUtc`, license, history,
+    sessions, logs.
   - The 1.x importer also maps the accent, font family, font size (1.x 12 ↔ 2.x 14), and
     `keybinds.json`.
 
@@ -136,7 +137,56 @@ Done and tested:
     to import 1.x data (`LegacyImportOffered`). Both flags survive Reset Settings.
   - `packaging/build-macos.sh` builds a .app bundle but has never been run.
 
-Tests: `tests/CleanCutPDF.Core.Tests` (205) + `tests/CleanCutPDF.App.Tests` (24), all passing.
+- **2.0.0-alpha.7 (fixes from the first week of real use; built and tested, not pushed until the user says so)**:
+  - Client name box: the `AutoCompleteBox` gets its names through `AsyncPopulator`
+    (`ClientSuggestions.PopulateAsync`). Never bind its `ItemsSource` to a list that the
+    client-name setter replaces: that re-entered the box while it committed a pick, and the form
+    could keep a different name than the box showed (files without the client name).
+    `ClientNameBoxTests` drives the real control with keys and clicks.
+  - Suggestions come from the export history only (the user's request), newest first;
+    `ClientSuggestions` refreshes on `ExportHistory.Changed`. Export-folder subfolders are not used.
+  - `ShellService.OpenFolder` opens the folder itself through the shell after
+    `NormalizeFolder`. `explorer.exe "<path>"` shows Documents for paths with forward slashes
+    (1.x saved `C:/...`) or commas.
+  - `WorkspaceCatalog.Revision` + `Upgrade()`: one-time repairs for saved catalogs (run on load
+    and on 1.x import). Revision 1 adds `{revoked}` after `{client}` in Accounting when the toggle
+    is assigned but the format lacks it. The Workspaces page shows `FilenameNote` for assigned
+    fields that are not in the format (`FieldsMissingFromFilename`).
+  - Split & Rename: "Open PDFs" list on the left (`OpenDocuments`, Inbox order) replaces the PDF
+    drop-down; after Export or Close PDF the next PDF opens (`DocumentStore.Close(openNext: true)`,
+    `NextAfter`). Closing from the Inbox does not advance.
+  - Sidebar: `AppSettings.SidebarCollapsed`, the ☰ button, `MainWindowViewModel.IsSidebarCollapsed`.
+  - `HexToBrushConverter` returns `BindingOperations.DoNothing` for a blank color (UnsetValue
+    cleared the themed button colors).
+
+- **2.0.0-alpha.8 (tester requests; built and tested, not pushed until the user says so)**:
+  - Client suggestions: `ClientNameIndex.DefaultLimit` = 25 (1.x showed 3); `AutoCompleteBox`
+    `MaxDropDownHeight` 280 in AppStyles, so the list scrolls.
+  - Hidden client names: `AppSettings.HiddenClientNames` (name → when hidden, local time; kept by
+    Reset Settings). `ClientNameIndex` records each name's last export time; a name hidden before
+    its last export shows again. The history log is never edited. Hide from Logs (right-click ›
+    Stop Suggesting) or Settings › Client name suggestions (`ClientSuggestions.Hide/Unhide`).
+  - Logs: rows are `HistoryEntryRow` (checkbox + right-click `ContextMenu`; commands go through
+    `Row.Owner` because a ContextMenu is outside the page's visual tree). Ticked rows make Export
+    and Print use only those (`LogsViewModel.Chosen`). `IDialogService.CopyTextAsync` puts text on
+    the clipboard. 1.x-style Copy was greyed because `SelectableTextBlock` only copies a selection.
+  - Date fields: `Controls/CalendarButton` (📅, a Flyout with month "01 January" and year
+    ComboBoxes above an Avalonia `Calendar`, whose own arrows still work) bound to
+    `TextFieldViewModel.PickedDate`. The Logs date filters use `DateFilterBox` (text + button).
+  - Rename Only refill: `Core/Naming/FilenameRecognizer` runs when a PDF is added. Export history
+    first (same file name, newest; `Fields:` labels mapped back to keys, booleans → "true"), then
+    the filename formats: a backtracking match of the template (dates/amounts must parse, on/off
+    fields only match their label, free text ends at the next separator), `agency_description`
+    split on known agencies, and only readings whose `Render(BuildTokens(...))` equals the name.
+    Without a known client it needs a date or amount plus one more value. `name_2` is tried
+    without `_2` first. The note above the form says where the values came from.
+  - `System.Security.Cryptography.Pkcs` 10.0.13 is pinned in Core: PDFsharp 6.2.4 brought in
+    8.0.1, which got NuGet advisories (NU1902/NU1903) and broke the 0-warning build. PDFsharp is
+    only used by the tests now (`TestPdf.cs`); moving it to the test project is a possible cleanup.
+
+Tests: `tests/CleanCutPDF.Core.Tests` (226) + `tests/CleanCutPDF.App.Tests` (47), all passing.
+`App.Tests` has `Avalonia.Headless` (plain package; `Avalonia.Headless.XUnit` 12 needs xunit v3):
+`HeadlessApp.RunAsync` runs a test body on a windowless UI thread with real controls and input.
 
 ### Remaining
 
@@ -229,6 +279,10 @@ User data for 2.x: `~/.cleancutpdf-next/`, containing `settings.json`, `workspac
   exports, make sure that profile's `export_folder` is a scratch folder; the 1.x import sets it
   to the user's real `Downloads\Processed Client Files`.
 - PDFs passed on the command line are imported into the Inbox (handy for tests).
+- To build and test without touching `bin/` at all, add `--artifacts-path <scratchpad>/art` to
+  `dotnet build` / `dotnet test`; the app is then `<scratchpad>/art/bin/CleanCutPDF.App/debug/CleanCutPDF.exe`.
+- A screenshot of the test window without bringing it forward: `PrintWindow(hwnd, dc, 2)`. UIA
+  `Invoke`, `SelectionItem.Select`, and `WindowPattern.Close` also work while it is minimized.
 - UI testing was done with PowerShell UI Automation scripts kept in the session scratchpad:
   `ui.ps1` (select list items, set text, invoke buttons, choose combo items), `shot.ps1`
   (screenshot one window), and `typepath.ps1` (type a path into a file dialog). File dialogs
@@ -240,6 +294,8 @@ User data for 2.x: `~/.cleancutpdf-next/`, containing `settings.json`, `workspac
 
 ## Environment gotchas (Windows, Git Bash + PowerShell 5.1)
 
+- Never run `python -` or a bare `python` from the Bash tool (it waits on stdin forever); pass a
+  script file and add `< /dev/null`.
 - **Bash heredocs mangle escapes**: `\n` inside python/C# strings becomes a real newline, and
   apostrophes in comments can break parsing. Write edit scripts to files with the Write tool
   (scratchpad), then run them with `C:/Users/Ethan/IdeaProjects/CleanCutPDF/.venv/Scripts/python.exe <file>`.

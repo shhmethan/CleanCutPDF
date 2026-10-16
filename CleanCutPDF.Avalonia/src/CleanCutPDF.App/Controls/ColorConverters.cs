@@ -1,5 +1,5 @@
 using System.Globalization;
-using Avalonia;
+using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 
@@ -21,7 +21,8 @@ public sealed class HexToBrushConverter : IValueConverter
     {
         if (value is not string text || !Color.TryParse(text, out var color))
         {
-            return AvaloniaProperty.UnsetValue;
+            // Not UnsetValue: that clears the button's themed colors (black text on the dark theme).
+            return BindingOperations.DoNothing;
         }
 
         if (!_contrast)

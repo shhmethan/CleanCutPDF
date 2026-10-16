@@ -45,6 +45,12 @@ public sealed class WorkspaceCatalog
 {
     public const string AccountingName = "Accounting";
 
+    /// <summary>Raised when a one-time repair of saved catalogs is added (see <see cref="Upgrade"/>).</summary>
+    public const int CurrentRevision = 1;
+
+    /// <summary>Which one-time repairs this catalog has had; files saved before they existed read as 0.</summary>
+    public int Revision { get; set; }
+
     public Dictionary<string, FieldDefinition> Fields { get; set; } = new();
     public List<WorkspaceDefinition> Workspaces { get; set; } = [];
 
@@ -131,6 +137,58 @@ public sealed class WorkspaceCatalog
         }
     }
 
+    /// <summary>
+    /// One-time repairs for a catalog saved by an earlier build (or imported from 1.x).
+    /// Returns true when something changed. Each repair runs once, so a later
+    /// deliberate edit is never undone.
+    /// </summary>
+    public bool Upgrade()
+    {
+        if (Revision >= CurrentRevision)
+        {
+            return false;
+        }
+
+        Revision = CurrentRevision;
+        return AddRevokedToAccountingFilename();
+    }
+
+    /// <summary>
+    /// Accounting has the Revoked toggle, but some saved filename formats have no
+    /// {revoked}, so the toggle changed nothing. It goes after the client name, as in the default.
+    /// </summary>
+    private bool AddRevokedToAccountingFilename()
+    {
+        const string token = "{revoked}";
+        const string client = "{client}";
+        var accounting = Workspaces.FirstOrDefault(w => w.Name == AccountingName);
+        if (accounting is null || !accounting.FieldKeys.Contains("revoked")
+            || accounting.FilenameTemplate.Contains(token, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var template = accounting.FilenameTemplate;
+        var at = template.IndexOf(client, StringComparison.Ordinal);
+        accounting.FilenameTemplate = at < 0
+            ? token + "_" + template
+            : template.Insert(at + client.Length, "_" + token);
+        return true;
+    }
+
+    /// <summary>
+    /// Labels of assigned fields that the filename format does not use, so their
+    /// values never reach the file name ({agency_description} covers both of its fields).
+    /// </summary>
+    public IReadOnlyList<string> FieldsMissingFromFilename(string workspaceName, string template)
+    {
+        bool Uses(string key) => template.Contains("{" + key + "}", StringComparison.Ordinal);
+        return Resolve(workspaceName).Fields
+            .Where(f => !Uses(f.Key) && !(f.Key is "agency" or "description" && Uses("agency_description")))
+            .Select(f => f.Label)
+            .ToList();
+    }
+
     public static WorkspaceCatalog CreateDefault()
     {
         var fields = new Dictionary<string, FieldDefinition>
@@ -209,6 +267,6 @@ public sealed class WorkspaceCatalog
             }
         };
 
-        return new WorkspaceCatalog { Fields = fields, Workspaces = workspaces };
+        return new WorkspaceCatalog { Revision = CurrentRevision, Fields = fields, Workspaces = workspaces };
     }
 }

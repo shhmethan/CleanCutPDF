@@ -10,15 +10,34 @@
 
 
 
-  <Grid Margin="24">
+  <Grid Margin="24" ColumnDefinitions="Auto,*">
+
+    <!-- The open PDFs (Inbox order): click one to work on it, without going back to the Inbox. -->
+    <Border Classes="card" Padding="4" Width="230" Margin="0,0,12,0" IsVisible="{Binding HasOpenDocuments}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="Open PDFs" FontWeight="SemiBold" Margin="10,8,10,4" />
+        <ListBox x:Name="OpenPdfList" ItemsSource="{Binding OpenDocuments}" SelectedItem="{Binding SwitcherSelection}"
+                 Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 AutomationProperties.Name="Open PDFs">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:DocumentItemViewModel">
+              <StackPanel Spacing="1" Background="Transparent" ToolTip.Tip="{Binding DisplayText}">
+                <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}"
+                           TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
 
     <!-- Empty state -->
-    <StackPanel IsVisible="{Binding !HasDocument}" HorizontalAlignment="Center" VerticalAlignment="Center"
+    <StackPanel Grid.Column="1" IsVisible="{Binding !HasDocument}" HorizontalAlignment="Center" VerticalAlignment="Center"
                 Spacing="12">
       <TextBlock Text="✂" FontSize="{DynamicResource AppFontSizeIcon}" HorizontalAlignment="Center" />
       <TextBlock Text="No PDF open" FontSize="{DynamicResource AppFontSizeHeader}" FontWeight="SemiBold" HorizontalAlignment="Center" />
-      <TextBlock Text="Double-click a PDF in the Inbox to open it here." Classes="muted"
-                 HorizontalAlignment="Center" />
+      <TextBlock Text="{Binding EmptyHint}" Classes="muted" HorizontalAlignment="Center" />
       <Button Content="Go to Inbox" Command="{Binding BackToInboxCommand}" HorizontalAlignment="Center" />
       <Button Content="↶ Undo Last Export" Command="{Binding UndoLastExportCommand}" HorizontalAlignment="Center"
               IsVisible="{Binding CanUndoLastExport}"
@@ -26,7 +45,7 @@
     </StackPanel>
 
     <!-- Editor -->
-    <DockPanel IsVisible="{Binding HasDocument}">
+    <DockPanel Grid.Column="1" IsVisible="{Binding HasDocument}">
       <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
         <Grid ColumnDefinitions="Auto,*">
           <TextBlock Text="Split &amp; Rename" Classes="page-title" VerticalAlignment="Center" />
@@ -64,19 +83,12 @@
             </StackPanel>
           </ScrollViewer>
         </Grid>
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-          <TextBlock Text="PDF:" VerticalAlignment="Center" FontWeight="SemiBold" />
-          <ComboBox Grid.Column="1" ItemsSource="{Binding OpenDocuments}" SelectedItem="{Binding SwitcherSelection}"
-                    HorizontalAlignment="Stretch" ToolTip.Tip="Switch between open PDFs">
-            <ComboBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:DocumentItemViewModel">
-                <TextBlock Text="{Binding DisplayText}" TextTrimming="CharacterEllipsis" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-          <TextBlock Grid.Column="2" Text="Workspace:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="8,0,0,0" />
-          <ComboBox Grid.Column="3" ItemsSource="{Binding WorkspaceNames}" SelectedItem="{Binding SelectedWorkspace}"
-                    MinWidth="170" IsEnabled="{Binding IsFormReady}" />
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+          <TextBlock Text="{Binding Document.FileName, FallbackValue=''}" VerticalAlignment="Center" FontWeight="SemiBold"
+                     TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Document.FilePath, FallbackValue=''}" />
+          <TextBlock Grid.Column="1" Text="Workspace:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="8,0,0,0" />
+          <ComboBox Grid.Column="2" ItemsSource="{Binding WorkspaceNames}" SelectedItem="{Binding SelectedWorkspace}"
+                    MinWidth="170" IsEnabled="{Binding IsFormReady}" AutomationProperties.Name="Workspace" />
         </Grid>
         <TextBlock Text="{Binding WorkspaceSummary}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap" />
       </StackPanel>
@@ -114,11 +126,11 @@
                   <StackPanel Spacing="3">
                     <TextBlock Text="{Binding ClientLabel}" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                      <AutoCompleteBox x:Name="ClientNameBox" Text="{Binding ClientName}" ItemsSource="{Binding ClientSuggestions}"
+                      <AutoCompleteBox x:Name="ClientNameBox" Text="{Binding ClientName}" AsyncPopulator="{Binding ClientPopulator}"
                                        FilterMode="None" MinimumPrefixLength="1" MinimumPopulateDelay="0"
                                        PlaceholderText="Client name (leave blank to omit)"
                                        AutomationProperties.Name="Client name"
-                                       ToolTip.Tip="Suggestions come from client folders in the export folder and your export history. Press Down, then Enter, to pick one." />
+                                       ToolTip.Tip="Suggestions come from the client names in your export log (the Logs page). Press Down, then Enter, to pick one." />
                       <Button Grid.Column="1" Content="Aa" Command="{Binding TitleCaseClientCommand}"
                               ToolTip.Tip="Convert the client name to title case (for pasted ALL CAPS names)" />
                     </Grid>

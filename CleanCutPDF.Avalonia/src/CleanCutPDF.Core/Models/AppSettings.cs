@@ -54,6 +54,15 @@ public sealed class AppSettings
 
     public List<FolderShortcut> FolderShortcuts { get; set; } = [];
 
+    /// <summary>
+    /// Client names the user removed from suggestions (name → when it was hidden, local time).
+    /// The export history itself is not changed; exporting the name again brings it back.
+    /// </summary>
+    public Dictionary<string, DateTime> HiddenClientNames { get; set; } = [];
+
+    /// <summary>The page list on the left shows icons only.</summary>
+    public bool SidebarCollapsed { get; set; }
+
     /// <summary>When CleanCutPDF 1.x data was last imported (null = never).</summary>
     public DateTimeOffset? LegacyImportedUtc { get; set; }
 
@@ -68,6 +77,7 @@ public sealed class AppSettings
         var copy = (AppSettings)MemberwiseClone();
         copy.FolderShortcuts = FolderShortcuts.Select(s => s with { }).ToList();
         copy.Keybinds = new Dictionary<string, string>(Keybinds);
+        copy.HiddenClientNames = new Dictionary<string, DateTime>(HiddenClientNames);
         return copy;
     }
 

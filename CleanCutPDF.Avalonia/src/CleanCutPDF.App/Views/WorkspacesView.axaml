@@ -67,6 +67,8 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <TextBlock Text="{Binding FilenamePreview}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding FilenameNote}" Classes="note"
+                           IsVisible="{Binding FilenameNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               </StackPanel>
             </Border>
 

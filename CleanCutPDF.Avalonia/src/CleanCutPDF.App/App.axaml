@@ -52,10 +52,12 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Grid ColumnDefinitions="Auto,*">
+        <Grid ColumnDefinitions="Auto,*,Auto">
           <Button Content="Today" Command="{Binding TodayCommand}" IsVisible="{Binding IsDate}" Margin="0,0,8,0" />
           <controls:FieldTextBox Grid.Column="1" Text="{Binding Text}" PlaceholderText="{Binding Placeholder}"
                    AutomationProperties.Name="{Binding Definition.Label}" />
+          <controls:CalendarButton Grid.Column="2" SelectedDate="{Binding PickedDate}" IsVisible="{Binding IsDate}" Margin="6,0,0,0"
+                   AutomationProperties.Name="{Binding Definition.Label, StringFormat='Open calendar for {0}'}" />
         </Grid>
       </StackPanel>
     </DataTemplate>

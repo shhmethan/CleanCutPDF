@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:CleanCutPDF.App.ViewModels"
-             xmlns:history="using:CleanCutPDF.Core.History"
+             xmlns:controls="using:CleanCutPDF.App.Controls"
              x:Class="CleanCutPDF.App.Views.LogsView"
              x:DataType="vm:LogsViewModel">
 
@@ -9,7 +9,7 @@
     <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
       <TextBlock Text="Logs" Classes="page-title" />
       <TextBlock Classes="muted" TextWrapping="Wrap"
-                 Text="Every file exported or renamed, grouped by day and client. Search and filters update as you type." />
+                 Text="Every file exported or renamed, grouped by day and client. Search and filters update as you type. Right-click a file to copy it; tick files to export or print only those." />
     </StackPanel>
 
     <WrapPanel DockPanel.Dock="Top" ItemSpacing="8" LineSpacing="8" Margin="0,0,0,8">
@@ -17,14 +17,22 @@
                AutomationProperties.Name="Search history" />
       <TextBox Text="{Binding WorkspaceFilter}" PlaceholderText="Workspace" Width="140"
                AutomationProperties.Name="Workspace filter" />
-      <CalendarDatePicker SelectedDate="{Binding FromDate}" PlaceholderText="From date" Width="140"
+      <controls:DateFilterBox SelectedDate="{Binding FromDate}" PlaceholderText="From date" Width="170"
                           AutomationProperties.Name="Export date from" />
-      <CalendarDatePicker SelectedDate="{Binding ToDate}" PlaceholderText="To date" Width="140"
+      <controls:DateFilterBox SelectedDate="{Binding ToDate}" PlaceholderText="To date" Width="170"
                           AutomationProperties.Name="Export date through" />
       <ComboBox ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}" MinWidth="180"
                 AutomationProperties.Name="Sort" />
       <Button Content="Clear Filters" Command="{Binding ClearFiltersCommand}" />
     </WrapPanel>
+
+    <Border DockPanel.Dock="Top" Classes="card" Padding="12,6" Margin="0,0,0,8" IsVisible="{Binding HasChecked}">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <TextBlock Text="{Binding CheckedText}" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" />
+        <Button Grid.Column="1" Content="Tick All Shown" Command="{Binding SelectShownCommand}" />
+        <Button Grid.Column="2" Content="Clear Selection" Command="{Binding ClearSelectionCommand}" />
+      </Grid>
+    </Border>
 
     <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
       <TextBlock Text="{Binding Summary}" Classes="muted" VerticalAlignment="Center" />
@@ -55,11 +63,27 @@
                   <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" FontSize="{DynamicResource AppFontSizeMedium}" />
                   <ItemsControl ItemsSource="{Binding Entries}">
                     <ItemsControl.ItemTemplate>
-                      <DataTemplate x:DataType="history:HistoryEntry">
-                        <Grid ColumnDefinitions="70,*" Margin="0,2" ToolTip.Tip="{Binding Raw}">
-                          <TextBlock Text="{Binding Time}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" VerticalAlignment="Top" />
-                          <StackPanel Grid.Column="1">
-                            <SelectableTextBlock Text="{Binding File}" TextWrapping="Wrap" />
+                      <DataTemplate x:DataType="vm:HistoryEntryRow">
+                        <Grid ColumnDefinitions="Auto,70,*" Margin="0,2" Background="Transparent" ToolTip.Tip="{Binding Raw}">
+                          <Grid.ContextMenu>
+                            <ContextMenu>
+                              <MenuItem Header="Copy File Name" Command="{Binding Owner.CopyFileNameCommand}" CommandParameter="{Binding}" />
+                              <MenuItem Header="Copy File Name and Details" Command="{Binding Owner.CopyDetailsCommand}" CommandParameter="{Binding}" />
+                              <MenuItem Header="Copy Client Name" Command="{Binding Owner.CopyClientCommand}" CommandParameter="{Binding}"
+                                        IsEnabled="{Binding HasClient}" />
+                              <MenuItem Header="Copy Log Line" Command="{Binding Owner.CopyLogLineCommand}" CommandParameter="{Binding}" />
+                              <Separator />
+                              <MenuItem Header="{Binding HideClientText}" Command="{Binding Owner.HideClientCommand}" CommandParameter="{Binding}"
+                                        IsVisible="{Binding HasClient}" />
+                            </ContextMenu>
+                          </Grid.ContextMenu>
+                          <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Top" MinWidth="0" Padding="0" Margin="0,0,8,0"
+                                    ToolTip.Tip="Tick files to export or print only those"
+                                    AutomationProperties.Name="{Binding File, StringFormat='Select {0}'}" />
+                          <TextBlock Grid.Column="1" Text="{Binding Time}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                          <StackPanel Grid.Column="2">
+                            <!-- Plain text so right-click opens the Copy menu above (Ctrl+C still copies a selection). -->
+                            <SelectableTextBlock Text="{Binding File}" TextWrapping="Wrap" ContextFlyout="{x:Null}" />
                             <TextBlock Text="{Binding Details}" Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap" />
                           </StackPanel>
                         </Grid>

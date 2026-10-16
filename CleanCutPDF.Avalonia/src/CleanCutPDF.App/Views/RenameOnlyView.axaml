@@ -8,7 +8,7 @@
     <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
       <TextBlock Text="Rename Only" Classes="page-title" />
       <TextBlock Classes="muted" TextWrapping="Wrap"
-                 Text="Rename each PDF with the normal workspace fields. Each PDF is treated as one document; no SPLIT HERE markers are used. Drop PDFs here while this page is open." />
+                 Text="Rename each PDF with the normal workspace fields. Each PDF is treated as one document; no SPLIT HERE markers are looked for, so files open right away. Drop PDFs here while this page is open. A file CleanCutPDF exported earlier gets its fields filled back in, so a mistake is quick to fix (choose &#x201C;Rename originals in place&#x201D; to fix the file itself)." />
     </StackPanel>
 
     <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8" Margin="0,0,0,12">
@@ -59,6 +59,9 @@
           </Border>
           <ScrollViewer Padding="14,12">
             <StackPanel Spacing="10" IsVisible="{Binding Form, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <Border Classes="part" Padding="10,6" Margin="0" IsVisible="{Binding HasRecognitionNote}">
+                <TextBlock Text="{Binding RecognitionNote}" TextWrapping="Wrap" Classes="note" />
+              </Border>
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                 <TextBlock Text="Workspace:" FontWeight="SemiBold" VerticalAlignment="Center" />
                 <ComboBox Grid.Column="1" ItemsSource="{Binding WorkspaceNames}" SelectedItem="{Binding SelectedWorkspace}"
@@ -67,7 +70,7 @@
               <StackPanel Spacing="3">
                 <TextBlock Text="{Binding ClientLabel}" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                  <AutoCompleteBox Text="{Binding ClientName}" ItemsSource="{Binding ClientSuggestions}"
+                  <AutoCompleteBox Text="{Binding ClientName}" AsyncPopulator="{Binding ClientPopulator}"
                                    FilterMode="None" MinimumPrefixLength="1" MinimumPopulateDelay="0"
                                    PlaceholderText="Client name (leave blank to omit)" AutomationProperties.Name="Client name" />
                   <Button Grid.Column="1" Content="Aa" Command="{Binding TitleCaseClientCommand}"

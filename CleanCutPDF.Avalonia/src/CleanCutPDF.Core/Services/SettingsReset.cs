@@ -28,6 +28,7 @@ public sealed class SettingsReset(AppPaths paths, ISettingsService settings, Wor
     public static AppSettings Defaults(AppSettings current) => new()
     {
         Keybinds = new Dictionary<string, string>(current.Keybinds),
+        HiddenClientNames = new Dictionary<string, DateTime>(current.HiddenClientNames),
         LegacyImportedUtc = current.LegacyImportedUtc,
         LegacyImportOffered = current.LegacyImportOffered,
         TutorialSeen = current.TutorialSeen,

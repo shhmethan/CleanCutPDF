@@ -139,6 +139,33 @@
 
       <Border Classes="card">
         <StackPanel Spacing="8">
+          <TextBlock Text="Client name suggestions" Classes="section-title" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
+                     Text="Suggestions come from the Logs page. Hide a misspelled name here, or right-click an entry on the Logs page. The log itself is not changed, and a hidden name comes back if you export it again." />
+          <ItemsControl ItemsSource="{Binding HiddenClientNames}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" Margin="0,2">
+                  <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  <Button Grid.Column="1" Content="Show Again"
+                          AutomationProperties.Name="{Binding StringFormat='Show {0} again'}"
+                          Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).UnhideClientNameCommand}"
+                          CommandParameter="{Binding}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="No hidden names." Classes="muted" IsVisible="{Binding !HasHiddenClientNames}" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBox Text="{Binding NameToHide}" PlaceholderText="Client name to hide, exactly as suggested"
+                     AutomationProperties.Name="Client name to hide" />
+            <Button Grid.Column="1" Content="Hide" Command="{Binding HideClientNameCommand}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
           <TextBlock Text="Import from CleanCutPDF 1.x" Classes="section-title" />
           <TextBlock Classes="muted" FontSize="{DynamicResource AppFontSizeSmall}" TextWrapping="Wrap"
                      Text="Brings over your workspaces, custom fields, filename formats, notes, settings, folder shortcuts, open PDFs with their typed values, Inbox folders, and export history. CleanCutPDF 1.x data is only read, never changed." />
